@@ -6,7 +6,9 @@ import { sanitizeCallbackUrl } from "@/lib/auth/callback-url";
 
 const { auth } = NextAuth(authConfig);
 
-const publicPaths = ["/login", "/api/auth"];
+const publicPaths = ["/login", "/api/auth", "/share"];
+
+const adminRoles = new Set(["super_admin", "admin"]);
 
 const cronPaths = ["/api/sync/cron", "/api/alerts/cron"];
 
@@ -43,6 +45,13 @@ export default auth((request) => {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (
+    pathname.startsWith("/admin") &&
+    !adminRoles.has(session.user.role ?? "")
+  ) {
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();

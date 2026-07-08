@@ -6,9 +6,41 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { getDb } from "@/lib/db";
 import { users, type UserRole } from "@/lib/db/schema";
 
+async function loadUserFromDb(userId: number) {
+  const db = getDb();
+  if (!db) return null;
+
+  const [row] = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      role: users.role,
+      isActive: users.isActive,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!row?.isActive) return null;
+
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    role: row.role as UserRole,
+  };
+}
+
 export async function getSessionUser() {
   const session = await auth();
-  if (!session?.user?.id || !session.user.role) return null;
+  if (!session?.user?.id) return null;
+
+  const dbUser = await loadUserFromDb(Number(session.user.id));
+  if (dbUser) return dbUser;
+
+  if (!session.user.role) return null;
+
   return {
     id: Number(session.user.id),
     email: session.user.email!,
@@ -22,20 +54,6 @@ export async function requireSessionUser() {
   if (!user) {
     throw new Error("UNAUTHORIZED");
   }
-
-  const db = getDb();
-  if (db) {
-    const [row] = await db
-      .select({ isActive: users.isActive })
-      .from(users)
-      .where(eq(users.id, user.id))
-      .limit(1);
-
-    if (!row?.isActive) {
-      throw new Error("UNAUTHORIZED");
-    }
-  }
-
   return user;
 }
 

@@ -22,13 +22,14 @@ export function AppShell({ children }: AppShellProps) {
   const mode = getSidebarMode(pathname);
   const isAuthRoute =
     pathname === "/login" || pathname.startsWith("/login/");
+  const isShareRoute = pathname === "/share" || pathname.startsWith("/share/");
 
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
   useEffect(() => {
-    if (!isAuthRoute) return;
+    if (!isAuthRoute && !isShareRoute) return;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "auto";
@@ -36,7 +37,7 @@ export function AppShell({ children }: AppShellProps) {
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [isAuthRoute]);
+  }, [isAuthRoute, isShareRoute]);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -55,7 +56,7 @@ export function AppShell({ children }: AppShellProps) {
     };
   }, [mobileOpen]);
 
-  if (isAuthRoute) {
+  if (isAuthRoute || isShareRoute) {
     return <>{children}</>;
   }
 

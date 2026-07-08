@@ -230,6 +230,27 @@ export const passwordResetTokens = pgTable(
   (table) => [uniqueIndex("password_reset_tokens_hash_idx").on(table.tokenHash)],
 );
 
+export const tenderShares = pgTable(
+  "tender_shares",
+  {
+    id: serial("id").primaryKey(),
+    tenderId: integer("tender_id")
+      .references(() => tenders.id, { onDelete: "cascade" })
+      .notNull(),
+    tokenHash: text("token_hash").notNull(),
+    createdById: integer("created_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    expiresAt: timestamp("expires_at").notNull(),
+    viewCount: integer("view_count").notNull().default(0),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("tender_shares_token_hash_idx").on(table.tokenHash),
+    uniqueIndex("tender_shares_tender_id_idx").on(table.tenderId),
+  ],
+);
+
 export type User = typeof users.$inferSelect;
 export type Source = typeof sources.$inferSelect;
 export type Region = typeof regions.$inferSelect;
@@ -240,6 +261,7 @@ export type SyncLog = typeof syncLogs.$inferSelect;
 export type EmailAlertLog = typeof emailAlertLog.$inferSelect;
 export type EmailDigestLog = typeof emailDigestLog.$inferSelect;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type TenderShare = typeof tenderShares.$inferSelect;
 export type UserRole = (typeof userRoleEnum.enumValues)[number];
 
 export type TenderWithSource = Tender & {

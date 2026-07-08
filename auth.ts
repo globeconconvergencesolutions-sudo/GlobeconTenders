@@ -15,6 +15,57 @@ const credentialsSchema = z.object({
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  callbacks: {
+    ...authConfig.callbacks,
+    jwt: async ({ token, user }) => {
+      if (user) {
+        token.role = user.role;
+        token.name = user.name;
+        token.email = user.email;
+      }
+
+      if (token.sub) {
+        const db = getDb();
+        if (db) {
+          const [row] = await db
+            .select({
+              role: users.role,
+              isActive: users.isActive,
+              name: users.name,
+              email: users.email,
+            })
+            .from(users)
+            .where(eq(users.id, Number(token.sub)))
+            .limit(1);
+
+          if (!row?.isActive) {
+            token.isActive = false;
+          } else {
+            token.isActive = true;
+            token.role = row.role;
+            token.name = row.name;
+            token.email = row.email;
+          }
+        }
+      }
+
+      return token;
+    },
+    session: async ({ session, token }) => {
+      if (token.isActive === false) {
+        return { expires: session.expires };
+      }
+      if (session.user && token.sub) {
+        session.user.id = token.sub;
+        session.user.role = (token.role as UserRole | undefined) ?? "viewer";
+        session.user.name =
+          (token.name as string | undefined) ?? session.user.name;
+        session.user.email =
+          (token.email as string | undefined) ?? session.user.email;
+      }
+      return session;
+    },
+  },
   providers: [
     Credentials({
       credentials: {

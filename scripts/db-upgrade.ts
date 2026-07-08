@@ -147,6 +147,18 @@ const statements = [
     "created_at" timestamp DEFAULT now() NOT NULL
   );`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "password_reset_tokens_hash_idx" ON "password_reset_tokens" ("token_hash");`,
+
+  `CREATE TABLE IF NOT EXISTS "tender_shares" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "tender_id" integer NOT NULL REFERENCES "tenders"("id") ON DELETE cascade,
+    "token_hash" text NOT NULL,
+    "created_by_id" integer REFERENCES "users"("id") ON DELETE set null,
+    "expires_at" timestamp NOT NULL,
+    "view_count" integer DEFAULT 0 NOT NULL,
+    "created_at" timestamp DEFAULT now() NOT NULL
+  );`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "tender_shares_token_hash_idx" ON "tender_shares" ("token_hash");`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "tender_shares_tender_id_idx" ON "tender_shares" ("tender_id");`,
 ];
 
 async function upgrade() {

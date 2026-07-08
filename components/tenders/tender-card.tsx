@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Clock, ExternalLink, Heart, Loader2 } from "lucide-react";
 
+import { ShareTenderButton } from "@/components/share/public-tender-view";
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { TenderWithSource } from "@/lib/db/schema";
@@ -62,17 +64,19 @@ export function TenderCard({ tender, canSave = false }: TenderCardProps) {
               {tender.referenceId}
             </span>
           </div>
-          <button
-            type="button"
-            className={cn(
-              "rounded-md p-1 text-muted-foreground transition-colors",
-              canSave && "hover:bg-slate-100 hover:text-red-500",
-              !canSave && "cursor-default opacity-60",
-            )}
-            aria-label={saved ? "Unsave tender" : "Save tender"}
-            disabled={!canSave || saving}
-            onClick={toggleSaved}
-          >
+          <div className="flex items-center gap-1">
+            <ShareTenderButton tenderId={tender.id} tenderTitle={tender.title} />
+            <button
+              type="button"
+              className={cn(
+                "rounded-md p-1 text-muted-foreground transition-colors",
+                canSave && "hover:bg-slate-100 hover:text-red-500",
+                !canSave && "cursor-default opacity-60",
+              )}
+              aria-label={saved ? "Unsave tender" : "Save tender"}
+              disabled={!canSave || saving}
+              onClick={toggleSaved}
+            >
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
@@ -83,7 +87,8 @@ export function TenderCard({ tender, canSave = false }: TenderCardProps) {
                 )}
               />
             )}
-          </button>
+            </button>
+          </div>
         </div>
 
         <h3 className="mb-3 line-clamp-3 flex-1 text-sm font-semibold leading-snug text-foreground">

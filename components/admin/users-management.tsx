@@ -32,6 +32,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import {
   canCreateUsers,
+  canDeleteUsers,
   canManageUsers,
   ROLE_LABELS,
 } from "@/lib/auth/permissions";
@@ -89,6 +90,7 @@ export function UsersManagement({
   const assignableRoles = rolesActorCanAssign(actorRole);
   const canManage = canManageUsers(actorRole);
   const canCreate = canCreateUsers(actorRole);
+  const canDelete = canDeleteUsers(actorRole);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -371,7 +373,7 @@ export function UsersManagement({
                             variant="outline"
                             size="sm"
                             className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/30"
-                            disabled={busy || removing}
+                            disabled={!canDelete || busy || removing}
                             onClick={() => setRemoveTarget(user)}
                           >
                             <Trash2 className="h-4 w-4" />
