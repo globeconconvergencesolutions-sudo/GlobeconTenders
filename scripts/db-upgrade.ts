@@ -159,6 +159,26 @@ const statements = [
   );`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "tender_shares_token_hash_idx" ON "tender_shares" ("token_hash");`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "tender_shares_tender_id_idx" ON "tender_shares" ("tender_id");`,
+
+  `CREATE TABLE IF NOT EXISTS "workspace_settings" (
+    "id" integer PRIMARY KEY DEFAULT 1,
+    "organization_name" text DEFAULT 'Globecon' NOT NULL,
+    "notifications" jsonb DEFAULT '{"enabled":true,"mode":"explicit_list","includedUserIds":[],"respectUserOptOut":true,"defaultPrefs":{"enabled":true,"closingSoon":true,"closingSoonDays":3,"highMatch":true,"highMatchThreshold":30,"afterSync":true}}'::jsonb NOT NULL,
+    "branding" jsonb DEFAULT '{}'::jsonb NOT NULL,
+    "catalog" jsonb DEFAULT '{"allowDeleteBuiltIn":true}'::jsonb NOT NULL,
+    "updated_by_id" integer REFERENCES "users"("id") ON DELETE set null,
+    "updated_at" timestamp DEFAULT now() NOT NULL
+  );`,
+  `INSERT INTO "workspace_settings" ("id") SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM "workspace_settings" WHERE "id" = 1);`,
+
+  `CREATE TABLE IF NOT EXISTS "user_permission_grants" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "user_id" integer NOT NULL REFERENCES "users"("id") ON DELETE cascade,
+    "permission" text NOT NULL,
+    "granted_by_id" integer REFERENCES "users"("id") ON DELETE set null,
+    "created_at" timestamp DEFAULT now() NOT NULL
+  );`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "user_permission_grants_user_permission_idx" ON "user_permission_grants" ("user_id", "permission");`,
 ];
 
 async function upgrade() {

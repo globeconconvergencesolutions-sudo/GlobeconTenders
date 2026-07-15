@@ -13,6 +13,10 @@ import {
   maskEmailAddress,
 } from "@/lib/email/transport";
 import { DEFAULT_NOTIFICATION_PREFS } from "@/lib/db/schema";
+import {
+  getWorkspaceSettings,
+  isUserIncludedInAlerts,
+} from "@/lib/settings/workspace";
 
 const prefsSchema = z.object({
   enabled: z.boolean(),
@@ -26,11 +30,18 @@ const prefsSchema = z.object({
 export async function GET() {
   try {
     const user = await requireSessionUser();
-    const [prefs, recentDigests, emailStatus] = await Promise.all([
+    const [prefs, recentDigests, emailStatus, workspace] = await Promise.all([
       getUserNotificationPrefs(user.id),
       getRecentDigestLogs(user.id),
       getEmailConnectionStatus(),
+      getWorkspaceSettings(),
     ]);
+
+    const orgIncluded = isUserIncludedInAlerts(
+      user.id,
+      workspace.notifications,
+    );
+    const workspaceAlertsEnabled = workspace.notifications.enabled;
 
     return NextResponse.json({
       prefs,
@@ -48,6 +59,14 @@ export async function GET() {
         sentAt: row.sentAt.toISOString(),
       })),
       defaults: DEFAULT_NOTIFICATION_PREFS,
+      workspaceAlertsEnabled,
+      orgIncluded,
+      explicitListOnly: true,
+      receivesAlerts:
+        workspaceAlertsEnabled &&
+        orgIncluded &&
+        workspace.notifications.respectUserOptOut &&
+        prefs.enabled,
     });
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {

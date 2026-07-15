@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +25,8 @@ type ConfirmDialogProps = {
   destructive?: boolean;
   loading?: boolean;
   error?: string | null;
+  requireTypedPhrase?: string;
+  typedPhraseLabel?: string;
   onConfirm: () => void | Promise<void>;
 };
 
@@ -35,15 +40,45 @@ export function ConfirmDialog({
   destructive = false,
   loading = false,
   error,
+  requireTypedPhrase,
+  typedPhraseLabel,
   onConfirm,
 }: ConfirmDialogProps) {
+  const [typedValue, setTypedValue] = useState("");
+
+  const needsTypedConfirm = Boolean(requireTypedPhrase);
+  const typedMatch =
+    !needsTypedConfirm ||
+    typedValue.trim() === requireTypedPhrase?.trim();
+
+  function handleOpenChange(next: boolean) {
+    if (!next) setTypedValue("");
+    onOpenChange(next);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
+        {needsTypedConfirm && (
+          <div className="space-y-2">
+            <Label htmlFor="confirm-typed-phrase">
+              {typedPhraseLabel ??
+                `Type ${requireTypedPhrase} to confirm`}
+            </Label>
+            <Input
+              id="confirm-typed-phrase"
+              value={typedValue}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={requireTypedPhrase}
+              onChange={(event) => setTypedValue(event.target.value)}
+            />
+          </div>
+        )}
         {error && (
           <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
             {error}
@@ -53,7 +88,7 @@ export function ConfirmDialog({
           <Button
             type="button"
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => handleOpenChange(false)}
             disabled={loading}
           >
             {cancelLabel}
@@ -61,7 +96,7 @@ export function ConfirmDialog({
           <Button
             type="button"
             variant={destructive ? "destructive" : "default"}
-            disabled={loading}
+            disabled={loading || !typedMatch}
             onClick={() => void onConfirm()}
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

@@ -7,6 +7,7 @@ import {
   Bell,
   FileText,
   Shield,
+  Settings,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -54,6 +55,15 @@ function briefingForMode(mode: SidebarMode): PageBriefing {
           "Invite colleagues and assign roles — super admins control all access levels.",
         accent: "from-amber-500/20 via-transparent to-orange-500/10",
         hint: "Analysts sync & export; viewers are read-only.",
+      };
+    case "settings":
+      return {
+        icon: <Settings className="h-4 w-4" />,
+        title: "Workspace settings",
+        description:
+          "Control who receives tender digests and delegate recipient management.",
+        accent: "from-slate-500/20 via-transparent to-violet-500/10",
+        hint: "Explicit recipient list — users can still opt out on Profile.",
       };
     default:
       return {

@@ -251,6 +251,96 @@ export const tenderShares = pgTable(
   ],
 );
 
+export type WorkspaceBrandingSettings = {
+  displayName?: string;
+  primaryColor?: string;
+  accentColor?: string;
+  logoUrl?: string;
+};
+
+export type WorkspaceCatalogSettings = {
+  allowDeleteBuiltIn: boolean;
+};
+
+export type WorkspaceNotificationSettings = {
+  enabled: boolean;
+  mode: "explicit_list";
+  includedUserIds: number[];
+  respectUserOptOut: boolean;
+  defaultPrefs: NotificationPrefs;
+};
+
+export type WorkspaceSettingsPayload = {
+  organizationName: string;
+  notifications: WorkspaceNotificationSettings;
+  branding: WorkspaceBrandingSettings;
+  catalog: WorkspaceCatalogSettings;
+};
+
+export const DEFAULT_WORKSPACE_NOTIFICATIONS: WorkspaceNotificationSettings = {
+  enabled: true,
+  mode: "explicit_list",
+  includedUserIds: [],
+  respectUserOptOut: true,
+  defaultPrefs: DEFAULT_NOTIFICATION_PREFS,
+};
+
+export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettingsPayload = {
+  organizationName: "Globecon",
+  notifications: DEFAULT_WORKSPACE_NOTIFICATIONS,
+  branding: {},
+  catalog: { allowDeleteBuiltIn: true },
+};
+
+export const workspaceSettings = pgTable("workspace_settings", {
+  id: integer("id").primaryKey().default(1),
+  organizationName: text("organization_name").notNull().default("Globecon"),
+  notifications: jsonb("notifications")
+    .$type<WorkspaceNotificationSettings>()
+    .notNull()
+    .default(DEFAULT_WORKSPACE_NOTIFICATIONS),
+  branding: jsonb("branding")
+    .$type<WorkspaceBrandingSettings>()
+    .notNull()
+    .default({}),
+  catalog: jsonb("catalog")
+    .$type<WorkspaceCatalogSettings>()
+    .notNull()
+    .default({ allowDeleteBuiltIn: true }),
+  updatedById: integer("updated_by_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const DELEGATABLE_SETTINGS_PERMISSIONS = [
+  "settings:notifications",
+] as const;
+
+export type DelegatableSettingsPermission =
+  (typeof DELEGATABLE_SETTINGS_PERMISSIONS)[number];
+
+export const userPermissionGrants = pgTable(
+  "user_permission_grants",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    permission: text("permission").notNull(),
+    grantedById: integer("granted_by_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("user_permission_grants_user_permission_idx").on(
+      table.userId,
+      table.permission,
+    ),
+  ],
+);
+
 export type User = typeof users.$inferSelect;
 export type Source = typeof sources.$inferSelect;
 export type Region = typeof regions.$inferSelect;
@@ -262,6 +352,8 @@ export type EmailAlertLog = typeof emailAlertLog.$inferSelect;
 export type EmailDigestLog = typeof emailDigestLog.$inferSelect;
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type TenderShare = typeof tenderShares.$inferSelect;
+export type WorkspaceSettings = typeof workspaceSettings.$inferSelect;
+export type UserPermissionGrant = typeof userPermissionGrants.$inferSelect;
 export type UserRole = (typeof userRoleEnum.enumValues)[number];
 
 export type TenderWithSource = Tender & {

@@ -1,10 +1,17 @@
-export type SidebarMode = "tenders" | "analytics" | "profile" | "team" | "default";
+export type SidebarMode =
+  | "tenders"
+  | "analytics"
+  | "profile"
+  | "team"
+  | "settings"
+  | "default";
 
 export function getSidebarMode(pathname: string): SidebarMode {
   if (pathname === "/") return "tenders";
   if (pathname.startsWith("/analytics")) return "analytics";
   if (pathname.startsWith("/profile")) return "profile";
   if (pathname.startsWith("/admin/users")) return "team";
+  if (pathname.startsWith("/settings")) return "settings";
   return "default";
 }
 

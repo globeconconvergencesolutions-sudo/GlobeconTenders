@@ -93,25 +93,35 @@ export async function deleteSourcePermanently(id: number) {
   }
 
   if (source.isBuiltIn) {
-    return NextResponse.json(
-      { error: "Built-in sources cannot be deleted. Archive instead." },
-      { status: 400 },
-    );
-  }
+    const [builtInTenderCount] = await db
+      .select({ count: count() })
+      .from(tenders)
+      .where(eq(tenders.sourceId, id));
 
-  const [tenderCount] = await db
-    .select({ count: count() })
-    .from(tenders)
-    .where(eq(tenders.sourceId, id));
+    if ((builtInTenderCount?.count ?? 0) > 0) {
+      return NextResponse.json(
+        {
+          error: `This built-in source has ${builtInTenderCount?.count} linked tender(s). Archive it instead of deleting.`,
+          tenderCount: builtInTenderCount?.count ?? 0,
+        },
+        { status: 409 },
+      );
+    }
+  } else {
+    const [tenderCount] = await db
+      .select({ count: count() })
+      .from(tenders)
+      .where(eq(tenders.sourceId, id));
 
-  if ((tenderCount?.count ?? 0) > 0) {
-    return NextResponse.json(
-      {
-        error: `This source has ${tenderCount?.count} linked tender(s). Archive it instead of deleting.`,
-        tenderCount: tenderCount?.count ?? 0,
-      },
-      { status: 409 },
-    );
+    if ((tenderCount?.count ?? 0) > 0) {
+      return NextResponse.json(
+        {
+          error: `This source has ${tenderCount?.count} linked tender(s). Archive it instead of deleting.`,
+          tenderCount: tenderCount?.count ?? 0,
+        },
+        { status: 409 },
+      );
+    }
   }
 
   await db.delete(sources).where(eq(sources.id, id));
@@ -249,13 +259,6 @@ export async function deleteServiceLinePermanently(id: number) {
 
   if (!line) {
     return NextResponse.json({ error: "Service line not found" }, { status: 404 });
-  }
-
-  if (line.isBuiltIn) {
-    return NextResponse.json(
-      { error: "Built-in service lines cannot be deleted. Archive instead." },
-      { status: 400 },
-    );
   }
 
   await db.delete(serviceLines).where(eq(serviceLines.id, id));

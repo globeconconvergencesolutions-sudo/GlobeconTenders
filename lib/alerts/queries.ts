@@ -25,6 +25,10 @@ import {
 } from "@/lib/db/schema";
 import type { AlertTenderRow } from "@/lib/email/templates";
 import { buildFilterConditions } from "@/lib/tenders/queries";
+import {
+  getWorkspaceSettings,
+  isUserIncludedInAlerts,
+} from "@/lib/settings/workspace";
 
 export type AlertType = "closing_soon" | "high_match";
 
@@ -85,6 +89,12 @@ export async function getAlertUsers(): Promise<AlertUser[]> {
   const db = getDb();
   if (!db) return [];
 
+  const workspace = await getWorkspaceSettings();
+  if (!workspace.notifications.enabled) return [];
+
+  const includedIds = workspace.notifications.includedUserIds;
+  if (includedIds.length === 0) return [];
+
   const rows = await db
     .select({
       id: users.id,
@@ -94,7 +104,7 @@ export async function getAlertUsers(): Promise<AlertUser[]> {
       notificationPrefs: users.notificationPrefs,
     })
     .from(users)
-    .where(eq(users.isActive, true));
+    .where(and(eq(users.isActive, true), inArray(users.id, includedIds)));
 
   return rows
     .map((row) => ({
@@ -107,7 +117,18 @@ export async function getAlertUsers(): Promise<AlertUser[]> {
       },
       notificationPrefs: normalizePrefs(row.notificationPrefs),
     }))
-    .filter((row) => row.notificationPrefs.enabled);
+    .filter((row) => {
+      if (!isUserIncludedInAlerts(row.id, workspace.notifications)) {
+        return false;
+      }
+      if (
+        workspace.notifications.respectUserOptOut &&
+        !row.notificationPrefs.enabled
+      ) {
+        return false;
+      }
+      return true;
+    });
 }
 
 export async function getUserNotificationPrefs(

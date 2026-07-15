@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 import {
   BarChart3,
   FileText,
+  Settings,
   User,
   Users,
   X,
@@ -51,13 +53,39 @@ export function SidebarPanel({
   const { data: session } = useSession();
   const role = session?.user?.role as UserRole | undefined;
   const showTeamNav = role ? hasPermission(role, "users:read") : false;
+  const [showSettingsNav, setShowSettingsNav] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSettingsAccess() {
+      try {
+        const response = await fetch("/api/settings/access");
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!cancelled) setShowSettingsNav(Boolean(data.canAccessSettings));
+      } catch {
+        // ignore — settings nav stays hidden
+      }
+    }
+    if (session?.user) void loadSettingsAccess();
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user]);
 
   const mode = getSidebarMode(pathname);
   const showFilters = sidebarShowsFilters(mode);
 
-  const allNavItems = showTeamNav
-    ? [...navItems, { href: "/admin/users", label: "Team", icon: Users }]
-    : navItems;
+  const extraNavItems = [
+    ...(showSettingsNav
+      ? [{ href: "/settings", label: "Settings", icon: Settings }]
+      : []),
+    ...(showTeamNav
+      ? [{ href: "/admin/users", label: "Team", icon: Users }]
+      : []),
+  ];
+
+  const allNavItems = [...navItems, ...extraNavItems];
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-gradient-to-b from-[hsl(var(--sidebar))] via-[hsl(222_47%_9%)] to-[hsl(222_47%_7%)]">
@@ -81,7 +109,10 @@ export function SidebarPanel({
         <nav aria-label="Primary">
           <ul className="flex flex-col gap-0.5">
             {allNavItems.map(({ href, label, icon: Icon }) => {
-              const active = pathname === href;
+              const active =
+                href === "/"
+                  ? pathname === "/"
+                  : pathname === href || pathname.startsWith(`${href}/`);
               return (
                 <li key={href}>
                   <Link

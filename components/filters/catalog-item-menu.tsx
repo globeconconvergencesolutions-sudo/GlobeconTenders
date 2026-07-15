@@ -27,6 +27,7 @@ type PendingAction = {
   description: string;
   confirmLabel: string;
   destructive?: boolean;
+  requireTypedPhrase?: string;
 };
 
 type MenuPosition = {
@@ -150,14 +151,17 @@ export function CatalogItemMenu({
 
     setPending({
       action,
-      title: `Delete ${itemName} permanently?`,
+      title: isBuiltIn
+        ? `Delete built-in ${itemName}?`
+        : `Delete ${itemName} permanently?`,
       description: isBuiltIn
-        ? "Built-in items cannot be deleted."
+        ? "This removes a built-in catalog item from your workspace permanently. Filters and sync behavior will change. This cannot be undone."
         : kind === "source"
           ? "Only sources with zero linked tenders can be deleted. Otherwise archive instead."
           : "This removes the service line and its filter matches. This cannot be undone.",
-      confirmLabel: "Delete permanently",
+      confirmLabel: isBuiltIn ? "Delete built-in item" : "Delete permanently",
       destructive: true,
+      requireTypedPhrase: isBuiltIn ? itemName : undefined,
     });
   }
 
@@ -226,17 +230,15 @@ export function CatalogItemMenu({
           Restore
         </button>
       )}
-      {!isBuiltIn && (
-        <button
-          type="button"
-          role="menuitem"
-          onClick={() => openAction("delete")}
-          className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-red-200 hover:bg-red-500/10"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-          Delete permanently
-        </button>
-      )}
+      <button
+        type="button"
+        role="menuitem"
+        onClick={() => openAction("delete")}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-red-200 hover:bg-red-500/10"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+        {isBuiltIn ? "Delete built-in…" : "Delete permanently"}
+      </button>
     </div>
   );
 
@@ -288,6 +290,7 @@ export function CatalogItemMenu({
         confirmLabel={pending?.confirmLabel}
         destructive={pending?.destructive}
         loading={loading}
+        requireTypedPhrase={pending?.requireTypedPhrase}
         onConfirm={executeAction}
       />
     </>

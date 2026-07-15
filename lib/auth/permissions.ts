@@ -36,6 +36,7 @@ export const PERMISSIONS = {
   "users:delete": ["super_admin", "admin"],
   "users:manage": ["super_admin"],
   "settings:manage": ["super_admin"],
+  "settings:notifications": ["super_admin"],
   "documents:upload": ["super_admin", "admin", "analyst"],
 } as const satisfies Record<string, UserRole[]>;
 
@@ -79,6 +80,14 @@ export function canExportTenders(role: UserRole): boolean {
 
 export function canManageCatalog(role: UserRole): boolean {
   return role === "super_admin" || role === "admin";
+}
+
+export function canAccessSettingsHub(role: UserRole): boolean {
+  return hasPermission(role, "settings:manage");
+}
+
+export function canDeleteCatalogItems(role: UserRole): boolean {
+  return hasPermission(role, "sources:delete");
 }
 
 export function assignableRoles(actorRole: UserRole): UserRole[] {

@@ -58,6 +58,8 @@ export function NotificationSettings({
   const [emailFromName, setEmailFromName] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [recentDigests, setRecentDigests] = useState<DigestLogRow[]>([]);
+  const [orgIncluded, setOrgIncluded] = useState(true);
+  const [workspaceAlertsEnabled, setWorkspaceAlertsEnabled] = useState(true);
   const [prefs, setPrefs] = useState<NotificationPrefs>({
     enabled: true,
     closingSoon: true,
@@ -85,6 +87,8 @@ export function NotificationSettings({
       setEmailFromName(data.emailFromName ?? null);
       setEmailError(data.emailError ?? null);
       setRecentDigests(data.recentDigests ?? []);
+      setOrgIncluded(data.orgIncluded !== false);
+      setWorkspaceAlertsEnabled(data.workspaceAlertsEnabled !== false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load settings");
     } finally {
@@ -235,6 +239,27 @@ export function NotificationSettings({
           </div>
         )}
       </div>
+
+      {!orgIncluded && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-100">
+          <p className="font-medium">You are not on the workspace alert list</p>
+          <p className="mt-1 opacity-90">
+            Your organization uses an explicit recipient list. A workspace admin
+            must include you under Settings → Notifications before digests can
+            be delivered, even if your personal alerts are on.
+          </p>
+        </div>
+      )}
+
+      {orgIncluded && !workspaceAlertsEnabled && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100">
+          <p className="font-medium">Workspace alerts are paused</p>
+          <p className="mt-1 opacity-90">
+            You are on the recipient list, but workspace-wide digests are
+            currently disabled by an administrator.
+          </p>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
