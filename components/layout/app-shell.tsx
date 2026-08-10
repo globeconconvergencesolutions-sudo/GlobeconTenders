@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 
 import { SidebarBrand, SidebarPanel } from "@/components/layout/sidebar-panel";
+import { TrialBanner } from "@/components/layout/trial-banner";
 import { Button } from "@/components/ui/button";
 import {
   getSidebarMode,
@@ -20,24 +21,10 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const mode = getSidebarMode(pathname);
-  const isAuthRoute =
-    pathname === "/login" || pathname.startsWith("/login/");
-  const isShareRoute = pathname === "/share" || pathname.startsWith("/share/");
 
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
-
-  useEffect(() => {
-    if (!isAuthRoute && !isShareRoute) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "auto";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [isAuthRoute, isShareRoute]);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -55,10 +42,6 @@ export function AppShell({ children }: AppShellProps) {
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [mobileOpen]);
-
-  if (isAuthRoute || isShareRoute) {
-    return <>{children}</>;
-  }
 
   return (
     <div className="flex h-dvh overflow-hidden bg-background">
@@ -122,6 +105,7 @@ export function AppShell({ children }: AppShellProps) {
         </header>
 
         <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain">
+          <TrialBanner />
           {children}
         </main>
       </div>

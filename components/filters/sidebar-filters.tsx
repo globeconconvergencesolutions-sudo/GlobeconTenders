@@ -17,6 +17,9 @@ import {
 import { AddCatalogDialog } from "@/components/filters/add-catalog-dialog";
 import { AddSourceDialog } from "@/components/filters/add-source-dialog";
 import { CatalogItemMenu } from "@/components/filters/catalog-item-menu";
+import { ApiErrorAlert } from "@/components/ui/api-error-alert";
+import { readApiError, type ParsedClientError } from "@/lib/api/client-error";
+import { useLayout, useLexicon } from "@/components/providers/org-context-provider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { canCreateSources, hasPermission } from "@/lib/auth/permissions";
 import type { FilterState, UserRole } from "@/lib/db/schema";
@@ -24,6 +27,7 @@ import {
   countSidebarFilters,
   hasSidebarFilters,
 } from "@/lib/filters/active-count";
+import { layoutShowsSection } from "@/lib/templates/layout-utils";
 import { cn } from "@/lib/utils";
 
 type CatalogResponse = {
@@ -67,6 +71,7 @@ type FilterAccordionProps = {
   defaultOpen?: boolean;
   onAdd?: () => void;
   canAdd?: boolean;
+  addButtonDataAttr?: string;
   children: React.ReactNode;
 };
 
@@ -78,6 +83,7 @@ function FilterAccordion({
   defaultOpen = false,
   onAdd,
   canAdd,
+  addButtonDataAttr,
   children,
 }: FilterAccordionProps) {
   const [open, setOpen] = useState(defaultOpen);
@@ -120,6 +126,7 @@ function FilterAccordion({
             <button
               type="button"
               onClick={onAdd}
+              data-add-source-trigger={addButtonDataAttr === "add-source" ? true : undefined}
               className="mb-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-white/10 px-2 py-1.5 text-[11px] font-medium text-slate-400 transition-colors hover:border-blue-400/40 hover:bg-blue-500/10 hover:text-blue-200"
             >
               <Plus className="h-3 w-3" />
@@ -191,6 +198,16 @@ function FilterOptionRow({
 
 export function SidebarFilters() {
   const router = useRouter();
+  const layout = useLayout();
+  const { lexicon } = useLexicon();
+  const showSources = layoutShowsSection(layout, "sources");
+  const showCategories =
+    layoutShowsSection(layout, "serviceLines") ||
+    layoutShowsSection(layout, "departments");
+  const showRegions =
+    layoutShowsSection(layout, "regions") ||
+    layoutShowsSection(layout, "countries");
+  const categoryLabel = lexicon.categoryPlural;
   const [loading, setLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
@@ -202,19 +219,28 @@ export function SidebarFilters() {
   const [serviceLineDialogOpen, setServiceLineDialogOpen] = useState(false);
   const [regionDialogOpen, setRegionDialogOpen] = useState(false);
   const [countryDialogOpen, setCountryDialogOpen] = useState(false);
+  const [loadError, setLoadError] = useState<ParsedClientError | null>(null);
 
   const loadCatalog = useCallback(async () => {
     setLoading(true);
-    const response = await fetch("/api/filters");
-    if (response.ok) {
+    setLoadError(null);
+    try {
+      const response = await fetch("/api/filters");
+      if (!response.ok) {
+        setLoadError(await readApiError(response, "Failed to load filters"));
+        return;
+      }
       const data = await response.json();
       setCatalog({
         ...data,
         archivedSources: data.archivedSources ?? [],
         archivedServiceLines: data.archivedServiceLines ?? [],
       });
+    } catch {
+      setLoadError({ message: "Failed to load filters — try refreshing" });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -274,6 +300,14 @@ export function SidebarFilters() {
     return (
       <div className="flex items-center justify-center py-12 text-slate-400">
         <Loader2 className="h-5 w-5 animate-spin" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="p-3">
+        <ApiErrorAlert error={loadError} />
       </div>
     );
   }
@@ -358,14 +392,16 @@ export function SidebarFilters() {
         </div>
 
         <div className="space-y-2">
+          {showSources && (
           <FilterAccordion
-            title="Sources"
+            title={lexicon.sourcePlural}
             icon={<Sparkles className="h-3.5 w-3.5" />}
             count={catalog.sources.length}
             activeCount={filterState.sourceIds.length}
             defaultOpen
             canAdd={canCreateSources(role)}
             onAdd={() => setSourceDialogOpen(true)}
+            addButtonDataAttr="add-source"
           >
             <ul className="space-y-0.5">
               {catalog.sources.map((source) => (
@@ -415,9 +451,11 @@ export function SidebarFilters() {
               </div>
             )}
           </FilterAccordion>
+          )}
 
+          {showCategories && (
           <FilterAccordion
-            title="Service lines"
+            title={categoryLabel}
             icon={<Search className="h-3.5 w-3.5" />}
             count={catalog.serviceLines.length}
             activeCount={filterState.serviceLineIds.length}
@@ -431,7 +469,7 @@ export function SidebarFilters() {
                   type="search"
                   value={serviceLineQuery}
                   onChange={(e) => setServiceLineQuery(e.target.value)}
-                  placeholder="Search service lines..."
+                  placeholder={`Search ${categoryLabel.toLowerCase()}...`}
                   className="w-full rounded-lg border border-white/10 bg-black/20 py-1.5 pl-8 pr-8 text-xs text-slate-200 placeholder:text-slate-500 focus:border-blue-400/50 focus:outline-none focus:ring-1 focus:ring-blue-400/30"
                 />
                 {serviceLineQuery && (
@@ -469,7 +507,7 @@ export function SidebarFilters() {
               ))}
               {filteredServiceLines.length === 0 && (
                 <p className="px-2 py-3 text-center text-[11px] text-slate-500">
-                  No service lines match your search
+                  No {categoryLabel.toLowerCase()} match your search
                 </p>
               )}
             </ul>
@@ -498,9 +536,11 @@ export function SidebarFilters() {
               </div>
             )}
           </FilterAccordion>
+          )}
 
+          {showRegions && (
           <FilterAccordion
-            title="Regions"
+            title={`${lexicon.region}s`}
             icon={<MapPin className="h-3.5 w-3.5" />}
             count={catalog.regions.length}
             activeCount={
@@ -588,6 +628,7 @@ export function SidebarFilters() {
               })}
             </ul>
           </FilterAccordion>
+          )}
         </div>
       </div>
 

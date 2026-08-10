@@ -8,17 +8,52 @@ import { GLOBECON_SERVICE_LINES } from "../lib/catalog/service-lines";
 import { getDatabaseUrl } from "../lib/env";
 import {
   countries,
+  orgMemberships,
+  organizations,
   regions,
   serviceLines,
   sources,
   tenders,
   users,
+  workspaceSettings,
 } from "../lib/db/schema";
 import { SEED_TENDERS } from "../lib/seed-data";
 import { installFeaturedCatalogSources } from "../lib/sources/install";
 
+const DEFAULT_ORG_SLUG = "globecon";
+
+async function ensureDefaultOrg(db: ReturnType<typeof drizzle>) {
+  const [existing] = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.slug, DEFAULT_ORG_SLUG))
+    .limit(1);
+
+  if (existing) return existing.id;
+
+  const [created] = await db
+    .insert(organizations)
+    .values({
+      name: "Globecon",
+      slug: DEFAULT_ORG_SLUG,
+      status: "active",
+      templateId: "procurement",
+      templateVersion: "1.0.0",
+      plan: "enterprise",
+    })
+    .returning({ id: organizations.id });
+
+  await db
+    .insert(workspaceSettings)
+    .values({ orgId: created.id, organizationName: "Globecon" })
+    .onConflictDoNothing();
+
+  return created.id;
+}
+
 async function seed() {
   const db = drizzle(neon(getDatabaseUrl()));
+  const orgId = await ensureDefaultOrg(db);
 
   const [userCount] = await db.select({ count: count() }).from(users);
   if (userCount.count === 0) {
@@ -27,19 +62,33 @@ async function seed() {
       process.env.SEED_SUPER_ADMIN_PASSWORD ?? "Globecon@2026",
       12,
     );
-    await db.insert(users).values({
-      email: process.env.SEED_SUPER_ADMIN_EMAIL ?? "admin@globecon.com",
-      name: "Globecon Super Admin",
-      passwordHash,
+    const [createdUser] = await db
+      .insert(users)
+      .values({
+        email: process.env.SEED_SUPER_ADMIN_EMAIL ?? "admin@globecon.com",
+        name: "Globecon Super Admin",
+        passwordHash,
+        role: "super_admin",
+        isPlatformAdmin: true,
+      })
+      .returning({ id: users.id });
+
+    await db.insert(orgMemberships).values({
+      orgId,
+      userId: createdUser.id,
       role: "super_admin",
     });
   }
 
-  const [serviceLineCount] = await db.select({ count: count() }).from(serviceLines);
+  const [serviceLineCount] = await db
+    .select({ count: count() })
+    .from(serviceLines)
+    .where(eq(serviceLines.orgId, orgId));
   if (serviceLineCount.count === 0) {
     console.log("Seeding service lines...");
     await db.insert(serviceLines).values(
       GLOBECON_SERVICE_LINES.map((line) => ({
+        orgId,
         name: line.name,
         slug: line.slug,
         keywords: line.keywords,
@@ -48,13 +97,17 @@ async function seed() {
     );
   }
 
-  const [regionCount] = await db.select({ count: count() }).from(regions);
+  const [regionCount] = await db
+    .select({ count: count() })
+    .from(regions)
+    .where(eq(regions.orgId, orgId));
   if (regionCount.count === 0) {
     console.log("Seeding regions and countries...");
     for (const region of GLOBECON_REGIONS) {
       const [createdRegion] = await db
         .insert(regions)
         .values({
+          orgId,
           name: region.name,
           slug: region.slug,
           keywords: region.keywords,
@@ -65,6 +118,7 @@ async function seed() {
       if (region.countries.length > 0) {
         await db.insert(countries).values(
           region.countries.map((country) => ({
+            orgId,
             regionId: createdRegion.id,
             name: country.name,
             slug: country.slug,
@@ -76,11 +130,15 @@ async function seed() {
     }
   }
 
-  const [sourceCount] = await db.select({ count: count() }).from(sources);
+  const [sourceCount] = await db
+    .select({ count: count() })
+    .from(sources)
+    .where(eq(sources.orgId, orgId));
   if (sourceCount.count === 0) {
     console.log("Seeding built-in sources...");
     await db.insert(sources).values([
       {
+        orgId,
         name: "World Bank",
         slug: "world-bank",
         type: "link",
@@ -91,6 +149,7 @@ async function seed() {
         isBuiltIn: true,
       },
       {
+        orgId,
         name: "Tender Yetu",
         slug: "tender-yetu",
         type: "link",
@@ -100,87 +159,41 @@ async function seed() {
         enabled: true,
         isBuiltIn: true,
       },
-      {
-        name: "Kenya PPIP (IFMIS)",
-        slug: "kenya-ppip",
-        type: "link",
-        adapter: "kenya-ppip",
-        url: "https://tenders.go.ke",
-        color: "#059669",
-        enabled: true,
-        isBuiltIn: true,
-      },
-      {
-        name: "AfDB — Specific Procurement",
-        slug: "afdb-spn",
-        type: "link",
-        adapter: "afdb-procurement",
-        url: "https://www.afdb.org/en/documents/project-related-procurement/procurement-notices/specific-procurement-notices",
-        color: "#009844",
-        enabled: true,
-        isBuiltIn: true,
-      },
-      {
-        name: "AfDB — Invitation for Bids",
-        slug: "afdb-ifb",
-        type: "link",
-        adapter: "afdb-procurement",
-        url: "https://www.afdb.org/en/documents/project-related-procurement/procurement-notices/invitation-for-bids",
-        color: "#047857",
-        enabled: true,
-        isBuiltIn: true,
-      },
     ]);
   }
 
-  console.log("Ensuring featured catalog sources are installed...");
-  const installResults = await installFeaturedCatalogSources();
-  const installed = installResults.filter((r) => r.status === "installed");
-  const synced = installResults.filter((r) => r.sync?.inserted);
-  if (installed.length > 0) {
-    console.log(
-      `Installed ${installed.length} catalog source(s): ${installed.map((r) => r.sourceName).join(", ")}`,
-    );
-  }
-  if (synced.length > 0) {
-    console.log(
-      `Initial sync pulled ${synced.reduce((sum, r) => sum + (r.sync?.inserted ?? 0), 0)} live tenders.`,
-    );
-  }
-
-  const [tenderCount] = await db.select({ count: count() }).from(tenders);
-  if (tenderCount.count === 0 && process.env.SEED_SAMPLE_TENDERS === "true") {
-    const allSources = await db.select().from(sources);
-    const sourceBySlug = Object.fromEntries(allSources.map((s) => [s.slug, s]));
-
+  const [tenderCount] = await db
+    .select({ count: count() })
+    .from(tenders)
+    .where(eq(tenders.orgId, orgId));
+  if (tenderCount.count === 0) {
     console.log("Seeding sample tenders...");
-    await db.insert(tenders).values(
-      SEED_TENDERS.map((t) => ({
-        sourceId: sourceBySlug[t.sourceSlug].id,
-        referenceId: t.referenceId,
-        title: t.title,
-        projectLabel: "World Bank Project",
-        category: t.category,
-        deadline: new Date(t.deadline),
-        url: `https://projects.worldbank.org/en/projects-operations/procurement/${t.referenceId}`,
-        isClosed: false,
-        saved: false,
-      })),
-    );
+    const orgSources = await db
+      .select()
+      .from(sources)
+      .where(eq(sources.orgId, orgId));
+    const worldBank = orgSources.find((s) => s.slug === "world-bank");
+    if (worldBank) {
+      await db.insert(tenders).values(
+        SEED_TENDERS.map((tender) => ({
+          orgId,
+          sourceId: worldBank.id,
+          referenceId: tender.referenceId,
+          title: tender.title,
+          category: tender.category,
+          deadline: new Date(tender.deadline),
+        })),
+      );
+    }
   }
 
-  console.log("Seed complete.");
-  console.log(
-    "Super admin login:",
-    process.env.SEED_SUPER_ADMIN_EMAIL ?? "admin@globecon.com",
-  );
-  console.log(
-    "Default password:",
-    process.env.SEED_SUPER_ADMIN_PASSWORD ?? "Globecon@2026",
-  );
+  console.log("Installing featured catalog sources...");
+  await installFeaturedCatalogSources(orgId);
+
+  console.log("Seed complete for org:", DEFAULT_ORG_SLUG);
 }
 
-seed().catch((err) => {
-  console.error(err);
+seed().catch((error) => {
+  console.error(error);
   process.exit(1);
 });

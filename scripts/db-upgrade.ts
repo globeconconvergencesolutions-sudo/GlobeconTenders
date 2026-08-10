@@ -169,7 +169,16 @@ const statements = [
     "updated_by_id" integer REFERENCES "users"("id") ON DELETE set null,
     "updated_at" timestamp DEFAULT now() NOT NULL
   );`,
-  `INSERT INTO "workspace_settings" ("id") SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM "workspace_settings" WHERE "id" = 1);`,
+  `DO $$ BEGIN
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_name = 'workspace_settings' AND column_name = 'id'
+    ) THEN
+      INSERT INTO "workspace_settings" ("id")
+      SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM "workspace_settings" WHERE "id" = 1);
+    END IF;
+  EXCEPTION WHEN others THEN NULL;
+  END $$;`,
 
   `CREATE TABLE IF NOT EXISTS "user_permission_grants" (
     "id" serial PRIMARY KEY NOT NULL,
@@ -179,6 +188,110 @@ const statements = [
     "created_at" timestamp DEFAULT now() NOT NULL
   );`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "user_permission_grants_user_permission_idx" ON "user_permission_grants" ("user_id", "permission");`,
+
+  `CREATE TABLE IF NOT EXISTS "organizations" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "name" text NOT NULL,
+    "slug" text NOT NULL,
+    "status" text DEFAULT 'active' NOT NULL,
+    "template_id" text DEFAULT 'procurement' NOT NULL,
+    "template_version" text DEFAULT '1.0.0' NOT NULL,
+    "plan" text DEFAULT 'trial' NOT NULL,
+    "trial_ends_at" timestamp,
+    "max_seats" integer DEFAULT 25 NOT NULL,
+    "max_sources" integer DEFAULT 50 NOT NULL,
+    "created_at" timestamp DEFAULT now() NOT NULL,
+    "updated_at" timestamp DEFAULT now() NOT NULL
+  );`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "organizations_slug_idx" ON "organizations" ("slug");`,
+
+  `INSERT INTO "organizations" ("name", "slug", "status", "template_id", "template_version", "plan")
+   SELECT 'Globecon', 'globecon', 'active', 'procurement', '1.0.0', 'enterprise'
+   WHERE NOT EXISTS (SELECT 1 FROM "organizations" WHERE "slug" = 'globecon');`,
+
+  `CREATE TABLE IF NOT EXISTS "org_memberships" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "org_id" integer NOT NULL REFERENCES "organizations"("id") ON DELETE cascade,
+    "user_id" integer NOT NULL REFERENCES "users"("id") ON DELETE cascade,
+    "role" "user_role" NOT NULL,
+    "is_active" boolean DEFAULT true NOT NULL,
+    "created_at" timestamp DEFAULT now() NOT NULL
+  );`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "org_memberships_org_user_idx" ON "org_memberships" ("org_id", "user_id");`,
+
+  `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "is_platform_admin" boolean DEFAULT false NOT NULL;`,
+
+  `ALTER TABLE "sources" ADD COLUMN IF NOT EXISTS "org_id" integer REFERENCES "organizations"("id") ON DELETE cascade;`,
+  `ALTER TABLE "regions" ADD COLUMN IF NOT EXISTS "org_id" integer REFERENCES "organizations"("id") ON DELETE cascade;`,
+  `ALTER TABLE "countries" ADD COLUMN IF NOT EXISTS "org_id" integer REFERENCES "organizations"("id") ON DELETE cascade;`,
+  `ALTER TABLE "service_lines" ADD COLUMN IF NOT EXISTS "org_id" integer REFERENCES "organizations"("id") ON DELETE cascade;`,
+  `ALTER TABLE "tenders" ADD COLUMN IF NOT EXISTS "org_id" integer REFERENCES "organizations"("id") ON DELETE cascade;`,
+  `ALTER TABLE "sync_logs" ADD COLUMN IF NOT EXISTS "org_id" integer REFERENCES "organizations"("id") ON DELETE cascade;`,
+  `ALTER TABLE "email_alert_log" ADD COLUMN IF NOT EXISTS "org_id" integer REFERENCES "organizations"("id") ON DELETE cascade;`,
+  `ALTER TABLE "email_digest_log" ADD COLUMN IF NOT EXISTS "org_id" integer REFERENCES "organizations"("id") ON DELETE cascade;`,
+  `ALTER TABLE "tender_shares" ADD COLUMN IF NOT EXISTS "org_id" integer REFERENCES "organizations"("id") ON DELETE cascade;`,
+  `ALTER TABLE "user_permission_grants" ADD COLUMN IF NOT EXISTS "org_id" integer REFERENCES "organizations"("id") ON DELETE cascade;`,
+  `ALTER TABLE "workspace_settings" ADD COLUMN IF NOT EXISTS "org_id" integer REFERENCES "organizations"("id") ON DELETE cascade;`,
+
+  `UPDATE "sources" SET "org_id" = (SELECT "id" FROM "organizations" WHERE "slug" = 'globecon' LIMIT 1) WHERE "org_id" IS NULL;`,
+  `UPDATE "regions" SET "org_id" = (SELECT "id" FROM "organizations" WHERE "slug" = 'globecon' LIMIT 1) WHERE "org_id" IS NULL;`,
+  `UPDATE "countries" SET "org_id" = (SELECT "id" FROM "organizations" WHERE "slug" = 'globecon' LIMIT 1) WHERE "org_id" IS NULL;`,
+  `UPDATE "service_lines" SET "org_id" = (SELECT "id" FROM "organizations" WHERE "slug" = 'globecon' LIMIT 1) WHERE "org_id" IS NULL;`,
+  `UPDATE "tenders" SET "org_id" = (SELECT "id" FROM "organizations" WHERE "slug" = 'globecon' LIMIT 1) WHERE "org_id" IS NULL;`,
+  `UPDATE "sync_logs" SET "org_id" = (SELECT "id" FROM "organizations" WHERE "slug" = 'globecon' LIMIT 1) WHERE "org_id" IS NULL AND "source_id" IS NOT NULL;`,
+  `UPDATE "email_alert_log" e SET "org_id" = t."org_id" FROM "tenders" t WHERE e."tender_id" = t."id" AND e."org_id" IS NULL;`,
+  `UPDATE "email_digest_log" SET "org_id" = (SELECT "id" FROM "organizations" WHERE "slug" = 'globecon' LIMIT 1) WHERE "org_id" IS NULL;`,
+  `UPDATE "tender_shares" ts SET "org_id" = t."org_id" FROM "tenders" t WHERE ts."tender_id" = t."id" AND ts."org_id" IS NULL;`,
+  `UPDATE "user_permission_grants" SET "org_id" = (SELECT "id" FROM "organizations" WHERE "slug" = 'globecon' LIMIT 1) WHERE "org_id" IS NULL;`,
+  `UPDATE "workspace_settings" SET "org_id" = (SELECT "id" FROM "organizations" WHERE "slug" = 'globecon' LIMIT 1) WHERE "org_id" IS NULL;`,
+
+  `INSERT INTO "org_memberships" ("org_id", "user_id", "role", "is_active")
+   SELECT o."id", u."id", u."role", u."is_active"
+   FROM "organizations" o
+   CROSS JOIN "users" u
+   WHERE o."slug" = 'globecon'
+     AND NOT EXISTS (
+       SELECT 1 FROM "org_memberships" m
+       WHERE m."org_id" = o."id" AND m."user_id" = u."id"
+     );`,
+
+  `UPDATE "users" SET "is_platform_admin" = true WHERE "role" = 'super_admin' AND "is_platform_admin" = false;`,
+
+  `ALTER TABLE "sources" DROP CONSTRAINT IF EXISTS "sources_slug_key";`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "sources_org_slug_idx" ON "sources" ("org_id", "slug");`,
+  `ALTER TABLE "regions" DROP CONSTRAINT IF EXISTS "regions_slug_key";`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "regions_org_slug_idx" ON "regions" ("org_id", "slug");`,
+  `ALTER TABLE "countries" DROP CONSTRAINT IF EXISTS "countries_slug_key";`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "countries_org_slug_idx" ON "countries" ("org_id", "slug");`,
+  `ALTER TABLE "service_lines" DROP CONSTRAINT IF EXISTS "service_lines_slug_key";`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "service_lines_org_slug_idx" ON "service_lines" ("org_id", "slug");`,
+
+  `DROP INDEX IF EXISTS "user_permission_grants_user_permission_idx";`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "user_permission_grants_org_user_permission_idx" ON "user_permission_grants" ("org_id", "user_id", "permission");`,
+
+  `DO $$ BEGIN
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_name = 'workspace_settings' AND column_name = 'id'
+    ) AND EXISTS (
+      SELECT 1 FROM information_schema.table_constraints
+      WHERE table_name = 'workspace_settings' AND constraint_type = 'PRIMARY KEY'
+        AND constraint_name = 'workspace_settings_pkey'
+    ) THEN
+      ALTER TABLE "workspace_settings" DROP CONSTRAINT "workspace_settings_pkey";
+      ALTER TABLE "workspace_settings" ADD PRIMARY KEY ("org_id");
+      ALTER TABLE "workspace_settings" DROP COLUMN IF EXISTS "id";
+    END IF;
+  EXCEPTION WHEN others THEN NULL;
+  END $$;`,
+  `ALTER TABLE "workspace_settings" ADD COLUMN IF NOT EXISTS "lexicon" jsonb DEFAULT '{}'::jsonb NOT NULL;`,
+  `ALTER TABLE "workspace_settings" ADD COLUMN IF NOT EXISTS "features" jsonb DEFAULT '{}'::jsonb NOT NULL;`,
+  `ALTER TABLE "workspace_settings" ADD COLUMN IF NOT EXISTS "layout" jsonb DEFAULT '{}'::jsonb NOT NULL;`,
+  `ALTER TABLE "tenders" ADD COLUMN IF NOT EXISTS "custom_fields" jsonb DEFAULT '{}'::jsonb NOT NULL;`,
+  `ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS "sync_interval_hours" integer DEFAULT 24 NOT NULL;`,
+  `ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS "stripe_customer_id" text;`,
+  `ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS "stripe_subscription_id" text;`,
+  `ALTER TABLE "workspace_settings" ADD COLUMN IF NOT EXISTS "onboarding" jsonb DEFAULT '{}'::jsonb NOT NULL;`,
 ];
 
 async function upgrade() {

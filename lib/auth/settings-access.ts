@@ -5,6 +5,11 @@ import {
   userHasGrant,
 } from "@/lib/settings/workspace";
 
+export {
+  isDelegatablePermission,
+  SETTINGS_PERMISSION_LABELS,
+} from "@/lib/auth/settings-labels";
+
 export async function getSettingsAccessForUser(input: {
   userId: number;
   role: UserRole;
@@ -56,15 +61,3 @@ export async function requireSettingsManage(userId: number, role: UserRole) {
   return access;
 }
 
-export function isDelegatablePermission(
-  value: string,
-): value is DelegatableSettingsPermission {
-  return value === "settings:notifications";
-}
-
-export const SETTINGS_PERMISSION_LABELS: Record<
-  DelegatableSettingsPermission,
-  string
-> = {
-  "settings:notifications": "Manage alert recipients",
-};

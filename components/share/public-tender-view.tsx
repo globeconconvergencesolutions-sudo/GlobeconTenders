@@ -17,6 +17,8 @@ import { AppLogo } from "@/components/brand/app-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { PublicTenderView } from "@/lib/tenders/share";
+import { getCardCustomFields } from "@/lib/templates/custom-fields";
+import type { SharePresentation } from "@/lib/tenant/org-context";
 import {
   cn,
   daysUntil,
@@ -27,25 +29,61 @@ import {
 
 type PublicTenderViewProps = {
   tender: PublicTenderView;
+  presentation: SharePresentation;
   expiresAt?: string;
 };
 
 export function PublicTenderViewPanel({
   tender,
+  presentation,
   expiresAt,
 }: PublicTenderViewProps) {
+  const { branding, lexicon, layout, features } = presentation;
+  const isHr = layout.homeCardVariant === "hr";
   const daysLeft = daysUntil(tender.deadline);
   const progress = Math.min(100, Math.max(8, (daysLeft / 30) * 100));
-  const location = [tender.countryLabel ?? tender.countryName, tender.regionLabel ?? tender.regionName]
+  const location = [
+    tender.countryLabel ?? tender.countryName,
+    tender.regionLabel ?? tender.regionName,
+  ]
     .filter(Boolean)
     .join(", ");
+  const extraFields = getCardCustomFields(
+    presentation.customFields,
+    tender.customFields,
+  );
+  const categoryLabel = isHr ? lexicon.category : "Category";
+  const deadlineLabel = lexicon.deadline;
+  const matchedLabel = isHr
+    ? `Relevant ${lexicon.categoryPlural.toLowerCase()}`
+    : `Relevant ${lexicon.categoryPlural.toLowerCase()}`;
 
   return (
-    <div className="min-h-dvh w-full bg-[radial-gradient(circle_at_top,_#1e3a8a22,_transparent_55%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)]">
+    <div
+      className={cn(
+        "min-h-dvh w-full",
+        isHr
+          ? "bg-[radial-gradient(circle_at_top,_#7c3aed22,_transparent_55%),linear-gradient(180deg,#faf5ff_0%,#f5f3ff_100%)]"
+          : "bg-[radial-gradient(circle_at_top,_#1e3a8a22,_transparent_55%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)]",
+      )}
+    >
       <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-4 py-8 sm:px-6 sm:py-12">
         <header className="mb-8 flex items-center justify-between gap-4">
-          <AppLogo size="sm" variant="login" textClassName="[&_p:first-child]:text-slate-900 [&_p:last-child]:text-blue-700/80" />
-          <Badge variant="outline" className="border-blue-200 bg-white/80 text-blue-700">
+          <AppLogo
+            size="sm"
+            variant="login"
+            brandingOverride={branding}
+            textClassName="[&_p:first-child]:text-slate-900 [&_p:last-child]:text-blue-700/80"
+          />
+          <Badge
+            variant="outline"
+            className={cn(
+              "bg-white/80",
+              isHr
+                ? "border-violet-200 text-violet-700"
+                : "border-blue-200 text-blue-700",
+            )}
+          >
             Shared preview
           </Badge>
         </header>
@@ -54,7 +92,9 @@ export function PublicTenderViewPanel({
           <article className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white/90 shadow-2xl shadow-blue-950/10 backdrop-blur-sm">
             <div
               className="h-2 w-full"
-              style={{ backgroundColor: tender.sourceColor }}
+              style={{
+                backgroundColor: isHr ? branding.primaryColor : tender.sourceColor,
+              }}
               aria-hidden
             />
 
@@ -69,6 +109,11 @@ export function PublicTenderViewPanel({
                 <span className="text-xs font-medium text-slate-500">
                   {tender.referenceId}
                 </span>
+                {features.matchScore && tender.matchScore > 0 && (
+                  <Badge variant="secondary" className="font-normal tabular-nums">
+                    {lexicon.matchScore}: {tender.matchScore}
+                  </Badge>
+                )}
                 {tender.isClosed && (
                   <Badge variant="secondary" className="font-normal">
                     Closed
@@ -80,19 +125,26 @@ export function PublicTenderViewPanel({
                 <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-3xl">
                   {tender.title}
                 </h1>
-                <p className="mt-2 text-sm text-slate-500">{tender.projectLabel}</p>
+                {!isHr && (
+                  <p className="mt-2 text-sm text-slate-500">{tender.projectLabel}</p>
+                )}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3">
                   <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500">
                     <CalendarClock className="h-4 w-4" />
-                    Submission deadline
+                    {deadlineLabel}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-slate-900">
                     {formatDeadline(tender.deadline)}
                   </p>
-                  <p className={cn("mt-1 text-xs font-medium", urgencyTextColor(daysLeft))}>
+                  <p
+                    className={cn(
+                      "mt-1 text-xs font-medium",
+                      urgencyTextColor(daysLeft),
+                    )}
+                  >
                     {tender.isClosed ? "No longer open" : `${daysLeft} days remaining`}
                   </p>
                   {!tender.isClosed && (
@@ -108,7 +160,7 @@ export function PublicTenderViewPanel({
                 <div className="rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3">
                   <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500">
                     <Tag className="h-4 w-4" />
-                    Category
+                    {categoryLabel}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-slate-900">
                     {tender.category}
@@ -122,6 +174,24 @@ export function PublicTenderViewPanel({
                 </div>
               </div>
 
+              {extraFields.length > 0 && (
+                <section className="grid gap-3 sm:grid-cols-2">
+                  {extraFields.map((field) => (
+                    <div
+                      key={field.key}
+                      className="rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3"
+                    >
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        {field.label}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">
+                        {field.display}
+                      </p>
+                    </div>
+                  ))}
+                </section>
+              )}
+
               {tender.description && (
                 <section className="rounded-2xl border border-slate-100 bg-slate-50/60 px-4 py-4">
                   <h2 className="text-sm font-semibold text-slate-900">Overview</h2>
@@ -134,7 +204,7 @@ export function PublicTenderViewPanel({
               {tender.matchedServiceLines.length > 0 && (
                 <section>
                   <h2 className="mb-2 text-sm font-semibold text-slate-900">
-                    Relevant service lines
+                    {matchedLabel}
                   </h2>
                   <div className="flex flex-wrap gap-2">
                     {tender.matchedServiceLines.map((line) => (
@@ -151,14 +221,16 @@ export function PublicTenderViewPanel({
                   href={tender.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition-colors hover:bg-blue-500 sm:w-auto"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-semibold text-white shadow-lg sm:w-auto"
+                  style={{ backgroundColor: branding.primaryColor }}
                 >
-                  View original procurement notice
+                  {isHr ? "View job posting" : "View original notice"}
                   <ExternalLink className="h-4 w-4" />
                 </a>
               ) : (
                 <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                  The original notice link is not available for this tender.
+                  The original link is not available for this{" "}
+                  {lexicon.opportunity.toLowerCase()}.
                 </p>
               )}
             </div>
@@ -168,11 +240,18 @@ export function PublicTenderViewPanel({
         <footer className="mt-8 space-y-2 text-center text-xs text-slate-500">
           <p className="inline-flex items-center gap-1.5">
             <Globe2 className="h-3.5 w-3.5" />
-            Shared via Globecon Tender Watch
+            Shared via {branding.displayName} {branding.productTagline}
           </p>
           <p>This is a read-only preview. Sign-in is not available from this page.</p>
           {expiresAt && (
-            <p>Link expires {new Date(expiresAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</p>
+            <p>
+              Link expires{" "}
+              {new Date(expiresAt).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            </p>
           )}
         </footer>
       </div>
@@ -235,7 +314,7 @@ export function ShareTenderButton({
         disabled={loading}
         className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-slate-100 hover:text-blue-600"
         aria-label={`Share ${tenderTitle}`}
-        title="Share tender link"
+        title="Share link"
       >
         {loading ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -248,7 +327,8 @@ export function ShareTenderButton({
         <div className="absolute right-0 top-full z-20 mt-2 w-72 rounded-xl border border-slate-200 bg-white p-3 shadow-xl">
           <p className="text-xs font-semibold text-slate-900">Share link ready</p>
           <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
-            Anyone with this link can view this tender only — no access to the main system.
+            Anyone with this link can view this item only — no access to the main
+            system.
           </p>
           <div className="mt-3 flex items-center gap-2">
             <input

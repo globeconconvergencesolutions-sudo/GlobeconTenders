@@ -10,7 +10,10 @@ import {
 } from "@/lib/cloudinary";
 import { getDb } from "@/lib/db";
 import { sources } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { slugify } from "@/lib/matching";
+import { handleApiError } from "@/lib/api/errors";
+import { assertCanAddSource } from "@/lib/platform/limits";
 import { syncSource } from "@/lib/sync/engine";
 
 const createSourceSchema = z.discriminatedUnion("type", [
@@ -49,6 +52,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Database not configured" }, { status: 500 });
     }
 
+    await assertCanAddSource(user.orgId);
+
     const contentType = request.headers.get("content-type") ?? "";
 
     if (contentType.includes("multipart/form-data")) {
@@ -77,6 +82,7 @@ export async function POST(request: Request) {
       const [created] = await db
         .insert(sources)
         .values({
+          orgId: user.orgId,
           name,
           slug,
           type: "document",
@@ -118,6 +124,7 @@ export async function POST(request: Request) {
     const [created] = await db
       .insert(sources)
       .values({
+        orgId: user.orgId,
         name: payload.name,
         slug,
         type: payload.type,
@@ -130,25 +137,19 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ source: created }, { status: 201 });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.flatten() }, { status: 400 });
-    }
-    if (error instanceof Error && error.message === "UNAUTHORIZED") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create source" },
-      { status: 500 },
-    );
+    return handleApiError(error, "Failed to create source");
   }
 }
 
 export async function GET() {
   try {
-    await requireSessionUser();
+    const user = await requireSessionUser();
     const db = getDb();
     if (!db) return NextResponse.json({ sources: [] });
-    const rows = await db.select().from(sources);
+    const rows = await db
+      .select()
+      .from(sources)
+      .where(eq(sources.orgId, user.orgId));
     return NextResponse.json({
       sources: rows,
       cloudinary: {

@@ -1,31 +1,37 @@
+"use client";
+
 import {
-  BarChart3,
-  MapPin,
+  BarChart3,  MapPin,
   RefreshCw,
   Shield,
 } from "lucide-react";
 
 import { AppLogo } from "@/components/brand/app-logo";
-
-const highlights = [
-  {
-    icon: RefreshCw,
-    title: "Live tender sync",
-    description: "World Bank and custom sources updated on demand or on schedule.",
-  },
-  {
-    icon: MapPin,
-    title: "Region & service-line filters",
-    description: "Focus on East Africa, specific countries, and Globecon capabilities.",
-  },
-  {
-    icon: BarChart3,
-    title: "Team dashboard",
-    description: "Role-based access for analysts, admins, and leadership.",
-  },
-];
+import { useLexicon, useOrg } from "@/components/providers/org-context-provider";
 
 export function LoginHero() {
+  const { branding } = useOrg();
+  const { t, lexicon } = useLexicon();
+
+  const highlights = [
+    {
+      icon: RefreshCw,
+      title: `Live ${lexicon.sourcePlural.toLowerCase()} sync`,
+      description:
+        "World Bank and custom sources updated on demand or on schedule.",
+    },
+    {
+      icon: MapPin,
+      title: `${t("region")} & ${lexicon.categoryPlural.toLowerCase()} filters`,
+      description: `Focus on regions, countries, and ${branding.displayName} capabilities.`,
+    },
+    {
+      icon: BarChart3,
+      title: "Team dashboard",
+      description: "Role-based access for analysts, admins, and leadership.",
+    },
+  ];
+
   return (
     <div className="relative hidden overflow-hidden bg-gradient-to-br from-slate-950 via-[#0b1530] to-slate-900 lg:flex lg:w-[52%] lg:flex-col lg:justify-between lg:p-12 xl:p-16">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:48px_48px]" />
@@ -39,11 +45,12 @@ export function LoginHero() {
       <div className="relative space-y-8">
         <div>
           <h1 className="max-w-lg text-4xl font-semibold leading-tight tracking-tight text-white xl:text-5xl">
-            Procurement intelligence for Globecon teams
+            {lexicon.productTagline} for {branding.displayName} teams
           </h1>
           <p className="mt-4 max-w-md text-base leading-relaxed text-slate-400">
-            Track matching tenders, filter by region and service line, and sync
-            opportunities before deadlines close.
+            Track matching {lexicon.opportunityPlural.toLowerCase()}, filter by{" "}
+            {lexicon.categoryPlural.toLowerCase()}, and sync opportunities before
+            deadlines close.
           </p>
         </div>
 
@@ -66,7 +73,7 @@ export function LoginHero() {
 
       <div className="relative flex items-center gap-2 text-xs text-slate-500">
         <Shield className="h-3.5 w-3.5" />
-        Secure access for authorized Globecon personnel
+        Secure access for authorized {branding.displayName} personnel
       </div>
     </div>
   );

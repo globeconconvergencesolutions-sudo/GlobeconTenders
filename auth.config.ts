@@ -9,11 +9,17 @@ declare module "next-auth" {
       email: string;
       name: string;
       role: UserRole;
+      orgId: number;
+      orgSlug: string;
+      isPlatformAdmin: boolean;
     };
   }
 
   interface User {
     role: UserRole;
+    orgId: number;
+    orgSlug: string;
+    isPlatformAdmin: boolean;
   }
 }
 
@@ -35,6 +41,9 @@ export const authConfig = {
         token.role = user.role;
         token.name = user.name;
         token.email = user.email;
+        token.orgId = user.orgId;
+        token.orgSlug = user.orgSlug;
+        token.isPlatformAdmin = user.isPlatformAdmin;
       }
       return token;
     },
@@ -46,6 +55,9 @@ export const authConfig = {
           (token.name as string | undefined) ?? session.user.name;
         session.user.email =
           (token.email as string | undefined) ?? session.user.email;
+        session.user.orgId = Number(token.orgId ?? 0);
+        session.user.orgSlug = (token.orgSlug as string | undefined) ?? "globecon";
+        session.user.isPlatformAdmin = Boolean(token.isPlatformAdmin);
       }
       return session;
     },

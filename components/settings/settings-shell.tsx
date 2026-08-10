@@ -28,6 +28,30 @@ const tabs: Array<{
     description: "Grant recipient management",
     superAdminOnly: true,
   },
+  {
+    href: "/settings/branding",
+    label: "Branding",
+    description: "Logo, colors & display name",
+    superAdminOnly: true,
+  },
+  {
+    href: "/settings/lexicon",
+    label: "Terminology",
+    description: "Product labels & language",
+    superAdminOnly: true,
+  },
+  {
+    href: "/settings/template",
+    label: "Template",
+    description: "Vertical defaults & reapply",
+    superAdminOnly: true,
+  },
+  {
+    href: "/settings/plan",
+    label: "Plan",
+    description: "Usage, limits & upgrade",
+    superAdminOnly: true,
+  },
 ];
 
 export function SettingsShell({
@@ -52,7 +76,7 @@ export function SettingsShell({
                 Workspace settings
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Organization alerts, access delegation, and future branding
+                Organization alerts, branding, terminology, and access delegation
               </p>
             </div>
           </div>

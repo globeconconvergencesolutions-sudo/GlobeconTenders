@@ -8,6 +8,6 @@ export function AuthSessionProvider({
   children: React.ReactNode;
 }) {
   return (
-    <SessionProvider refetchOnWindowFocus={true}>{children}</SessionProvider>
+    <SessionProvider refetchOnWindowFocus={false}>{children}</SessionProvider>
   );
 }

@@ -8,6 +8,7 @@ import {
   getUserFilterState,
   type TenderSort,
 } from "@/lib/tenders/queries";
+import { requireOrgFeature } from "@/lib/tenant/features";
 
 function resolveQueryFilters(
   searchParams: URLSearchParams,
@@ -40,6 +41,7 @@ export async function GET(request: Request) {
     if (!hasPermission(user.role, "tenders:export")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    await requireOrgFeature("export");
 
     const { searchParams } = new URL(request.url);
     const filterState = await getUserFilterState(user.id);
@@ -61,6 +63,9 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (error instanceof Error && error.message === "FEATURE_DISABLED") {
+      return NextResponse.json({ error: "Export is disabled for this workspace" }, { status: 403 });
     }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Export failed" },

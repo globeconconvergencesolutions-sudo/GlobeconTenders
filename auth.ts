@@ -1,16 +1,25 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 import { authConfig } from "@/auth.config";
 import { getDb } from "@/lib/db";
-import { users, type UserRole } from "@/lib/db/schema";
+import {
+  orgMemberships,
+  organizations,
+  users,
+  type UserRole,
+} from "@/lib/db/schema";
+import { DEFAULT_ORG_SLUG } from "@/lib/tenant/config";
+import { orgAllowsLogin } from "@/lib/platform/org-status";
+import { isValidOrgSlug } from "@/lib/tenant/resolution";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
+  orgSlug: z.string().optional(),
 });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -22,17 +31,53 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.role = user.role;
         token.name = user.name;
         token.email = user.email;
+        token.orgId = user.orgId;
+        token.orgSlug = user.orgSlug;
+        token.isPlatformAdmin = user.isPlatformAdmin;
       }
 
       if (token.sub) {
         const db = getDb();
-        if (db) {
+        if (db && token.orgId && token.orgSlug) {
+          const userId = Number(token.sub);
+          const orgId = Number(token.orgId);
+
+          const [membership] = await db
+            .select({
+              role: orgMemberships.role,
+              isActive: orgMemberships.isActive,
+              userName: users.name,
+              userEmail: users.email,
+              userActive: users.isActive,
+              isPlatformAdmin: users.isPlatformAdmin,
+            })
+            .from(orgMemberships)
+            .innerJoin(users, eq(users.id, orgMemberships.userId))
+            .where(
+              and(
+                eq(orgMemberships.orgId, orgId),
+                eq(orgMemberships.userId, userId),
+              ),
+            )
+            .limit(1);
+
+          if (!membership?.isActive || !membership.userActive) {
+            token.isActive = false;
+          } else {
+            token.isActive = true;
+            token.role = membership.role as UserRole;
+            token.name = membership.userName;
+            token.email = membership.userEmail;
+            token.isPlatformAdmin = membership.isPlatformAdmin;
+          }
+        } else if (db) {
           const [row] = await db
             .select({
               role: users.role,
               isActive: users.isActive,
               name: users.name,
               email: users.email,
+              isPlatformAdmin: users.isPlatformAdmin,
             })
             .from(users)
             .where(eq(users.id, Number(token.sub)))
@@ -45,6 +90,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             token.role = row.role;
             token.name = row.name;
             token.email = row.email;
+            token.isPlatformAdmin = row.isPlatformAdmin;
           }
         }
       }
@@ -62,6 +108,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           (token.name as string | undefined) ?? session.user.name;
         session.user.email =
           (token.email as string | undefined) ?? session.user.email;
+        session.user.orgId = Number(token.orgId ?? 0);
+        session.user.orgSlug =
+          (token.orgSlug as string | undefined) ?? DEFAULT_ORG_SLUG;
+        session.user.isPlatformAdmin = Boolean(token.isPlatformAdmin);
       }
       return session;
     },
@@ -71,6 +121,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        orgSlug: { label: "Organization", type: "text" },
       },
       authorize: async (credentials) => {
         const parsed = credentialsSchema.safeParse({
@@ -79,14 +130,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               ? credentials.email.trim().toLowerCase()
               : credentials?.email,
           password: credentials?.password,
+          orgSlug:
+            typeof credentials?.orgSlug === "string"
+              ? credentials.orgSlug.trim().toLowerCase()
+              : DEFAULT_ORG_SLUG,
         });
         if (!parsed.success) return null;
+
+        const orgSlug =
+          parsed.data.orgSlug && isValidOrgSlug(parsed.data.orgSlug)
+            ? parsed.data.orgSlug
+            : DEFAULT_ORG_SLUG;
 
         const db = getDb();
         if (!db) {
           console.error("[auth] DATABASE_URL is not configured");
           return null;
         }
+
+        const [org] = await db
+          .select({
+            id: organizations.id,
+            slug: organizations.slug,
+            status: organizations.status,
+          })
+          .from(organizations)
+          .where(eq(organizations.slug, orgSlug))
+          .limit(1);
+
+        if (!org || !orgAllowsLogin(org.status)) return null;
 
         const [user] = await db
           .select()
@@ -95,6 +167,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           .limit(1);
 
         if (!user || !user.isActive) return null;
+
+        const [membership] = await db
+          .select({ role: orgMemberships.role, isActive: orgMemberships.isActive })
+          .from(orgMemberships)
+          .where(
+            and(
+              eq(orgMemberships.orgId, org.id),
+              eq(orgMemberships.userId, user.id),
+            ),
+          )
+          .limit(1);
+
+        if (!membership?.isActive) return null;
 
         const valid = await bcrypt.compare(
           parsed.data.password,
@@ -106,7 +191,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: String(user.id),
           email: user.email,
           name: user.name,
-          role: user.role as UserRole,
+          role: membership.role as UserRole,
+          orgId: org.id,
+          orgSlug: org.slug,
+          isPlatformAdmin: user.isPlatformAdmin,
         };
       },
     }),

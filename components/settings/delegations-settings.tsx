@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SETTINGS_PERMISSION_LABELS } from "@/lib/auth/settings-access";
+import { SETTINGS_PERMISSION_LABELS } from "@/lib/auth/settings-labels";
 import { ROLE_LABELS } from "@/lib/auth/permissions";
 import type { UserRole } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";

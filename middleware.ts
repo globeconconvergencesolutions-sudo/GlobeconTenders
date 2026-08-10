@@ -1,64 +1,300 @@
 import NextAuth from "next-auth";
+
 import { NextResponse } from "next/server";
 
+
+
 import { authConfig } from "@/auth.config";
+
 import { sanitizeCallbackUrl } from "@/lib/auth/callback-url";
+
+import { ORG_STATUS_SUSPENDED } from "@/lib/platform/org-status";
+
+import { DEFAULT_ORG_SLUG, getPlatformAppUrl } from "@/lib/tenant/config";
+
+import { lookupOrganizationStatus } from "@/lib/tenant/lookup-org";
+
+import {
+
+  ORG_SLUG_HEADER,
+
+  isApexHost,
+
+  resolveOrgSlugFromHost,
+
+} from "@/lib/tenant/resolution";
+
+
 
 const { auth } = NextAuth(authConfig);
 
-const publicPaths = ["/login", "/api/auth", "/share"];
+
+
+const publicPaths = ["/login", "/api/auth", "/share", "/signup", "/api/signup", "/suspended"];
+
+const platformPaths = ["/platform"];
+
+
 
 const adminRoles = new Set(["super_admin", "admin"]);
 
-const cronPaths = ["/api/sync/cron", "/api/alerts/cron"];
 
-export default auth((request) => {
+
+const cronPaths = ["/api/sync/cron", "/api/alerts/cron", "/api/platform/trials/cron"];
+
+
+
+export default auth(async (request) => {
+
   const { pathname } = request.nextUrl;
+
   const session = request.auth;
 
+  const host = request.headers.get("host");
+
+  const orgSlug = resolveOrgSlugFromHost(host);
+
+
+
+  const requestHeaders = new Headers(request.headers);
+
+  requestHeaders.set(ORG_SLUG_HEADER, orgSlug);
+
+  requestHeaders.set("x-pathname", pathname);
+
+
+
+  const withOrgHeader = () =>
+
+    NextResponse.next({
+
+      request: { headers: requestHeaders },
+
+    });
+
+
+
   if (cronPaths.some((path) => pathname.startsWith(path))) {
-    return NextResponse.next();
+
+    return withOrgHeader();
+
   }
+
+
+
+  if (pathname === "/signup" || pathname.startsWith("/api/signup")) {
+
+    if (!isApexHost(host)) {
+
+      const signupUrl = new URL("/signup", getPlatformAppUrl());
+
+      return NextResponse.redirect(signupUrl);
+
+    }
+
+    return withOrgHeader();
+
+  }
+
+
+
+  if (platformPaths.some((path) => pathname.startsWith(path))) {
+
+    if (!session?.user?.isPlatformAdmin) {
+
+      if (pathname.startsWith("/api/")) {
+
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+      }
+
+      return NextResponse.redirect(new URL("/", request.url));
+
+    }
+
+    return withOrgHeader();
+
+  }
+
+
+
+  const orgRecord =
+
+    orgSlug !== DEFAULT_ORG_SLUG ? await lookupOrganizationStatus(orgSlug) : null;
+
+
+
+  if (
+
+    orgRecord?.status === ORG_STATUS_SUSPENDED &&
+
+    !publicPaths.some(
+
+      (path) => pathname === path || pathname.startsWith(`${path}/`),
+
+    )
+
+  ) {
+
+    if (pathname.startsWith("/api/")) {
+
+      return NextResponse.json(
+        { error: "Organization suspended", code: "ORG_SUSPENDED" },
+        { status: 403 },
+      );
+
+    }
+
+    return NextResponse.redirect(new URL("/suspended", request.url));
+
+  }
+
+
 
   if (pathname === "/login" || pathname.startsWith("/login/")) {
+
+    const signedOut = request.nextUrl.searchParams.get("signedOut") === "1";
+
     if (session?.user) {
+
+      if (signedOut) {
+
+        return withOrgHeader();
+
+      }
+
+      if (
+
+        session.user.orgSlug &&
+
+        session.user.orgSlug !== orgSlug &&
+
+        !session.user.isPlatformAdmin
+
+      ) {
+
+        return withOrgHeader();
+
+      }
+
       const callback = sanitizeCallbackUrl(
+
         request.nextUrl.searchParams.get("callbackUrl"),
+
       );
+
       return NextResponse.redirect(new URL(callback, request.url));
+
     }
-    return NextResponse.next();
+
+    return withOrgHeader();
+
   }
 
+
+
   if (
+
     publicPaths.some(
+
       (path) => pathname === path || pathname.startsWith(`${path}/`),
+
     )
+
   ) {
-    return NextResponse.next();
+
+    return withOrgHeader();
+
   }
+
+
+
+  if (pathname === "/" && isApexHost(host) && !session?.user) {
+
+    return withOrgHeader();
+
+  }
+
+
 
   if (!session?.user) {
+
     if (pathname.startsWith("/api/")) {
+
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     }
+
     const loginUrl = new URL("/login", request.url);
+
     loginUrl.searchParams.set("callbackUrl", pathname);
+
     return NextResponse.redirect(loginUrl);
+
   }
+
+
 
   if (
-    pathname.startsWith("/admin") &&
-    !adminRoles.has(session.user.role ?? "")
+
+    session.user.orgSlug &&
+
+    session.user.orgSlug !== orgSlug &&
+
+    !session.user.isPlatformAdmin
+
   ) {
-    return NextResponse.redirect(new URL("/", request.url));
+
+    if (pathname.startsWith("/api/")) {
+
+      return NextResponse.json(
+
+        { error: "Organization context mismatch" },
+
+        { status: 403 },
+
+      );
+
+    }
+
+    const loginUrl = new URL("/login", request.url);
+
+    loginUrl.searchParams.set("callbackUrl", pathname);
+
+    return NextResponse.redirect(loginUrl);
+
   }
 
-  return NextResponse.next();
+
+
+  if (
+
+    pathname.startsWith("/admin") &&
+
+    !adminRoles.has(session.user.role ?? "")
+
+  ) {
+
+    return NextResponse.redirect(new URL("/", request.url));
+
+  }
+
+
+
+  return withOrgHeader();
+
 });
 
+
+
 export const config = {
+
   matcher: [
+
     "/((?!_next/static|_next/image|favicon.ico|brand/|manifest.webmanifest|.*\\.(?:png|ico|svg|webp)$).*)",
+
   ],
+
 };
+
+

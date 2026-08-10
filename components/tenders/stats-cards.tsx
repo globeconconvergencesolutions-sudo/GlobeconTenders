@@ -7,6 +7,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+import { useLexicon } from "@/components/providers/org-context-provider";
 import { Card, CardContent } from "@/components/ui/card";
 
 type SerializableStats = {
@@ -22,30 +23,32 @@ type StatsCardsProps = {
   stats: SerializableStats;
 };
 
-const statConfig = [
-  {
-    key: "matchingTenders" as const,
-    label: "Matching tenders",
-    icon: TrendingUp,
-  },
-  {
-    key: "closingWithin3Days" as const,
-    label: "Closing within 3 days",
-    icon: Clock,
-  },
-  {
-    key: "openInDatabase" as const,
-    label: "Open in database",
-    icon: Globe,
-  },
-  {
-    key: "activeSources" as const,
-    label: "Active sources",
-    icon: Filter,
-  },
-];
-
 export function StatsCards({ stats }: StatsCardsProps) {
+  const { lexicon } = useLexicon();
+
+  const statConfig = [
+    {
+      key: "matchingTenders" as const,
+      label: `Matching ${lexicon.opportunityPlural.toLowerCase()}`,
+      icon: TrendingUp,
+    },
+    {
+      key: "closingWithin3Days" as const,
+      label: "Closing within 3 days",
+      icon: Clock,
+    },
+    {
+      key: "openInDatabase" as const,
+      label: `Open ${lexicon.opportunityPlural.toLowerCase()}`,
+      icon: Globe,
+    },
+    {
+      key: "activeSources" as const,
+      label: `Active ${lexicon.sourcePlural.toLowerCase()}`,
+      icon: Filter,
+    },
+  ];
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {statConfig.map(({ key, label, icon: Icon }) => (

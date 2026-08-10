@@ -37,6 +37,7 @@ export async function POST(request: Request) {
       const [created] = await db
         .insert(countries)
         .values({
+          orgId: user.orgId,
           name: payload.name,
           slug: slugify(payload.name),
           regionId: payload.regionId,
@@ -54,6 +55,7 @@ export async function POST(request: Request) {
     const [created] = await db
       .insert(regions)
       .values({
+        orgId: user.orgId,
         name: payload.name,
         slug: slugify(payload.name),
         keywords: payload.keywords?.length ? payload.keywords : [payload.name],

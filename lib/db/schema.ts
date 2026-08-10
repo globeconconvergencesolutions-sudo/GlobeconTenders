@@ -48,12 +48,31 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   afterSync: true,
 };
 
+export const organizations = pgTable("organizations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  status: text("status").notNull().default("active"),
+  templateId: text("template_id").notNull().default("procurement"),
+  templateVersion: text("template_version").notNull().default("1.0.0"),
+  plan: text("plan").notNull().default("trial"),
+  trialEndsAt: timestamp("trial_ends_at"),
+  maxSeats: integer("max_seats").notNull().default(25),
+  maxSources: integer("max_sources").notNull().default(50),
+  syncIntervalHours: integer("sync_interval_hours").notNull().default(24),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   passwordHash: text("password_hash").notNull(),
   role: userRoleEnum("role").notNull().default("viewer"),
+  isPlatformAdmin: boolean("is_platform_admin").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
   filterState: jsonb("filter_state")
     .$type<FilterState>()
@@ -70,10 +89,34 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const sources = pgTable("sources", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  slug: text("slug").notNull().unique(),
+export const orgMemberships = pgTable(
+  "org_memberships",
+  {
+    id: serial("id").primaryKey(),
+    orgId: integer("org_id")
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .notNull(),
+    userId: integer("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    role: userRoleEnum("role").notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("org_memberships_org_user_idx").on(table.orgId, table.userId),
+  ],
+);
+
+export const sources = pgTable(
+  "sources",
+  {
+    id: serial("id").primaryKey(),
+    orgId: integer("org_id")
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .notNull(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
   type: sourceTypeEnum("type").notNull().default("link"),
   adapter: sourceAdapterEnum("adapter").notNull().default("generic-link"),
   url: text("url"),
@@ -89,46 +132,74 @@ export const sources = pgTable("sources", {
   lastSyncStatus: text("last_sync_status"),
   lastSyncError: text("last_sync_error"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+  },
+  (table) => [uniqueIndex("sources_org_slug_idx").on(table.orgId, table.slug)],
+);
 
-export const regions = pgTable("regions", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  slug: text("slug").notNull().unique(),
+export const regions = pgTable(
+  "regions",
+  {
+    id: serial("id").primaryKey(),
+    orgId: integer("org_id")
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .notNull(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
   keywords: text("keywords").array().notNull().default([]),
   isBuiltIn: boolean("is_built_in").notNull().default(true),
   createdById: integer("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+  },
+  (table) => [uniqueIndex("regions_org_slug_idx").on(table.orgId, table.slug)],
+);
 
-export const countries = pgTable("countries", {
-  id: serial("id").primaryKey(),
-  regionId: integer("region_id")
-    .references(() => regions.id)
-    .notNull(),
-  name: text("name").notNull(),
-  slug: text("slug").notNull().unique(),
+export const countries = pgTable(
+  "countries",
+  {
+    id: serial("id").primaryKey(),
+    orgId: integer("org_id")
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .notNull(),
+    regionId: integer("region_id")
+      .references(() => regions.id)
+      .notNull(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
   keywords: text("keywords").array().notNull().default([]),
   isBuiltIn: boolean("is_built_in").notNull().default(true),
   createdById: integer("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+  },
+  (table) => [uniqueIndex("countries_org_slug_idx").on(table.orgId, table.slug)],
+);
 
-export const serviceLines = pgTable("service_lines", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  slug: text("slug").notNull().unique(),
+export const serviceLines = pgTable(
+  "service_lines",
+  {
+    id: serial("id").primaryKey(),
+    orgId: integer("org_id")
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .notNull(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
   keywords: text("keywords").array().notNull().default([]),
   isBuiltIn: boolean("is_built_in").notNull().default(true),
   archivedAt: timestamp("archived_at"),
   createdById: integer("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+  },
+  (table) => [
+    uniqueIndex("service_lines_org_slug_idx").on(table.orgId, table.slug),
+  ],
+);
 
 export const tenders = pgTable(
   "tenders",
   {
     id: serial("id").primaryKey(),
+    orgId: integer("org_id")
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .notNull(),
     sourceId: integer("source_id")
       .references(() => sources.id)
       .notNull(),
@@ -146,6 +217,10 @@ export const tenders = pgTable(
     isClosed: boolean("is_closed").notNull().default(false),
     saved: boolean("saved").notNull().default(false),
     matchScore: integer("match_score").notNull().default(0),
+    customFields: jsonb("custom_fields")
+      .$type<Record<string, string | number | boolean | null>>()
+      .notNull()
+      .default({}),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -175,6 +250,9 @@ export const tenderServiceLineMatches = pgTable(
 
 export const syncLogs = pgTable("sync_logs", {
   id: serial("id").primaryKey(),
+  orgId: integer("org_id").references(() => organizations.id, {
+    onDelete: "cascade",
+  }),
   sourceId: integer("source_id").references(() => sources.id),
   triggeredBy: text("triggered_by").notNull().default("manual"),
   status: text("status").notNull().default("success"),
@@ -187,6 +265,9 @@ export const emailAlertLog = pgTable(
   "email_alert_log",
   {
     id: serial("id").primaryKey(),
+    orgId: integer("org_id")
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .notNull(),
     userId: integer("user_id")
       .references(() => users.id, { onDelete: "cascade" })
       .notNull(),
@@ -207,6 +288,9 @@ export const emailAlertLog = pgTable(
 
 export const emailDigestLog = pgTable("email_digest_log", {
   id: serial("id").primaryKey(),
+  orgId: integer("org_id")
+    .references(() => organizations.id, { onDelete: "cascade" })
+    .notNull(),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
   status: text("status").notNull().default("success"),
   closingCount: integer("closing_count").notNull().default(0),
@@ -234,6 +318,9 @@ export const tenderShares = pgTable(
   "tender_shares",
   {
     id: serial("id").primaryKey(),
+    orgId: integer("org_id")
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .notNull(),
     tenderId: integer("tender_id")
       .references(() => tenders.id, { onDelete: "cascade" })
       .notNull(),
@@ -258,9 +345,58 @@ export type WorkspaceBrandingSettings = {
   logoUrl?: string;
 };
 
+export type WorkspaceLexiconSettings = {
+  opportunity: string;
+  opportunityPlural: string;
+  source: string;
+  sourcePlural: string;
+  category: string;
+  categoryPlural: string;
+  deadline: string;
+  matchScore: string;
+  region: string;
+  country: string;
+  save: string;
+  export: string;
+  share: string;
+  sync: string;
+  navHome: string;
+  navAnalytics: string;
+  navProfile: string;
+  navSettings: string;
+  navTeam: string;
+  emptyOpportunities: string;
+  emptyOpportunitiesHint: string;
+  productTagline: string;
+};
+
 export type WorkspaceCatalogSettings = {
   allowDeleteBuiltIn: boolean;
 };
+
+export type WorkspaceFeaturesSettings = {
+  analytics: boolean;
+  publicShare: boolean;
+  sync: boolean;
+  matchScore: boolean;
+  export: boolean;
+};
+
+export type WorkspaceLayoutSettings = {
+  homeCardVariant: "procurement" | "hr" | "community" | "academic";
+  sidebarSections: Array<
+    "sources" | "serviceLines" | "regions" | "countries" | "departments"
+  >;
+};
+
+export type CustomFieldDefinition = {
+  key: string;
+  label: string;
+  type: "text" | "number" | "date" | "url";
+  showOnCard?: boolean;
+};
+
+export type CustomFieldValues = Record<string, string | number | boolean | null>;
 
 export type WorkspaceNotificationSettings = {
   enabled: boolean;
@@ -274,6 +410,9 @@ export type WorkspaceSettingsPayload = {
   organizationName: string;
   notifications: WorkspaceNotificationSettings;
   branding: WorkspaceBrandingSettings;
+  lexicon: WorkspaceLexiconSettings;
+  features: WorkspaceFeaturesSettings;
+  layout: WorkspaceLayoutSettings;
   catalog: WorkspaceCatalogSettings;
 };
 
@@ -289,11 +428,32 @@ export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettingsPayload = {
   organizationName: "Globecon",
   notifications: DEFAULT_WORKSPACE_NOTIFICATIONS,
   branding: {},
+  lexicon: {} as WorkspaceLexiconSettings,
+  features: {
+    analytics: true,
+    publicShare: true,
+    sync: true,
+    matchScore: true,
+    export: true,
+  },
+  layout: {
+    homeCardVariant: "procurement",
+    sidebarSections: ["sources", "serviceLines", "regions", "countries"],
+  },
   catalog: { allowDeleteBuiltIn: true },
 };
 
+export type WorkspaceOnboardingState = {
+  dismissed?: boolean;
+  manuallyCompleted?: Array<
+    "source_added" | "sync_run" | "team_invited" | "branding_set"
+  >;
+};
+
 export const workspaceSettings = pgTable("workspace_settings", {
-  id: integer("id").primaryKey().default(1),
+  orgId: integer("org_id")
+    .primaryKey()
+    .references(() => organizations.id, { onDelete: "cascade" }),
   organizationName: text("organization_name").notNull().default("Globecon"),
   notifications: jsonb("notifications")
     .$type<WorkspaceNotificationSettings>()
@@ -303,10 +463,26 @@ export const workspaceSettings = pgTable("workspace_settings", {
     .$type<WorkspaceBrandingSettings>()
     .notNull()
     .default({}),
+  lexicon: jsonb("lexicon")
+    .$type<Partial<WorkspaceLexiconSettings>>()
+    .notNull()
+    .default({}),
+  features: jsonb("features")
+    .$type<Partial<WorkspaceFeaturesSettings>>()
+    .notNull()
+    .default({}),
+  layout: jsonb("layout")
+    .$type<Partial<WorkspaceLayoutSettings>>()
+    .notNull()
+    .default({}),
   catalog: jsonb("catalog")
     .$type<WorkspaceCatalogSettings>()
     .notNull()
     .default({ allowDeleteBuiltIn: true }),
+  onboarding: jsonb("onboarding")
+    .$type<WorkspaceOnboardingState>()
+    .notNull()
+    .default({}),
   updatedById: integer("updated_by_id").references(() => users.id, {
     onDelete: "set null",
   }),
@@ -324,6 +500,9 @@ export const userPermissionGrants = pgTable(
   "user_permission_grants",
   {
     id: serial("id").primaryKey(),
+    orgId: integer("org_id")
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .notNull(),
     userId: integer("user_id")
       .references(() => users.id, { onDelete: "cascade" })
       .notNull(),
@@ -334,13 +513,16 @@ export const userPermissionGrants = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
-    uniqueIndex("user_permission_grants_user_permission_idx").on(
+    uniqueIndex("user_permission_grants_org_user_permission_idx").on(
+      table.orgId,
       table.userId,
       table.permission,
     ),
   ],
 );
 
+export type Organization = typeof organizations.$inferSelect;
+export type OrgMembership = typeof orgMemberships.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type Source = typeof sources.$inferSelect;
 export type Region = typeof regions.$inferSelect;

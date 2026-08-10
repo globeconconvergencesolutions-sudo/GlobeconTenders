@@ -6,8 +6,8 @@ import { getInstalledCatalogSlugs } from "@/lib/sources/install";
 
 export async function GET() {
   try {
-    await requireSessionUser();
-    const installedSlugs = await getInstalledCatalogSlugs();
+    const user = await requireSessionUser();
+    const installedSlugs = await getInstalledCatalogSlugs(user.orgId);
 
     return NextResponse.json({
       catalog: SOURCE_CATALOG,

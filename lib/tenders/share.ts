@@ -62,7 +62,16 @@ export async function getOrCreateTenderShareLink(input: {
     Date.now() + SHARE_LINK_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
   );
 
+  const [tender] = await db
+    .select({ orgId: tenders.orgId })
+    .from(tenders)
+    .where(eq(tenders.id, input.tenderId))
+    .limit(1);
+
+  if (!tender) throw new Error("Tender not found");
+
   await db.insert(tenderShares).values({
+    orgId: tender.orgId,
     tenderId: input.tenderId,
     tokenHash,
     createdById: input.createdById,
@@ -110,6 +119,7 @@ export async function getPublicTenderByShareToken(
   const [row] = await db
     .select({
       id: tenders.id,
+      orgId: tenders.orgId,
       sourceId: tenders.sourceId,
       referenceId: tenders.referenceId,
       title: tenders.title,
@@ -125,6 +135,7 @@ export async function getPublicTenderByShareToken(
       isClosed: tenders.isClosed,
       saved: tenders.saved,
       matchScore: tenders.matchScore,
+      customFields: tenders.customFields,
       createdAt: tenders.createdAt,
       updatedAt: tenders.updatedAt,
       sourceName: sources.name,

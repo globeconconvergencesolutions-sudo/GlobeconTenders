@@ -1,0 +1,69 @@
+{
+  "id": "hr",
+  "version": "1.0.0",
+  "name": "HR & Talent",
+  "description": "Track job openings, departments, and hiring pipelines.",
+  "catalogPack": "hr-departments",
+  "branding": {
+    "primaryColor": "#7c3aed",
+    "accentColor": "#6d28d9"
+  },
+  "lexicon": {
+    "opportunity": "Job opening",
+    "opportunityPlural": "Jobs",
+    "source": "Job board",
+    "sourcePlural": "Job boards",
+    "category": "Department",
+    "categoryPlural": "Departments",
+    "deadline": "Apply by",
+    "matchScore": "Fit score",
+    "region": "Location",
+    "country": "Country",
+    "save": "Save job",
+    "export": "Export",
+    "share": "Share",
+    "sync": "Sync",
+    "navHome": "Jobs",
+    "navAnalytics": "Analytics",
+    "navProfile": "Profile",
+    "navSettings": "Settings",
+    "navTeam": "Team",
+    "emptyOpportunities": "No jobs match your filters.",
+    "emptyOpportunitiesHint": "Try adjusting filters or add more job boards.",
+    "productTagline": "Careers Hub"
+  },
+  "features": {
+    "analytics": true,
+    "publicShare": true,
+    "sync": true,
+    "matchScore": true,
+    "export": true
+  },
+  "layout": {
+    "homeCardVariant": "hr",
+    "sidebarSections": ["sources", "serviceLines", "regions"]
+  },
+  "notifications": {
+    "enabled": true
+  },
+  "customFields": [
+    {
+      "key": "employmentType",
+      "label": "Employment type",
+      "type": "text",
+      "showOnCard": true
+    },
+    {
+      "key": "seniority",
+      "label": "Seniority",
+      "type": "text",
+      "showOnCard": true
+    },
+    {
+      "key": "remotePolicy",
+      "label": "Remote policy",
+      "type": "text",
+      "showOnCard": true
+    }
+  ]
+}

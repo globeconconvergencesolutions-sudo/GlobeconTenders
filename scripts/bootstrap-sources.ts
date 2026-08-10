@@ -1,16 +1,33 @@
-import { count, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 
 import { loadEnv } from "../lib/env";
 import { getDb } from "../lib/db";
-import { sources, tenders } from "../lib/db/schema";
+import { organizations, sources, tenders } from "../lib/db/schema";
 import { installFeaturedCatalogSources } from "../lib/sources/install";
 import { syncAllEnabledSources } from "../lib/sync/engine";
 
 loadEnv();
 
 async function main() {
+  const db = getDb();
+  if (!db) {
+    console.error("Database not configured");
+    process.exit(1);
+  }
+
+  const [org] = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.slug, "globecon"))
+    .limit(1);
+
+  if (!org) {
+    console.error("Default org 'globecon' not found. Run pnpm db:upgrade first.");
+    process.exit(1);
+  }
+
   console.log("=== Installing featured catalog sources ===");
-  const installResults = await installFeaturedCatalogSources();
+  const installResults = await installFeaturedCatalogSources(org.id);
 
   for (const result of installResults) {
     const syncInfo = result.sync
@@ -26,7 +43,7 @@ async function main() {
   }
 
   console.log("\n=== Running full sync ===");
-  const syncResults = await syncAllEnabledSources("manual-bootstrap");
+  const syncResults = await syncAllEnabledSources("manual-bootstrap", org.id);
 
   for (const result of syncResults) {
     console.log(
@@ -36,23 +53,23 @@ async function main() {
     );
   }
 
-  const db = getDb();
-  if (!db) {
-    console.log("\nDatabase not configured.");
-    return;
-  }
-
-  const [sourceRow] = await db.select({ count: count() }).from(sources);
-  const [tenderRow] = await db.select({ count: count() }).from(tenders);
+  const [sourceRow] = await db
+    .select({ count: count() })
+    .from(sources)
+    .where(eq(sources.orgId, org.id));
+  const [tenderRow] = await db
+    .select({ count: count() })
+    .from(tenders)
+    .where(eq(tenders.orgId, org.id));
   const [openRow] = await db
     .select({ count: count() })
     .from(tenders)
-    .where(eq(tenders.isClosed, false));
+    .where(and(eq(tenders.orgId, org.id), eq(tenders.isClosed, false)));
 
   const sourceList = await db
     .select({ name: sources.name, slug: sources.slug })
     .from(sources)
-    .where(eq(sources.enabled, true));
+    .where(and(eq(sources.orgId, org.id), eq(sources.enabled, true)));
 
   console.log("\n=== Totals ===");
   console.log(`Enabled sources: ${sourceRow.count}`);

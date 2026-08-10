@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 
 import { canActorAssignRole } from "@/lib/auth/user-management";
 import { requirePermission } from "@/lib/auth/session";
 import { getDb } from "@/lib/db";
-import { users, type UserRole } from "@/lib/db/schema";
+import { orgMemberships, users, type UserRole } from "@/lib/db/schema";
 import { sendWelcomeTeamEmail } from "@/lib/email/team-notifications";
+import { handleApiError } from "@/lib/api/errors";
+import { assertCanAddSeat } from "@/lib/platform/limits";
 
 const createUserSchema = z.object({
   name: z.string().min(2).max(120),
@@ -18,7 +20,7 @@ const createUserSchema = z.object({
 
 export async function GET() {
   try {
-    await requirePermission("users:read");
+    const actor = await requirePermission("users:read");
     const db = getDb();
     if (!db) {
       return NextResponse.json({ users: [] });
@@ -29,11 +31,13 @@ export async function GET() {
         id: users.id,
         name: users.name,
         email: users.email,
-        role: users.role,
-        isActive: users.isActive,
+        role: orgMemberships.role,
+        isActive: orgMemberships.isActive,
         createdAt: users.createdAt,
       })
-      .from(users)
+      .from(orgMemberships)
+      .innerJoin(users, eq(users.id, orgMemberships.userId))
+      .where(eq(orgMemberships.orgId, actor.orgId))
       .orderBy(users.createdAt);
 
     return NextResponse.json({ users: rows });
@@ -67,6 +71,8 @@ export async function POST(request: Request) {
       );
     }
 
+    await assertCanAddSeat(actor.orgId);
+
     const email = payload.email.trim().toLowerCase();
     const [existing] = await db
       .select({ id: users.id })
@@ -99,35 +105,32 @@ export async function POST(request: Request) {
         createdAt: users.createdAt,
       });
 
+    await db.insert(orgMemberships).values({
+      orgId: actor.orgId,
+      userId: created.id,
+      role: payload.role as UserRole,
+    });
+
     const emailResult = await sendWelcomeTeamEmail({
       to: created.email,
       name: created.name,
       temporaryPassword: payload.password,
-      role: created.role as UserRole,
+      role: payload.role as UserRole,
       invitedBy: actor.name,
     });
 
     return NextResponse.json(
       {
-        user: created,
+        user: {
+          ...created,
+          role: payload.role,
+        },
         emailSent: emailResult.sent,
         ...(emailResult.error ? { emailWarning: emailResult.error } : {}),
       },
       { status: 201 },
     );
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.flatten() }, { status: 400 });
-    }
-    if (error instanceof Error && error.message === "UNAUTHORIZED") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    if (error instanceof Error && error.message === "FORBIDDEN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create user" },
-      { status: 500 },
-    );
+    return handleApiError(error, "Failed to create user");
   }
 }

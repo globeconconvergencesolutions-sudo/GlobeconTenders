@@ -26,6 +26,19 @@ import {
   type TenderWithSource,
   EMPTY_FILTER_STATE,
 } from "@/lib/db/schema";
+import { requireCurrentOrg } from "@/lib/tenant/context";
+
+async function resolveOrgId(orgId?: number): Promise<number> {
+  if (orgId != null) return orgId;
+  const org = await requireCurrentOrg();
+  return org.id;
+}
+
+function scopeToOrg(orgId: number, whereClause?: ReturnType<typeof and>) {
+  return whereClause
+    ? and(eq(tenders.orgId, orgId), whereClause)
+    : eq(tenders.orgId, orgId);
+}
 
 export type TenderSort = "closing_soonest" | "recently_issued";
 
@@ -148,6 +161,7 @@ export async function updateUserFilterState(
 
 export async function getTendersPaginated(
   filters: TenderQueryFilters = {},
+  orgId?: number,
 ): Promise<PaginatedTenders> {
   const {
     sort = "closing_soonest",
@@ -166,7 +180,8 @@ export async function getTendersPaginated(
     };
   }
 
-  const whereClause = buildFilterConditions(filters);
+  const resolvedOrgId = await resolveOrgId(orgId);
+  const whereClause = scopeToOrg(resolvedOrgId, buildFilterConditions(filters));
   const orderBy =
     sort === "closing_soonest"
       ? asc(tenders.deadline)
@@ -183,6 +198,7 @@ export async function getTendersPaginated(
   const rows = await db
     .select({
       id: tenders.id,
+      orgId: tenders.orgId,
       sourceId: tenders.sourceId,
       referenceId: tenders.referenceId,
       title: tenders.title,
@@ -198,6 +214,7 @@ export async function getTendersPaginated(
       isClosed: tenders.isClosed,
       saved: tenders.saved,
       matchScore: tenders.matchScore,
+      customFields: tenders.customFields,
       createdAt: tenders.createdAt,
       updatedAt: tenders.updatedAt,
       sourceName: sources.name,
@@ -231,6 +248,7 @@ export async function getTendersPaginated(
 
 export async function getDashboardStats(
   filters: TenderQueryFilters = {},
+  orgId?: number,
 ): Promise<DashboardStats> {
   const db = getDb();
   if (!db) {
@@ -244,7 +262,8 @@ export async function getDashboardStats(
     };
   }
 
-  const whereClause = buildFilterConditions(filters);
+  const resolvedOrgId = await resolveOrgId(orgId);
+  const whereClause = scopeToOrg(resolvedOrgId, buildFilterConditions(filters));
 
   const [openCount] = await db
     .select({ count: count() })
@@ -274,6 +293,7 @@ export async function getDashboardStats(
     .from(sources)
     .where(
       and(
+        eq(sources.orgId, resolvedOrgId),
         eq(sources.enabled, true),
         sql`${sources.lastSyncedAt} IS NOT NULL`,
       ),
@@ -282,12 +302,23 @@ export async function getDashboardStats(
   const [trackingSourceCount] = await db
     .select({ count: count() })
     .from(sources)
-    .where(and(eq(sources.enabled, true), isNull(sources.archivedAt)));
+    .where(
+      and(
+        eq(sources.orgId, resolvedOrgId),
+        eq(sources.enabled, true),
+        isNull(sources.archivedAt),
+      ),
+    );
 
   const [lastSync] = await db
     .select({ syncedAt: sources.lastSyncedAt })
     .from(sources)
-    .where(sql`${sources.lastSyncedAt} IS NOT NULL`)
+    .where(
+      and(
+        eq(sources.orgId, resolvedOrgId),
+        sql`${sources.lastSyncedAt} IS NOT NULL`,
+      ),
+    )
     .orderBy(desc(sources.lastSyncedAt))
     .limit(1);
 
@@ -301,7 +332,7 @@ export async function getDashboardStats(
   };
 }
 
-export async function getFilterCatalog() {
+export async function getFilterCatalog(orgId?: number) {
   const db = getDb();
   if (!db) {
     return {
@@ -312,19 +343,32 @@ export async function getFilterCatalog() {
     };
   }
 
+  const resolvedOrgId = await resolveOrgId(orgId);
+
   const [sourceRows, serviceLineRows, regionRows, countryRows] =
     await Promise.all([
       db
         .select()
         .from(sources)
-        .where(isNull(sources.archivedAt))
+        .where(
+          and(eq(sources.orgId, resolvedOrgId), isNull(sources.archivedAt)),
+        )
         .orderBy(asc(sources.name)),
       db
         .select()
         .from(serviceLines)
-        .where(isNull(serviceLines.archivedAt))
+        .where(
+          and(
+            eq(serviceLines.orgId, resolvedOrgId),
+            isNull(serviceLines.archivedAt),
+          ),
+        )
         .orderBy(asc(serviceLines.name)),
-      db.select().from(regions).orderBy(asc(regions.name)),
+      db
+        .select()
+        .from(regions)
+        .where(eq(regions.orgId, resolvedOrgId))
+        .orderBy(asc(regions.name)),
       db
         .select({
           id: countries.id,
@@ -339,6 +383,7 @@ export async function getFilterCatalog() {
         })
         .from(countries)
         .innerJoin(regions, eq(countries.regionId, regions.id))
+        .where(eq(countries.orgId, resolvedOrgId))
         .orderBy(asc(countries.name)),
     ]);
 
@@ -350,22 +395,31 @@ export async function getFilterCatalog() {
   };
 }
 
-export async function getArchivedCatalog() {
+export async function getArchivedCatalog(orgId?: number) {
   const db = getDb();
   if (!db) {
     return { sources: [], serviceLines: [] };
   }
 
+  const resolvedOrgId = await resolveOrgId(orgId);
+
   const [sourceRows, serviceLineRows] = await Promise.all([
     db
       .select()
       .from(sources)
-      .where(isNotNull(sources.archivedAt))
+      .where(
+        and(eq(sources.orgId, resolvedOrgId), isNotNull(sources.archivedAt)),
+      )
       .orderBy(asc(sources.name)),
     db
       .select()
       .from(serviceLines)
-      .where(isNotNull(serviceLines.archivedAt))
+      .where(
+        and(
+          eq(serviceLines.orgId, resolvedOrgId),
+          isNotNull(serviceLines.archivedAt),
+        ),
+      )
       .orderBy(asc(serviceLines.name)),
   ]);
 
@@ -379,12 +433,14 @@ const EXPORT_LIMIT = 5000;
 
 export async function getTendersForExport(
   filters: TenderQueryFilters = {},
+  orgId?: number,
 ): Promise<TenderWithSource[]> {
   const { sort = "closing_soonest" } = filters;
   const db = getDb();
   if (!db) return [];
 
-  const whereClause = buildFilterConditions(filters);
+  const resolvedOrgId = await resolveOrgId(orgId);
+  const whereClause = scopeToOrg(resolvedOrgId, buildFilterConditions(filters));
   const orderBy =
     sort === "closing_soonest"
       ? asc(tenders.deadline)
@@ -393,6 +449,7 @@ export async function getTendersForExport(
   const rows = await db
     .select({
       id: tenders.id,
+      orgId: tenders.orgId,
       sourceId: tenders.sourceId,
       referenceId: tenders.referenceId,
       title: tenders.title,
@@ -408,6 +465,7 @@ export async function getTendersForExport(
       isClosed: tenders.isClosed,
       saved: tenders.saved,
       matchScore: tenders.matchScore,
+      customFields: tenders.customFields,
       createdAt: tenders.createdAt,
       updatedAt: tenders.updatedAt,
       sourceName: sources.name,
@@ -448,7 +506,7 @@ export type AnalyticsSnapshot = {
   }>;
 };
 
-export async function getAnalyticsSnapshot(): Promise<AnalyticsSnapshot> {
+export async function getAnalyticsSnapshot(orgId?: number): Promise<AnalyticsSnapshot> {
   const db = getDb();
   if (!db) {
     return {
@@ -465,6 +523,9 @@ export async function getAnalyticsSnapshot(): Promise<AnalyticsSnapshot> {
     };
   }
 
+  const resolvedOrgId = await resolveOrgId(orgId);
+  const orgFilter = eq(tenders.orgId, resolvedOrgId);
+
   const [totals] = await db
     .select({
       total: count(),
@@ -474,7 +535,8 @@ export async function getAnalyticsSnapshot(): Promise<AnalyticsSnapshot> {
       closing30: sql<number>`count(*) filter (where ${tenders.isClosed} = false and ${tenders.deadline} <= now() + interval '30 days' and ${tenders.deadline} >= now())`,
       avgScore: sql<number>`coalesce(avg(${tenders.matchScore}), 0)`,
     })
-    .from(tenders);
+    .from(tenders)
+    .where(orgFilter);
 
   const bySource = await db
     .select({
@@ -484,7 +546,7 @@ export async function getAnalyticsSnapshot(): Promise<AnalyticsSnapshot> {
     })
     .from(tenders)
     .innerJoin(sources, eq(tenders.sourceId, sources.id))
-    .where(eq(tenders.isClosed, false))
+    .where(and(orgFilter, eq(tenders.isClosed, false)))
     .groupBy(sources.name, sources.color)
     .orderBy(desc(count()))
     .limit(8);
@@ -498,7 +560,7 @@ export async function getAnalyticsSnapshot(): Promise<AnalyticsSnapshot> {
     })
     .from(tenders)
     .leftJoin(regions, eq(tenders.regionId, regions.id))
-    .where(eq(tenders.isClosed, false))
+    .where(and(orgFilter, eq(tenders.isClosed, false)))
     .groupBy(
       sql`coalesce(${regions.name}, ${tenders.regionLabel}, 'Unassigned')`,
     )
@@ -511,7 +573,7 @@ export async function getAnalyticsSnapshot(): Promise<AnalyticsSnapshot> {
       count: count(),
     })
     .from(tenders)
-    .where(eq(tenders.isClosed, false))
+    .where(and(orgFilter, eq(tenders.isClosed, false)))
     .groupBy(tenders.category)
     .orderBy(desc(count()))
     .limit(8);
@@ -525,6 +587,7 @@ export async function getAnalyticsSnapshot(): Promise<AnalyticsSnapshot> {
     })
     .from(syncLogs)
     .leftJoin(sources, eq(syncLogs.sourceId, sources.id))
+    .where(eq(syncLogs.orgId, resolvedOrgId))
     .orderBy(desc(syncLogs.syncedAt))
     .limit(6);
 

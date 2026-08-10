@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
+import { and, eq, isNull } from "drizzle-orm";
 
-import { loadEnv } from "@/lib/env";
-import { getDb } from "@/lib/db";
-import { syncLogs } from "@/lib/db/schema";
-import { syncAllEnabledSources } from "@/lib/sync/engine";
 import { triggerPostSyncAlerts } from "@/lib/alerts/engine";
+import { getDb } from "@/lib/db";
+import { sources, syncLogs } from "@/lib/db/schema";
 import { isEmailConfigured } from "@/lib/email/config";
+import { loadEnv } from "@/lib/env";
+import {
+  getOrganizationPlanSnapshot,
+  sourceDueForSync,
+} from "@/lib/platform/limits";
+import { orgAllowsSync } from "@/lib/platform/org-status";
+import { expireTrials } from "@/lib/platform/trials";
+import { syncSource } from "@/lib/sync/engine";
+import { listActiveOrganizations } from "@/lib/tenant/org";
 
 export async function POST(request: Request) {
   loadEnv();
@@ -22,17 +30,72 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Database not configured" }, { status: 500 });
     }
 
-    const results = await syncAllEnabledSources("cron");
+    const trialResult = await expireTrials();
+    const orgs = await listActiveOrganizations();
+    const allResults: Awaited<ReturnType<typeof syncSource>>[] = [];
+    const skippedOrgs: Array<{ orgId: number; reason: string }> = [];
 
-    await db.insert(syncLogs).values(
-      results.map((result) => ({
-        sourceId: result.sourceId,
-        triggeredBy: "cron",
-        status: result.errors.length ? "partial" : "success",
-        tenderCount: result.inserted + result.updated,
-        errorMessage: result.errors.length ? result.errors.join("; ") : null,
-      })),
-    );
+    for (const org of orgs) {
+      const snapshot = await getOrganizationPlanSnapshot(org.id);
+      if (!snapshot || !orgAllowsSync(snapshot.status)) {
+        skippedOrgs.push({
+          orgId: org.id,
+          reason: snapshot?.status ?? "missing",
+        });
+        continue;
+      }
+
+      const enabledSources = await db
+        .select()
+        .from(sources)
+        .where(
+          and(
+            eq(sources.orgId, org.id),
+            eq(sources.enabled, true),
+            isNull(sources.archivedAt),
+          ),
+        );
+
+      const dueSources = enabledSources.filter((source) =>
+        sourceDueForSync(source.lastSyncedAt, snapshot.syncIntervalHours),
+      );
+
+      if (dueSources.length === 0) {
+        skippedOrgs.push({ orgId: org.id, reason: "sync_interval" });
+        continue;
+      }
+
+      const orgResults: Awaited<ReturnType<typeof syncSource>>[] = [];
+
+      for (const source of dueSources) {
+        try {
+          orgResults.push(await syncSource(source.id));
+        } catch (error) {
+          orgResults.push({
+            sourceId: source.id,
+            sourceName: source.name,
+            inserted: 0,
+            updated: 0,
+            errors: [
+              error instanceof Error ? error.message : "Cron sync failed",
+            ],
+          });
+        }
+      }
+
+      allResults.push(...orgResults);
+
+      await db.insert(syncLogs).values(
+        orgResults.map((result) => ({
+          orgId: org.id,
+          sourceId: result.sourceId,
+          triggeredBy: "cron",
+          status: result.errors.length ? "partial" : "success",
+          tenderCount: result.inserted + result.updated,
+          errorMessage: result.errors.length ? result.errors.join("; ") : null,
+        })),
+      );
+    }
 
     let alerts: Awaited<ReturnType<typeof triggerPostSyncAlerts>> | null = null;
     if (isEmailConfigured()) {
@@ -45,10 +108,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      results,
+      orgCount: orgs.length,
+      trialExpiry: trialResult,
+      skippedOrgs,
+      results: allResults,
       alerts,
       syncedAt: new Date().toISOString(),
-      hint: "Point n8n Schedule Trigger to POST /api/sync/cron with Authorization: Bearer SYNC_CRON_SECRET, then POST /api/alerts/cron for daily digests",
+      hint: "Cron sync runs per active organization on GlobeTender Cloud",
     });
   } catch (error) {
     return NextResponse.json(

@@ -8,6 +8,9 @@ import { syncLogs } from "@/lib/db/schema";
 import { syncAllEnabledSources, syncSource } from "@/lib/sync/engine";
 import { triggerPostSyncAlerts } from "@/lib/alerts/engine";
 import { isEmailConfigured } from "@/lib/email/config";
+import { requireOrgFeature } from "@/lib/tenant/features";
+import { handleApiError } from "@/lib/api/errors";
+import { assertCanSync } from "@/lib/platform/limits";
 
 const syncBodySchema = z.object({
   sourceId: z.number().int().positive().optional(),
@@ -19,6 +22,8 @@ export async function POST(request: Request) {
     if (!canSync(user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    await requireOrgFeature("sync");
+    await assertCanSync(user.orgId);
 
     const db = getDb();
     if (!db) {
@@ -59,12 +64,6 @@ export async function POST(request: Request) {
       alerts,
     });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.flatten() }, { status: 400 });
-    }
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Sync failed" },
-      { status: 500 },
-    );
+    return handleApiError(error, "Sync failed");
   }
 }

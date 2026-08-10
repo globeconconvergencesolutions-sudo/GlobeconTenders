@@ -8,6 +8,10 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+import {
+  useFeatures,
+  useLexicon,
+} from "@/components/providers/org-context-provider";
 import { Card, CardContent } from "@/components/ui/card";
 import type { AnalyticsSnapshot } from "@/lib/tenders/queries";
 import { cn } from "@/lib/utils";
@@ -57,36 +61,43 @@ function BarRow({
 }
 
 export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
+  const { lexicon } = useLexicon();
+  const features = useFeatures();
+  const opp = lexicon.opportunityPlural.toLowerCase();
   const maxSource = Math.max(...data.bySource.map((row) => row.count), 1);
   const maxRegion = Math.max(...data.byRegion.map((row) => row.count), 1);
   const maxCategory = Math.max(...data.byCategory.map((row) => row.count), 1);
 
   const summaryCards = [
     {
-      label: "Open tenders",
+      label: `Open ${opp}`,
       value: data.openTenders,
       icon: Database,
       accent: "bg-blue-50 text-blue-600",
+      show: true,
     },
     {
-      label: "Saved tenders",
+      label: `Saved ${opp}`,
       value: data.savedTenders,
       icon: Bookmark,
       accent: "bg-rose-50 text-rose-600",
+      show: true,
     },
     {
       label: "Closing in 7 days",
       value: data.closingWithin7Days,
       icon: CalendarClock,
       accent: "bg-amber-50 text-amber-600",
+      show: true,
     },
     {
-      label: "Avg match score",
+      label: `Avg ${lexicon.matchScore.toLowerCase()}`,
       value: data.avgMatchScore,
       icon: TrendingUp,
       accent: "bg-emerald-50 text-emerald-600",
+      show: features.matchScore,
     },
-  ];
+  ].filter((card) => card.show);
 
   return (
     <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -116,7 +127,9 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-slate-200 shadow-sm">
           <CardContent className="space-y-4 p-5">
-            <h2 className="text-base font-semibold">Open tenders by source</h2>
+            <h2 className="text-base font-semibold">
+              Open {opp} by {lexicon.source.toLowerCase()}
+            </h2>
             {data.bySource.length === 0 ? (
               <p className="text-sm text-muted-foreground">No data yet.</p>
             ) : (
@@ -135,7 +148,9 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
 
         <Card className="border-slate-200 shadow-sm">
           <CardContent className="space-y-4 p-5">
-            <h2 className="text-base font-semibold">Open tenders by region</h2>
+            <h2 className="text-base font-semibold">
+              Open {opp} by {lexicon.region.toLowerCase()}
+            </h2>
             {data.byRegion.length === 0 ? (
               <p className="text-sm text-muted-foreground">No data yet.</p>
             ) : (
@@ -153,7 +168,9 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
 
         <Card className="border-slate-200 shadow-sm">
           <CardContent className="space-y-4 p-5">
-            <h2 className="text-base font-semibold">Open tenders by category</h2>
+            <h2 className="text-base font-semibold">
+              Open {opp} by {lexicon.category.toLowerCase()}
+            </h2>
             {data.byCategory.length === 0 ? (
               <p className="text-sm text-muted-foreground">No data yet.</p>
             ) : (
@@ -169,63 +186,65 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 shadow-sm">
-          <CardContent className="p-5">
-            <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
-              <RefreshCw className="h-4 w-4 text-muted-foreground" />
-              Recent sync activity
-            </h2>
-            {data.recentSyncs.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No sync runs recorded yet.
-              </p>
-            ) : (
-              <div className="divide-y divide-slate-100 dark:divide-border">
-                {data.recentSyncs.map((row, index) => (
-                  <div
-                    key={`${row.syncedAt}-${index}`}
-                    className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">
-                        {row.sourceName ?? "All sources"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(row.syncedAt).toLocaleString("en-GB", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
+        {features.sync && (
+          <Card className="border-slate-200 shadow-sm">
+            <CardContent className="p-5">
+              <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
+                <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                Recent {lexicon.sync.toLowerCase()} activity
+              </h2>
+              {data.recentSyncs.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No sync runs recorded yet.
+                </p>
+              ) : (
+                <div className="divide-y divide-slate-100 dark:divide-border">
+                  {data.recentSyncs.map((row, index) => (
+                    <div
+                      key={`${row.syncedAt}-${index}`}
+                      className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">
+                          {row.sourceName ?? `All ${lexicon.sourcePlural.toLowerCase()}`}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(row.syncedAt).toLocaleString("en-GB", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p
+                          className={cn(
+                            "text-xs font-medium capitalize",
+                            row.status === "success"
+                              ? "text-emerald-600"
+                              : "text-red-600",
+                          )}
+                        >
+                          {row.status}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {row.tenderCount} {opp}
+                        </p>
+                      </div>
                     </div>
-                    <div className="shrink-0 text-right">
-                      <p
-                        className={cn(
-                          "text-xs font-medium capitalize",
-                          row.status === "success"
-                            ? "text-emerald-600"
-                            : "text-red-600",
-                        )}
-                      >
-                        {row.status}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {row.tenderCount} tenders
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <p className="text-xs text-muted-foreground">
-        {data.totalTenders} total tenders in database ·{" "}
-        {data.closingWithin30Days} closing within 30 days
+        {data.totalTenders} total {opp} in database · {data.closingWithin30Days}{" "}
+        closing within 30 days
       </p>
     </div>
   );

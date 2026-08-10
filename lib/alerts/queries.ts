@@ -19,6 +19,7 @@ import {
   regions,
   sources,
   tenders,
+  orgMemberships,
   users,
   type FilterState,
   type NotificationPrefs,
@@ -29,6 +30,7 @@ import {
   getWorkspaceSettings,
   isUserIncludedInAlerts,
 } from "@/lib/settings/workspace";
+import { requireCurrentOrg } from "@/lib/tenant/context";
 
 export type AlertType = "closing_soon" | "high_match";
 
@@ -36,9 +38,16 @@ export type AlertUser = {
   id: number;
   email: string;
   name: string;
+  orgId: number;
   filterState: FilterState;
   notificationPrefs: NotificationPrefs;
 };
+
+async function resolveOrgId(orgId?: number) {
+  if (orgId != null) return orgId;
+  const org = await requireCurrentOrg();
+  return org.id;
+}
 
 const ALERT_LIMIT = 25;
 
@@ -85,11 +94,12 @@ async function getSentTenderIds(
   return new Set(rows.map((row) => row.tenderId));
 }
 
-export async function getAlertUsers(): Promise<AlertUser[]> {
+export async function getAlertUsers(orgId?: number): Promise<AlertUser[]> {
   const db = getDb();
   if (!db) return [];
 
-  const workspace = await getWorkspaceSettings();
+  const resolvedOrgId = await resolveOrgId(orgId);
+  const workspace = await getWorkspaceSettings(resolvedOrgId);
   if (!workspace.notifications.enabled) return [];
 
   const includedIds = workspace.notifications.includedUserIds;
@@ -104,11 +114,20 @@ export async function getAlertUsers(): Promise<AlertUser[]> {
       notificationPrefs: users.notificationPrefs,
     })
     .from(users)
+    .innerJoin(
+      orgMemberships,
+      and(
+        eq(orgMemberships.userId, users.id),
+        eq(orgMemberships.orgId, resolvedOrgId),
+        eq(orgMemberships.isActive, true),
+      ),
+    )
     .where(and(eq(users.isActive, true), inArray(users.id, includedIds)));
 
   return rows
     .map((row) => ({
       ...row,
+      orgId: resolvedOrgId,
       filterState: row.filterState ?? {
         sourceIds: [],
         serviceLineIds: [],
@@ -191,6 +210,7 @@ export async function getClosingSoonAlerts(
   );
 
   const conditions = [
+    eq(tenders.orgId, user.orgId),
     filterWhere,
     eq(tenders.isClosed, false),
     gte(tenders.deadline, now),
@@ -230,6 +250,7 @@ export async function getHighMatchAlerts(
   });
 
   const conditions = [
+    eq(tenders.orgId, user.orgId),
     filterWhere,
     eq(tenders.isClosed, false),
     gte(tenders.matchScore, user.notificationPrefs.highMatchThreshold),
@@ -262,6 +283,7 @@ export async function logAlertDeliveries(
   userId: number,
   alertType: AlertType,
   tenderIds: number[],
+  orgId: number,
 ) {
   if (tenderIds.length === 0) return;
 
@@ -272,6 +294,7 @@ export async function logAlertDeliveries(
     .insert(emailAlertLog)
     .values(
       tenderIds.map((tenderId) => ({
+        orgId,
         userId,
         tenderId,
         alertType,
@@ -287,6 +310,7 @@ export async function logAlertDeliveries(
 }
 
 export async function logDigestResult(input: {
+  orgId: number;
   userId: number;
   status: "success" | "failed" | "skipped";
   closingCount: number;
@@ -297,6 +321,7 @@ export async function logDigestResult(input: {
   if (!db) return;
 
   await db.insert(emailDigestLog).values({
+    orgId: input.orgId,
     userId: input.userId,
     status: input.status,
     closingCount: input.closingCount,

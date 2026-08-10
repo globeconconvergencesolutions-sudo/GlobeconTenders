@@ -7,12 +7,15 @@ import {
   type AlertUser,
 } from "@/lib/alerts/queries";
 import { getEmailConfig } from "@/lib/email/config";
+import { getEmailOrgPresentation } from "@/lib/email/presentation";
 import { buildDigestEmail, buildTestEmail } from "@/lib/email/templates";
 import { getEmailConnectionStatus, sendEmail } from "@/lib/email/transport";
+import { listActiveOrganizations } from "@/lib/tenant/org";
 
 export type UserDigestResult = {
   userId: number;
   email: string;
+  orgId: number;
   status: "sent" | "skipped" | "failed";
   closingCount: number;
   highMatchCount: number;
@@ -31,13 +34,14 @@ export type BulkDigestResult = {
 
 async function sendUserDigest(
   user: AlertUser,
-  options: { afterSync?: boolean } = {},
+  options: { afterSync?: boolean; orgPresentation?: Awaited<ReturnType<typeof getEmailOrgPresentation>> } = {},
 ): Promise<UserDigestResult> {
   const config = getEmailConfig();
   if (!config) {
     return {
       userId: user.id,
       email: user.email,
+      orgId: user.orgId,
       status: "skipped",
       closingCount: 0,
       highMatchCount: 0,
@@ -47,6 +51,7 @@ async function sendUserDigest(
 
   if (options.afterSync && !user.notificationPrefs.afterSync) {
     await logDigestResult({
+      orgId: user.orgId,
       userId: user.id,
       status: "skipped",
       closingCount: 0,
@@ -56,6 +61,7 @@ async function sendUserDigest(
     return {
       userId: user.id,
       email: user.email,
+      orgId: user.orgId,
       status: "skipped",
       closingCount: 0,
       highMatchCount: 0,
@@ -73,6 +79,7 @@ async function sendUserDigest(
 
     if (closingSoon.length === 0 && highMatch.length === 0) {
       await logDigestResult({
+        orgId: user.orgId,
         userId: user.id,
         status: "skipped",
         closingCount: 0,
@@ -81,11 +88,15 @@ async function sendUserDigest(
       return {
         userId: user.id,
         email: user.email,
+        orgId: user.orgId,
         status: "skipped",
         closingCount: 0,
         highMatchCount: 0,
       };
     }
+
+    const orgPresentation =
+      options.orgPresentation ?? (await getEmailOrgPresentation(user.orgId));
 
     const message = buildDigestEmail({
       recipientName: user.name,
@@ -94,6 +105,7 @@ async function sendUserDigest(
       closingSoonDays: user.notificationPrefs.closingSoonDays,
       highMatchThreshold: user.notificationPrefs.highMatchThreshold,
       appUrl: config.appUrl,
+      org: orgPresentation,
     });
 
     await sendEmail({
@@ -108,13 +120,16 @@ async function sendUserDigest(
         user.id,
         "closing_soon",
         closingSoon.map((row) => row.id),
+        user.orgId,
       ),
       logAlertDeliveries(
         user.id,
         "high_match",
         highMatch.map((row) => row.id),
+        user.orgId,
       ),
       logDigestResult({
+        orgId: user.orgId,
         userId: user.id,
         status: "success",
         closingCount: closingSoon.length,
@@ -125,6 +140,7 @@ async function sendUserDigest(
     return {
       userId: user.id,
       email: user.email,
+      orgId: user.orgId,
       status: "sent",
       closingCount: closingSoon.length,
       highMatchCount: highMatch.length,
@@ -132,6 +148,7 @@ async function sendUserDigest(
   } catch (error) {
     const message = error instanceof Error ? error.message : "Digest failed";
     await logDigestResult({
+      orgId: user.orgId,
       userId: user.id,
       status: "failed",
       closingCount: 0,
@@ -141,6 +158,7 @@ async function sendUserDigest(
     return {
       userId: user.id,
       email: user.email,
+      orgId: user.orgId,
       status: "failed",
       closingCount: 0,
       highMatchCount: 0,
@@ -150,7 +168,7 @@ async function sendUserDigest(
 }
 
 export async function processAllAlertDigests(
-  options: { afterSync?: boolean } = {},
+  options: { afterSync?: boolean; orgId?: number } = {},
 ): Promise<BulkDigestResult> {
   const config = getEmailConfig();
   if (!config) {
@@ -165,11 +183,21 @@ export async function processAllAlertDigests(
     };
   }
 
-  const users = await getAlertUsers();
+  const orgs =
+    options.orgId != null
+      ? [{ id: options.orgId }]
+      : await listActiveOrganizations();
+
   const results: UserDigestResult[] = [];
 
-  for (const user of users) {
-    results.push(await sendUserDigest(user, options));
+  for (const org of orgs) {
+    const orgPresentation = await getEmailOrgPresentation(org.id);
+    const users = await getAlertUsers(org.id);
+    for (const user of users) {
+      results.push(
+        await sendUserDigest(user, { ...options, orgPresentation }),
+      );
+    }
   }
 
   return {
@@ -186,6 +214,7 @@ export async function processAllAlertDigests(
 export async function sendTestAlertEmail(input: {
   email: string;
   name: string;
+  orgId?: number;
 }) {
   const config = getEmailConfig();
   if (!config) {
@@ -200,7 +229,10 @@ export async function sendTestAlertEmail(input: {
     );
   }
 
-  const message = buildTestEmail(input.name, config.appUrl);
+  const orgPresentation = input.orgId
+    ? await getEmailOrgPresentation(input.orgId)
+    : undefined;
+  const message = buildTestEmail(input.name, config.appUrl, orgPresentation);
   await sendEmail({
     to: input.email,
     subject: message.subject,
@@ -209,6 +241,8 @@ export async function sendTestAlertEmail(input: {
   });
 }
 
-export async function triggerPostSyncAlerts(): Promise<BulkDigestResult> {
-  return processAllAlertDigests({ afterSync: true });
+export async function triggerPostSyncAlerts(
+  orgId?: number,
+): Promise<BulkDigestResult> {
+  return processAllAlertDigests({ afterSync: true, orgId });
 }

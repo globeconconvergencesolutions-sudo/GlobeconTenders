@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { Globe2 } from "lucide-react";
 
+import { useOptionalOrg } from "@/components/providers/org-context-provider";
 import {
   BRAND,
   BRAND_ASSETS,
   BRAND_LOGO_SIZES,
   type BrandLogoSize,
 } from "@/lib/brand";
+import type { ResolvedBranding } from "@/lib/branding/resolve";
 import { cn } from "@/lib/utils";
 
 type AppLogoProps = {
@@ -18,6 +20,7 @@ type AppLogoProps = {
   variant?: "sidebar" | "login" | "mark";
   className?: string;
   textClassName?: string;
+  brandingOverride?: ResolvedBranding;
 };
 
 const variantAsset = {
@@ -33,9 +36,14 @@ export function AppLogo({
   variant = "sidebar",
   className,
   textClassName,
+  brandingOverride,
 }: AppLogoProps) {
+  const org = useOptionalOrg();
+  const branding = brandingOverride ?? org?.branding;
   const px = BRAND_LOGO_SIZES[size];
-  const src = variantAsset[variant];
+  const src = branding?.logoUrl || variantAsset[variant];
+  const displayName = branding?.displayName ?? BRAND.name;
+  const tagline = branding?.productTagline ?? BRAND.tagline;
   const [imageFailed, setImageFailed] = useState(false);
 
   return (
@@ -54,7 +62,7 @@ export function AppLogo({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={src}
-            alt={`${BRAND.fullName} logo`}
+            alt={`${displayName} logo`}
             width={px}
             height={px}
             className="h-full w-full object-contain p-0.5"
@@ -66,11 +74,11 @@ export function AppLogo({
       {showText && (
         <div className={cn(compact && "min-w-0", textClassName)}>
           <p className="text-base font-bold tracking-tight text-white">
-            {BRAND.name}
+            {displayName}
           </p>
           {!compact && (
             <p className="text-[10px] font-semibold tracking-[0.18em] text-blue-200/70">
-              {BRAND.tagline.toUpperCase()}
+              {tagline.toUpperCase()}
             </p>
           )}
         </div>

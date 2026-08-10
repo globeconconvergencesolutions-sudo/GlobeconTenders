@@ -1,6 +1,13 @@
+import { headers } from "next/headers";
+
+import { MarketingLanding } from "@/components/marketing/marketing-landing";
 import { TendersDashboard } from "@/components/tenders/tenders-dashboard";
+import { auth } from "@/auth";
 import { getSessionUser } from "@/lib/auth/session";
 import type { FilterState } from "@/lib/db/schema";
+import { computeOnboardingProgress } from "@/lib/onboarding/steps";
+import { getOnboardingContext } from "@/lib/onboarding/workspace";
+import { isApexHost } from "@/lib/tenant/resolution";
 import {
   DEFAULT_PAGE_SIZE,
   getDashboardStats,
@@ -31,6 +38,14 @@ function resolveHideClosed(
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
+  const headerStore = await headers();
+  const host = headerStore.get("host");
+  const session = await auth();
+
+  if (isApexHost(host) && !session?.user) {
+    return <MarketingLanding />;
+  }
+
   const params = await searchParams;
   const user = await getSessionUser();
   const page = Math.max(1, Number(params.page) || 1);
@@ -57,6 +72,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     getTendersPaginated(queryFilters),
     getDashboardStats(queryFilters),
   ]);
+
+  let onboardingProgress = null;
+  if (user?.role === "super_admin" && user.orgId) {
+    const context = await getOnboardingContext(user.orgId);
+    onboardingProgress = computeOnboardingProgress(context.state, context.signals);
+  }
 
   return (
     <TendersDashboard
@@ -85,6 +106,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       savedOnly={savedOnly}
       initialHideClosed={hideClosed}
       userRole={user?.role ?? "viewer"}
+      onboardingProgress={onboardingProgress}
     />
   );
 }

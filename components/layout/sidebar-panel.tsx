@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import {
   BarChart3,
+  Cloud,
   FileText,
   Settings,
   User,
@@ -17,6 +18,7 @@ import { SidebarFiltersLazy } from "@/components/filters/sidebar-filters-lazy";
 import { AppLogo } from "@/components/brand/app-logo";
 import { SidebarContextPanel } from "@/components/layout/sidebar-context-panel";
 import { SidebarFooter } from "@/components/layout/sidebar-footer";
+import { useLexicon, useFeatures } from "@/components/providers/org-context-provider";
 import { hasPermission } from "@/lib/auth/permissions";
 import type { UserRole } from "@/lib/db/schema";
 import {
@@ -25,10 +27,15 @@ import {
 } from "@/lib/navigation/sidebar-routes";
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { href: "/", label: "Tenders", icon: FileText },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/profile", label: "Profile", icon: User },
+const navItemDefs = [
+  { href: "/", icon: FileText, key: "navHome" as const, feature: null },
+  {
+    href: "/analytics",
+    icon: BarChart3,
+    key: "navAnalytics" as const,
+    feature: "analytics" as const,
+  },
+  { href: "/profile", icon: User, key: "navProfile" as const, feature: null },
 ];
 
 const sidebarScrollClass =
@@ -51,6 +58,8 @@ export function SidebarPanel({
 }: SidebarPanelProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { t } = useLexicon();
+  const features = useFeatures();
   const role = session?.user?.role as UserRole | undefined;
   const showTeamNav = role ? hasPermission(role, "users:read") : false;
   const [showSettingsNav, setShowSettingsNav] = useState(false);
@@ -77,15 +86,26 @@ export function SidebarPanel({
   const showFilters = sidebarShowsFilters(mode);
 
   const extraNavItems = [
+    ...(session?.user?.isPlatformAdmin
+      ? [{ href: "/platform/orgs", label: "Platform", icon: Cloud }]
+      : []),
     ...(showSettingsNav
-      ? [{ href: "/settings", label: "Settings", icon: Settings }]
+      ? [{ href: "/settings", label: t("navSettings"), icon: Settings }]
       : []),
     ...(showTeamNav
-      ? [{ href: "/admin/users", label: "Team", icon: Users }]
+      ? [{ href: "/admin/users", label: t("navTeam"), icon: Users }]
       : []),
   ];
 
-  const allNavItems = [...navItems, ...extraNavItems];
+  const allNavItems = [
+    ...navItemDefs
+      .filter((item) => !item.feature || features[item.feature])
+      .map((item) => ({
+        ...item,
+        label: t(item.key),
+      })),
+    ...extraNavItems,
+  ];
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-gradient-to-b from-[hsl(var(--sidebar))] via-[hsl(222_47%_9%)] to-[hsl(222_47%_7%)]">

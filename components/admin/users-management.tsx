@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ApiErrorAlert } from "@/components/ui/api-error-alert";
+import { readApiError, type ParsedClientError } from "@/lib/api/client-error";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +44,7 @@ import {
   rolesActorCanAssign,
 } from "@/lib/auth/user-management";
 import type { UserRole } from "@/lib/db/schema";
+import { showSuccessToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 type TeamUser = {
@@ -74,10 +77,9 @@ export function UsersManagement({
   const [users, setUsers] = useState<TeamUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<ParsedClientError | null>(null);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [removeTarget, setRemoveTarget] = useState<TeamUser | null>(null);
   const [removing, setRemoving] = useState(false);
@@ -114,8 +116,7 @@ export function UsersManagement({
   }, [loadUsers]);
 
   function showSuccess(message: string) {
-    setSuccess(message);
-    setTimeout(() => setSuccess(null), 3500);
+    showSuccessToast(message);
   }
 
   function canManageUser(user: TeamUser): boolean {
@@ -134,12 +135,11 @@ export function UsersManagement({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password, role }),
       });
-      const data = await response.json();
       if (!response.ok) {
-        throw new Error(
-          typeof data.error === "string" ? data.error : "Failed to create user",
-        );
+        setFormError(await readApiError(response, "Failed to create user"));
+        return;
       }
+      const data = await response.json();
       setDialogOpen(false);
       setName("");
       setEmail("");
@@ -153,8 +153,8 @@ export function UsersManagement({
             ? " — welcome email sent"
             : "";
       showSuccess(`${data.user?.name ?? "User"} added to the team${emailNote}`);
-    } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Failed to create user");
+    } catch {
+      setFormError({ message: "Failed to create user — check your connection" });
     } finally {
       setSaving(false);
     }
@@ -258,12 +258,6 @@ export function UsersManagement({
       {error && (
         <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
           {error}
-        </p>
-      )}
-
-      {success && (
-        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200">
-          {success}
         </p>
       )}
 
@@ -464,9 +458,7 @@ export function UsersManagement({
               </Select>
             </div>
           </div>
-          {formError && (
-            <p className="text-sm text-red-600 dark:text-red-300">{formError}</p>
-          )}
+          {formError && <ApiErrorAlert error={formError} />}
           <DialogFooter>
             <Button
               onClick={() => void createUser()}

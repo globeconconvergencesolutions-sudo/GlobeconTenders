@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import {
   catalogSlugFor,
@@ -8,6 +8,7 @@ import {
 } from "@/lib/catalog/source-catalog";
 import { getDb } from "@/lib/db";
 import { sources } from "@/lib/db/schema";
+import { assertCanAddSource, PlanLimitError } from "@/lib/platform/limits";
 import { slugify } from "@/lib/matching";
 import { syncSource } from "@/lib/sync/engine";
 
@@ -24,17 +25,23 @@ export type InstallResult = {
   error?: string;
 };
 
-export async function getInstalledCatalogSlugs(): Promise<Set<string>> {
+export async function getInstalledCatalogSlugs(
+  orgId: number,
+): Promise<Set<string>> {
   const db = getDb();
   if (!db) return new Set();
 
-  const rows = await db.select({ slug: sources.slug }).from(sources);
+  const rows = await db
+    .select({ slug: sources.slug })
+    .from(sources)
+    .where(eq(sources.orgId, orgId));
   return new Set(rows.map((row) => row.slug));
 }
 
-function catalogValues(source: CatalogSource, userId?: number) {
+function catalogValues(source: CatalogSource, orgId: number, userId?: number) {
   const slug = catalogSlugFor(source);
   return {
+    orgId,
     name: source.name,
     slug,
     type: "link" as const,
@@ -49,6 +56,7 @@ function catalogValues(source: CatalogSource, userId?: number) {
 
 export async function installCatalogSource(
   catalogId: string,
+  orgId: number,
   userId?: number,
   options: { sync?: boolean } = { sync: true },
 ): Promise<InstallResult> {
@@ -74,7 +82,7 @@ export async function installCatalogSource(
   const [existing] = await db
     .select()
     .from(sources)
-    .where(eq(sources.slug, slug))
+    .where(and(eq(sources.orgId, orgId), eq(sources.slug, slug)))
     .limit(1);
 
   if (existing) {
@@ -87,9 +95,11 @@ export async function installCatalogSource(
   }
 
   try {
+    await assertCanAddSource(orgId);
+
     const [created] = await db
       .insert(sources)
-      .values(catalogValues(source, userId))
+      .values(catalogValues(source, orgId, userId))
       .returning();
 
     let syncResult;
@@ -123,6 +133,13 @@ export async function installCatalogSource(
         : undefined,
     };
   } catch (error) {
+    if (error instanceof PlanLimitError) {
+      return {
+        catalogId,
+        status: "failed",
+        error: error.message,
+      };
+    }
     return {
       catalogId,
       status: "failed",
@@ -132,25 +149,27 @@ export async function installCatalogSource(
 }
 
 export async function installFeaturedCatalogSources(
+  orgId: number,
   userId?: number,
 ): Promise<InstallResult[]> {
   const featured = SOURCE_CATALOG.filter((source) => source.featured);
   const results: InstallResult[] = [];
 
   for (const source of featured) {
-    results.push(await installCatalogSource(source.id, userId));
+    results.push(await installCatalogSource(source.id, orgId, userId));
   }
 
   return results;
 }
 
 export async function installAllCatalogSources(
+  orgId: number,
   userId?: number,
 ): Promise<InstallResult[]> {
   const results: InstallResult[] = [];
 
   for (const source of SOURCE_CATALOG) {
-    results.push(await installCatalogSource(source.id, userId));
+    results.push(await installCatalogSource(source.id, orgId, userId));
   }
 
   return results;

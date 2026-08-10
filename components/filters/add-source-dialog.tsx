@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ApiErrorAlert } from "@/components/ui/api-error-alert";
+import { readApiError, type ParsedClientError } from "@/lib/api/client-error";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type ParseResult = {
@@ -36,7 +38,7 @@ export function AddSourceDialog({
   onCreated,
 }: AddSourceDialogProps) {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ParsedClientError | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
@@ -59,52 +61,52 @@ export function AddSourceDialog({
     setLoading(true);
     setError(null);
     setSuccess(null);
-    const response = await fetch("/api/sources", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: "link",
-        name,
-        url,
-        adapter: url.includes("/feed") ? "generic-rss" : "generic-link",
-      }),
-    });
-    setLoading(false);
-    if (!response.ok) {
-      const data = await response.json();
-      setError(data.error ?? "Failed to add source");
-      return;
+    try {
+      const response = await fetch("/api/sources", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "link",
+          name,
+          url,
+          adapter: url.includes("/feed") ? "generic-rss" : "generic-link",
+        }),
+      });
+      if (!response.ok) {
+        setError(await readApiError(response, "Failed to add source"));
+        return;
+      }
+      resetForm();
+      onOpenChange(false);
+      onCreated();
+    } catch {
+      setError({ message: "Failed to add source — check your connection" });
+    } finally {
+      setLoading(false);
     }
-    resetForm();
-    onOpenChange(false);
-    onCreated();
   }
 
   async function createDocumentSource() {
     if (!file) {
-      setError("Choose a document to upload");
+      setError({ message: "Choose a document to upload" });
       return;
     }
     setLoading(true);
     setError(null);
     setSuccess(null);
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("file", file);
-    const response = await fetch("/api/sources", {
-      method: "POST",
-      body: formData,
-    });
-    setLoading(false);
-    const data = await response.json();
-    if (!response.ok) {
-      setError(
-        typeof data.error === "string"
-          ? data.error
-          : "Failed to upload document source",
-      );
-      return;
-    }
+    try {
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("file", file);
+      const response = await fetch("/api/sources", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        setError(await readApiError(response, "Failed to upload document source"));
+        return;
+      }
+      const data = await response.json();
 
     const parseResult = data.parseResult as ParseResult | undefined;
     if (parseResult?.errors.length) {
@@ -127,6 +129,11 @@ export function AddSourceDialog({
       resetForm();
       onOpenChange(false);
     }, 1800);
+    } catch {
+      setError({ message: "Failed to upload document — check your connection" });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -236,11 +243,7 @@ export function AddSourceDialog({
           </TabsContent>
         </Tabs>
 
-        {error && (
-          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
-            {error}
-          </p>
-        )}
+        {error && <ApiErrorAlert error={error} />}
         {success && (
           <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-100">
             {success}

@@ -1,11 +1,20 @@
 import { and, eq } from "drizzle-orm";
 
+import { requireCurrentOrg } from "@/lib/tenant/context";
+import { resolveLexicon } from "@/lib/lexicon";
+import { resolveFeatures, resolveLayout } from "@/lib/templates/resolve";
 import { getDb } from "@/lib/db";
 import {
   DEFAULT_WORKSPACE_SETTINGS,
   type DelegatableSettingsPermission,
+  type WorkspaceBrandingSettings,
+  type WorkspaceFeaturesSettings,
+  type WorkspaceLayoutSettings,
+  type WorkspaceLexiconSettings,
   type WorkspaceNotificationSettings,
   type WorkspaceSettingsPayload,
+  organizations,
+  orgMemberships,
   userPermissionGrants,
   users,
   workspaceSettings,
@@ -29,7 +38,27 @@ function normalizeNotifications(
   };
 }
 
+async function resolveOrgId(orgId?: number): Promise<number> {
+  if (orgId != null) return orgId;
+  const org = await requireCurrentOrg();
+  return org.id;
+}
+
+async function getOrgTemplateId(orgId: number): Promise<string> {
+  const db = getDb();
+  if (!db) return "procurement";
+
+  const [row] = await db
+    .select({ templateId: organizations.templateId })
+    .from(organizations)
+    .where(eq(organizations.id, orgId))
+    .limit(1);
+
+  return row?.templateId ?? "procurement";
+}
+
 async function ensureDefaultAlertRecipients(
+  orgId: number,
   settings: WorkspaceSettingsPayload,
 ): Promise<WorkspaceSettingsPayload> {
   const db = getDb();
@@ -38,9 +67,17 @@ async function ensureDefaultAlertRecipients(
   }
 
   const superAdmins = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(and(eq(users.role, "super_admin"), eq(users.isActive, true)));
+    .select({ id: orgMemberships.userId })
+    .from(orgMemberships)
+    .innerJoin(users, eq(users.id, orgMemberships.userId))
+    .where(
+      and(
+        eq(orgMemberships.orgId, orgId),
+        eq(orgMemberships.role, "super_admin"),
+        eq(orgMemberships.isActive, true),
+        eq(users.isActive, true),
+      ),
+    );
 
   if (superAdmins.length === 0) return settings;
 
@@ -53,13 +90,13 @@ async function ensureDefaultAlertRecipients(
   await db
     .insert(workspaceSettings)
     .values({
-      id: 1,
+      orgId,
       notifications,
       updatedById: superAdmins[0].id,
       updatedAt: new Date(),
     })
     .onConflictDoUpdate({
-      target: workspaceSettings.id,
+      target: workspaceSettings.orgId,
       set: {
         notifications,
         updatedById: superAdmins[0].id,
@@ -70,50 +107,68 @@ async function ensureDefaultAlertRecipients(
   return { ...settings, notifications };
 }
 
-export async function getWorkspaceSettings(): Promise<WorkspaceSettingsPayload> {
+export async function getWorkspaceSettings(
+  orgId?: number,
+): Promise<WorkspaceSettingsPayload> {
   const db = getDb();
+  const resolvedOrgId = orgId ?? (await resolveOrgId());
+
   if (!db) return DEFAULT_WORKSPACE_SETTINGS;
 
   const [row] = await db
     .select()
     .from(workspaceSettings)
-    .where(eq(workspaceSettings.id, 1))
+    .where(eq(workspaceSettings.orgId, resolvedOrgId))
     .limit(1);
 
   if (!row) {
-    await db.insert(workspaceSettings).values({ id: 1 }).onConflictDoNothing();
-    return ensureDefaultAlertRecipients(DEFAULT_WORKSPACE_SETTINGS);
+    await db
+      .insert(workspaceSettings)
+      .values({ orgId: resolvedOrgId })
+      .onConflictDoNothing();
+    const templateId = await getOrgTemplateId(resolvedOrgId);
+    return ensureDefaultAlertRecipients(resolvedOrgId, {
+      ...DEFAULT_WORKSPACE_SETTINGS,
+      features: resolveFeatures({}, templateId),
+      layout: resolveLayout({}, templateId),
+    });
   }
 
+  const templateId = await getOrgTemplateId(resolvedOrgId);
   const settings = {
     organizationName: row.organizationName,
     notifications: normalizeNotifications(row.notifications),
     branding: row.branding ?? {},
+    lexicon: resolveLexicon(row.lexicon),
+    features: resolveFeatures(row.features, templateId),
+    layout: resolveLayout(row.layout, templateId),
     catalog: row.catalog ?? DEFAULT_WORKSPACE_SETTINGS.catalog,
   };
 
-  return ensureDefaultAlertRecipients(settings);
+  return ensureDefaultAlertRecipients(resolvedOrgId, settings);
 }
 
 export async function updateWorkspaceNotifications(
   notifications: WorkspaceNotificationSettings,
   updatedById: number,
+  orgId?: number,
 ) {
   const db = getDb();
   if (!db) throw new Error("Database not configured");
 
+  const resolvedOrgId = orgId ?? (await resolveOrgId());
   const normalized = normalizeNotifications(notifications);
 
   await db
     .insert(workspaceSettings)
     .values({
-      id: 1,
+      orgId: resolvedOrgId,
       notifications: normalized,
       updatedById,
       updatedAt: new Date(),
     })
     .onConflictDoUpdate({
-      target: workspaceSettings.id,
+      target: workspaceSettings.orgId,
       set: {
         notifications: normalized,
         updatedById,
@@ -124,9 +179,73 @@ export async function updateWorkspaceNotifications(
   return normalized;
 }
 
-export async function getUserGrants(userId: number) {
+export async function updateWorkspaceBranding(
+  branding: WorkspaceBrandingSettings,
+  updatedById: number,
+  orgId?: number,
+) {
+  const db = getDb();
+  if (!db) throw new Error("Database not configured");
+
+  const resolvedOrgId = orgId ?? (await resolveOrgId());
+
+  await db
+    .insert(workspaceSettings)
+    .values({
+      orgId: resolvedOrgId,
+      branding,
+      updatedById,
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: workspaceSettings.orgId,
+      set: {
+        branding,
+        updatedById,
+        updatedAt: new Date(),
+      },
+    });
+
+  return branding;
+}
+
+export async function updateWorkspaceLexicon(
+  lexicon: Partial<WorkspaceLexiconSettings>,
+  updatedById: number,
+  orgId?: number,
+) {
+  const db = getDb();
+  if (!db) throw new Error("Database not configured");
+
+  const resolvedOrgId = orgId ?? (await resolveOrgId());
+  const current = await getWorkspaceSettings(resolvedOrgId);
+  const merged = resolveLexicon({ ...current.lexicon, ...lexicon });
+
+  await db
+    .insert(workspaceSettings)
+    .values({
+      orgId: resolvedOrgId,
+      lexicon: merged,
+      updatedById,
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: workspaceSettings.orgId,
+      set: {
+        lexicon: merged,
+        updatedById,
+        updatedAt: new Date(),
+      },
+    });
+
+  return merged;
+}
+
+export async function getUserGrants(userId: number, orgId?: number) {
   const db = getDb();
   if (!db) return [];
+
+  const resolvedOrgId = orgId ?? (await resolveOrgId());
 
   return db
     .select({
@@ -136,20 +255,28 @@ export async function getUserGrants(userId: number) {
       createdAt: userPermissionGrants.createdAt,
     })
     .from(userPermissionGrants)
-    .where(eq(userPermissionGrants.userId, userId));
+    .where(
+      and(
+        eq(userPermissionGrants.orgId, resolvedOrgId),
+        eq(userPermissionGrants.userId, userId),
+      ),
+    );
 }
 
 export async function userHasGrant(
   userId: number,
   permission: DelegatableSettingsPermission,
+  orgId?: number,
 ) {
-  const grants = await getUserGrants(userId);
+  const grants = await getUserGrants(userId, orgId);
   return grants.some((grant) => grant.permission === permission);
 }
 
-export async function listNotificationDelegates() {
+export async function listNotificationDelegates(orgId?: number) {
   const db = getDb();
   if (!db) return [];
+
+  const resolvedOrgId = orgId ?? (await resolveOrgId());
 
   return db
     .select({
@@ -160,15 +287,28 @@ export async function listNotificationDelegates() {
       createdAt: userPermissionGrants.createdAt,
       userName: users.name,
       userEmail: users.email,
-      userRole: users.role,
-      isActive: users.isActive,
+      userRole: orgMemberships.role,
+      isActive: orgMemberships.isActive,
     })
     .from(userPermissionGrants)
     .innerJoin(users, eq(userPermissionGrants.userId, users.id))
-    .where(eq(userPermissionGrants.permission, "settings:notifications"));
+    .innerJoin(
+      orgMemberships,
+      and(
+        eq(orgMemberships.userId, users.id),
+        eq(orgMemberships.orgId, userPermissionGrants.orgId),
+      ),
+    )
+    .where(
+      and(
+        eq(userPermissionGrants.orgId, resolvedOrgId),
+        eq(userPermissionGrants.permission, "settings:notifications"),
+      ),
+    );
 }
 
 export async function grantUserPermission(input: {
+  orgId?: number;
   userId: number;
   permission: DelegatableSettingsPermission;
   grantedById: number;
@@ -176,9 +316,12 @@ export async function grantUserPermission(input: {
   const db = getDb();
   if (!db) throw new Error("Database not configured");
 
+  const resolvedOrgId = input.orgId ?? (await resolveOrgId());
+
   const [grant] = await db
     .insert(userPermissionGrants)
     .values({
+      orgId: resolvedOrgId,
       userId: input.userId,
       permission: input.permission,
       grantedById: input.grantedById,
@@ -189,13 +332,20 @@ export async function grantUserPermission(input: {
   return grant ?? null;
 }
 
-export async function revokeUserPermission(grantId: number) {
+export async function revokeUserPermission(grantId: number, orgId?: number) {
   const db = getDb();
   if (!db) throw new Error("Database not configured");
 
+  const resolvedOrgId = orgId ?? (await resolveOrgId());
+
   await db
     .delete(userPermissionGrants)
-    .where(eq(userPermissionGrants.id, grantId));
+    .where(
+      and(
+        eq(userPermissionGrants.id, grantId),
+        eq(userPermissionGrants.orgId, resolvedOrgId),
+      ),
+    );
 }
 
 export function isUserIncludedInAlerts(

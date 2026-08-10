@@ -40,7 +40,11 @@ export async function POST() {
       );
     }
 
-    await sendTestAlertEmail({ email: user.email, name: user.name });
+    await sendTestAlertEmail({
+      email: user.email,
+      name: user.name,
+      orgId: user.orgId,
+    });
 
     return NextResponse.json({
       ok: true,

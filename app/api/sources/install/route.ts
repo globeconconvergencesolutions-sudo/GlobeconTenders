@@ -8,6 +8,8 @@ import {
   installCatalogSource,
   installFeaturedCatalogSources,
 } from "@/lib/sources/install";
+import { handleApiError } from "@/lib/api/errors";
+import { assertCanAddSource } from "@/lib/platform/limits";
 
 const installSchema = z
   .object({
@@ -31,34 +33,30 @@ export async function POST(request: Request) {
     const payload = installSchema.parse(await request.json());
     const sync = payload.sync !== false;
 
+    if (payload.catalogId) {
+      await assertCanAddSource(user.orgId);
+      const result = await installCatalogSource(
+        payload.catalogId,
+        user.orgId,
+        user.id,
+        { sync },
+      );
+      return NextResponse.json({ result });
+    }
+
     if (payload.all) {
-      const results = await installAllCatalogSources(user.id);
+      const results = await installAllCatalogSources(user.orgId, user.id);
       return NextResponse.json({ results });
     }
 
     if (payload.featured) {
-      const results = await installFeaturedCatalogSources(user.id);
+      await assertCanAddSource(user.orgId);
+      const results = await installFeaturedCatalogSources(user.orgId, user.id);
       return NextResponse.json({ results });
-    }
-
-    if (payload.catalogId) {
-      const result = await installCatalogSource(payload.catalogId, user.id, {
-        sync,
-      });
-      return NextResponse.json({ result });
     }
 
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.flatten() }, { status: 400 });
-    }
-    if (error instanceof Error && error.message === "UNAUTHORIZED") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Install failed" },
-      { status: 500 },
-    );
+    return handleApiError(error, "Install failed");
   }
 }

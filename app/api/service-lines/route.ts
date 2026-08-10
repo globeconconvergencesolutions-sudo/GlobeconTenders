@@ -33,6 +33,7 @@ export async function POST(request: Request) {
     const [created] = await db
       .insert(serviceLines)
       .values({
+        orgId: user.orgId,
         name: payload.name,
         slug,
         keywords,

@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { headers } from "next/headers";
 
+import { auth } from "@/auth";
+import { SignOutOverlay } from "@/components/auth/sign-out-overlay";
+import { OrgThemeStyles } from "@/components/branding/org-theme-styles";
 import { AppShell } from "@/components/layout/app-shell";
+import { Toaster } from "@/components/ui/sonner";
+import { OrgContextProvider } from "@/components/providers/org-context-provider";
 import { AuthSessionProvider } from "@/components/providers/session-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import { BRAND, BRAND_ASSETS } from "@/lib/brand";
+import { BRAND_ASSETS } from "@/lib/brand";
+import { shouldSkipAppShell } from "@/lib/layout/shell-routes";
+import { getOrgContext } from "@/lib/tenant/org-context";
+import { PLATFORM_PRODUCT_NAME } from "@/lib/tenant/config";
 
 import "./globals.css";
 
@@ -13,42 +22,59 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
-  title: {
-    default: BRAND.fullName,
-    template: `%s | ${BRAND.fullName}`,
-  },
-  description: "Track and match procurement tenders for Globecon service lines",
-  manifest: "/manifest.webmanifest",
-  icons: {
-    icon: [
-      { url: BRAND_ASSETS.icon32, sizes: "32x32", type: "image/png" },
-      { url: BRAND_ASSETS.icon16, sizes: "16x16", type: "image/png" },
-    ],
-    apple: [{ url: BRAND_ASSETS.appleTouchIcon, sizes: "180x180" }],
-    shortcut: BRAND_ASSETS.favicon,
-  },
-  openGraph: {
-    title: BRAND.fullName,
-    description: "Track and match procurement tenders for Globecon service lines",
-    images: [{ url: BRAND_ASSETS.ogImage, width: 1200, height: 630 }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: BRAND.fullName,
-    images: [BRAND_ASSETS.ogImage],
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const org = await getOrgContext();
+  const title = `${org.branding.displayName} ${org.branding.productTagline}`;
 
-export default function RootLayout({
+  return {
+    metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
+    title: {
+      default: title,
+      template: `%s | ${title}`,
+    },
+    description: `Track and match ${org.lexicon.opportunityPlural.toLowerCase()} for ${org.branding.displayName}`,
+    manifest: "/manifest.webmanifest",
+    icons: {
+      icon: [
+        { url: BRAND_ASSETS.icon32, sizes: "32x32", type: "image/png" },
+        { url: BRAND_ASSETS.icon16, sizes: "16x16", type: "image/png" },
+      ],
+      apple: [{ url: BRAND_ASSETS.appleTouchIcon, sizes: "180x180" }],
+      shortcut: BRAND_ASSETS.favicon,
+    },
+    openGraph: {
+      title,
+      description: `${PLATFORM_PRODUCT_NAME} — ${org.branding.displayName}`,
+      images: [{ url: BRAND_ASSETS.ogImage, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      images: [BRAND_ASSETS.ogImage],
+    },
+  };
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const orgContext = await getOrgContext();
+  const headerStore = await headers();
+  const pathname = headerStore.get("x-pathname") ?? "/";
+  const host = headerStore.get("host");
+  const session = await auth();
+  const skipAppShell = shouldSkipAppShell(
+    pathname,
+    host,
+    Boolean(session?.user?.id),
+  );
+
   return (
     <html lang="en" suppressHydrationWarning className="h-full">
       <body className={`${inter.variable} min-h-full font-sans antialiased`}>
+        <OrgThemeStyles branding={orgContext.branding} />
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
@@ -56,7 +82,15 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthSessionProvider>
-            <AppShell>{children}</AppShell>
+            <OrgContextProvider value={orgContext}>
+              <SignOutOverlay />
+              {skipAppShell ? (
+                children
+              ) : (
+                <AppShell>{children}</AppShell>
+              )}
+              <Toaster richColors closeButton position="top-right" />
+            </OrgContextProvider>
           </AuthSessionProvider>
         </ThemeProvider>
       </body>

@@ -1,0 +1,63 @@
+{
+  "id": "procurement",
+  "version": "1.0.0",
+  "name": "Procurement Intelligence",
+  "description": "Track tenders, service lines, and procurement sources.",
+  "catalogPack": "globecon-procurement",
+  "branding": {
+    "primaryColor": "#2563eb",
+    "accentColor": "#1d4ed8"
+  },
+  "lexicon": {
+    "opportunity": "Tender",
+    "opportunityPlural": "Tenders",
+    "source": "Source",
+    "sourcePlural": "Sources",
+    "category": "Service line",
+    "categoryPlural": "Service lines",
+    "deadline": "Closing date",
+    "matchScore": "Match score",
+    "region": "Region",
+    "country": "Country",
+    "save": "Save tender",
+    "export": "Export",
+    "share": "Share",
+    "sync": "Sync",
+    "navHome": "Tenders",
+    "navAnalytics": "Analytics",
+    "navProfile": "Profile",
+    "navSettings": "Settings",
+    "navTeam": "Team",
+    "emptyOpportunities": "No tenders match your filters.",
+    "emptyOpportunitiesHint": "Try adjusting filters or run a sync to fetch new opportunities.",
+    "productTagline": "Tender Watch"
+  },
+  "features": {
+    "analytics": true,
+    "publicShare": true,
+    "sync": true,
+    "matchScore": true,
+    "export": true
+  },
+  "layout": {
+    "homeCardVariant": "procurement",
+    "sidebarSections": ["sources", "serviceLines", "regions", "countries"]
+  },
+  "notifications": {
+    "enabled": true
+  },
+  "customFields": [
+    {
+      "key": "procurementMethod",
+      "label": "Procurement method",
+      "type": "text",
+      "showOnCard": true
+    },
+    {
+      "key": "estimatedValue",
+      "label": "Estimated value",
+      "type": "text",
+      "showOnCard": false
+    }
+  ]
+}

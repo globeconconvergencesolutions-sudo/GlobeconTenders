@@ -1,33 +1,42 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { auth } from "@/auth";
+import { auth, signOut } from "@/auth";
 import { LoginForm } from "@/components/auth/login-form";
 import { LoginHero } from "@/components/auth/login-hero";
+import { LoginSessionCleanup } from "@/components/auth/login-session-cleanup";
 import { AppLogo } from "@/components/brand/app-logo";
-import { BRAND } from "@/lib/brand";
 import { sanitizeCallbackUrl } from "@/lib/auth/callback-url";
+import { getOrgContext } from "@/lib/tenant/org-context";
+import { getRequestOrgSlug } from "@/lib/tenant/context";
+import { PLATFORM_PRODUCT_NAME } from "@/lib/tenant/config";
 
 export const metadata: Metadata = {
   title: "Sign in",
-  description: `Secure sign in for the ${BRAND.fullName} platform`,
+  description: `Secure sign in to ${PLATFORM_PRODUCT_NAME}`,
 };
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string }>;
+  searchParams: Promise<{ callbackUrl?: string; signedOut?: string }>;
 }) {
   const params = await searchParams;
   const callbackUrl = sanitizeCallbackUrl(params.callbackUrl);
+  const signedOut = params.signedOut === "1";
+  const orgSlug = await getRequestOrgSlug();
+  const orgContext = await getOrgContext();
   const session = await auth();
 
-  if (session?.user) {
+  if (signedOut && session?.user) {
+    await signOut({ redirect: false });
+  } else if (session?.user) {
     redirect(callbackUrl);
   }
 
   return (
     <div className="flex min-h-dvh w-full overflow-y-auto bg-slate-950">
+      <LoginSessionCleanup signedOut={signedOut} />
       <LoginHero />
 
       <div className="flex w-full flex-1 flex-col justify-center px-6 py-10 pb-[max(2.5rem,env(safe-area-inset-bottom))] sm:px-10 lg:px-16 xl:px-24">
@@ -42,11 +51,12 @@ export default async function LoginPage({
                 Welcome back
               </h2>
               <p className="mt-2 text-sm text-slate-400">
-                Sign in to access tenders, filters, and sync tools.
+                Sign in to access {orgContext.lexicon.opportunityPlural.toLowerCase()},
+                filters, and {orgContext.lexicon.sync.toLowerCase()} tools.
               </p>
             </div>
 
-            <LoginForm callbackUrl={callbackUrl} />
+            <LoginForm callbackUrl={callbackUrl} orgSlug={orgSlug} />
           </div>
 
           {process.env.NODE_ENV === "development" && (

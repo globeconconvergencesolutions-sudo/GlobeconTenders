@@ -1,25 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Loader2, LogOut, Moon, Share2 } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { Loader2, LogOut, Moon } from "lucide-react";
 import { useTheme } from "next-themes";
 
+import { signOutToLogin } from "@/lib/auth/sign-out-client";
 import { Switch } from "@/components/ui/switch";
 
 export function SidebarFooter() {
   const { theme, setTheme } = useTheme();
   const [signingOut, setSigningOut] = useState(false);
 
-  async function handleSignOut() {
+  function handleSignOut() {
     if (signingOut) return;
     setSigningOut(true);
-    try {
-      await signOut({ redirect: false });
-      window.location.assign("/login");
-    } catch {
-      setSigningOut(false);
-    }
+    void signOutToLogin();
   }
 
   return (
@@ -38,7 +33,7 @@ export function SidebarFooter() {
         </div>
         <button
           type="button"
-          onClick={() => void handleSignOut()}
+          onClick={handleSignOut}
           disabled={signingOut}
           title="Sign out"
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] text-slate-400 transition-colors hover:border-red-400/40 hover:bg-red-500/15 hover:text-red-200 disabled:opacity-60"

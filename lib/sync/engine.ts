@@ -82,10 +82,11 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
   }
 
   const [allRegions, allCountries, allServiceLines] = await Promise.all([
-    db.select().from(regions),
+    db.select().from(regions).where(eq(regions.orgId, source.orgId)),
     db
       .select({
         id: countries.id,
+        orgId: countries.orgId,
         regionId: countries.regionId,
         name: countries.name,
         slug: countries.slug,
@@ -96,8 +97,12 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
         regionSlug: regions.slug,
       })
       .from(countries)
-      .innerJoin(regions, eq(countries.regionId, regions.id)),
-    db.select().from(serviceLines),
+      .innerJoin(regions, eq(countries.regionId, regions.id))
+      .where(eq(countries.orgId, source.orgId)),
+    db
+      .select()
+      .from(serviceLines)
+      .where(eq(serviceLines.orgId, source.orgId)),
   ]);
 
   const items = await fetchItemsForAdapter(source.adapter, source);
@@ -157,6 +162,7 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
         const [created] = await db
           .insert(tenders)
           .values({
+            orgId: source.orgId,
             sourceId: source.id,
             referenceId: item.referenceId,
             title: item.title,
@@ -215,14 +221,25 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
   };
 }
 
-export async function syncAllEnabledSources(_triggeredBy = "manual") {
+export async function syncAllEnabledSources(
+  triggeredBy = "manual",
+  orgId?: number,
+) {
   const db = getDb();
   if (!db) throw new Error("Database not configured");
+
+  const conditions = [
+    eq(sources.enabled, true),
+    isNull(sources.archivedAt),
+  ];
+  if (orgId != null) {
+    conditions.push(eq(sources.orgId, orgId));
+  }
 
   const enabledSources = await db
     .select()
     .from(sources)
-    .where(and(eq(sources.enabled, true), isNull(sources.archivedAt)));
+    .where(and(...conditions));
 
   const results: SyncResult[] = [];
 

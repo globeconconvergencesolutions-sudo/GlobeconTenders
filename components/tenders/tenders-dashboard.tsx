@@ -12,6 +12,9 @@ import {
   Search,
 } from "lucide-react";
 
+import { useLexicon, useFeatures } from "@/components/providers/org-context-provider";
+import { OnboardingChecklist } from "@/components/onboarding/onboarding-checklist";
+import { OpportunityEmptyState } from "@/components/tenders/opportunity-empty-state";
 import { StatsCards } from "@/components/tenders/stats-cards";
 import {
   SyncFeedbackBanner,
@@ -21,7 +24,9 @@ import {
   EmailAlertFeedbackBanner,
   type EmailAlertFeedback,
 } from "@/components/tenders/email-alert-feedback-banner";
-import { TenderCard } from "@/components/tenders/tender-card";
+import { OpportunityCard } from "@/components/tenders/opportunity-card";
+import { ApiErrorAlert } from "@/components/ui/api-error-alert";
+import { readApiError, type ParsedClientError } from "@/lib/api/client-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
@@ -36,9 +41,12 @@ import {
   canExportTenders,
   canSaveTenders,
   canSync,
+  canCreateSources,
 } from "@/lib/auth/permissions";
 import type { TenderWithSource, UserRole } from "@/lib/db/schema";
+import type { OnboardingProgress } from "@/lib/onboarding/steps";
 import type { TenderSort } from "@/lib/tenders/queries";
+import { showSuccessToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 type SerializableTender = Omit<
@@ -75,6 +83,7 @@ type TendersDashboardProps = {
   savedOnly?: boolean;
   initialHideClosed?: boolean;
   userRole: UserRole;
+  onboardingProgress?: OnboardingProgress | null;
 };
 
 export function TendersDashboard({
@@ -86,9 +95,12 @@ export function TendersDashboard({
   savedOnly = false,
   initialHideClosed = true,
   userRole,
+  onboardingProgress = null,
 }: TendersDashboardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t, lexicon } = useLexicon();
+  const features = useFeatures();
   const [search, setSearch] = useState(initialSearch);
   const [hideClosed, setHideClosed] = useState(initialHideClosed);
   const [sort, setSort] = useState<TenderSort>(initialSort);
@@ -100,6 +112,7 @@ export function TendersDashboard({
   const [syncFeedback, setSyncFeedback] = useState<SyncFeedbackResult[] | null>(
     null,
   );
+  const [syncError, setSyncError] = useState<ParsedClientError | null>(null);
   const [emailAlertFeedback, setEmailAlertFeedback] =
     useState<EmailAlertFeedback | null>(null);
 
@@ -137,33 +150,36 @@ export function TendersDashboard({
     return `/?${params.toString()}`;
   }
 
+  function triggerAddSource() {
+    document.querySelector<HTMLButtonElement>("[data-add-source-trigger]")?.click();
+  }
+
   async function handleSync() {
     if (!canSync(userRole)) return;
     setSyncing(true);
     setSyncFeedback(null);
+    setSyncError(null);
     setEmailAlertFeedback(null);
     try {
       const response = await fetch("/api/sync", { method: "POST" });
+      if (!response.ok) {
+        setSyncError(await readApiError(response, "Sync request failed"));
+        return;
+      }
       const payload = (await response.json()) as {
         results?: SyncFeedbackResult[];
         alerts?: EmailAlertFeedback | null;
-        error?: string;
       };
-
-      if (!response.ok) {
-        setSyncFeedback([
-          {
-            sourceName: "Sync",
-            inserted: 0,
-            updated: 0,
-            errors: [payload.error ?? "Sync request failed"],
-          },
-        ]);
-        return;
-      }
 
       if (payload.results?.length) {
         setSyncFeedback(payload.results);
+        const totalInserted = payload.results.reduce((sum, r) => sum + r.inserted, 0);
+        const totalUpdated = payload.results.reduce((sum, r) => sum + r.updated, 0);
+        showSuccessToast(
+          `Sync complete — ${totalInserted} new, ${totalUpdated} updated`,
+        );
+      } else {
+        showSuccessToast("Sync complete");
       }
       if (payload.alerts) {
         setEmailAlertFeedback(payload.alerts);
@@ -211,6 +227,7 @@ export function TendersDashboard({
       });
       if (response.ok) {
         setFilterSaved(true);
+        showSuccessToast("Filter preferences saved");
         setTimeout(() => setFilterSaved(false), 2500);
       }
     } finally {
@@ -224,10 +241,10 @@ export function TendersDashboard({
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0">
             <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-              Latest tenders
+              Latest {lexicon.opportunityPlural.toLowerCase()}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Tracking {stats.trackingSources} sources · last synced {lastSynced}
+              Tracking {stats.trackingSources} {lexicon.sourcePlural.toLowerCase()} · last synced {lastSynced}
             </p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center xl:w-auto">
@@ -247,20 +264,23 @@ export function TendersDashboard({
               />
             </form>
             <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+              {features.sync && (
               <Button
                 variant="outline"
                 size="sm"
                 className="w-full sm:w-auto"
                 disabled={!canSync(userRole) || syncing}
                 onClick={handleSync}
+                data-sync-trigger
               >
                 {syncing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
-                <span className="hidden sm:inline">Sync</span>
+                <span className="hidden sm:inline">{t("sync")}</span>
               </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -277,6 +297,7 @@ export function TendersDashboard({
                 <Heart className="h-4 w-4" />
                 <span className="hidden sm:inline">Saved</span>
               </Button>
+              {features.export && (
               <Button
                 variant="outline"
                 size="sm"
@@ -289,14 +310,29 @@ export function TendersDashboard({
                 ) : (
                   <Download className="h-4 w-4" />
                 )}
-                <span className="hidden sm:inline">Export</span>
+                <span className="hidden sm:inline">{t("export")}</span>
               </Button>
+              )}
             </div>
           </div>
         </div>
       </header>
 
       <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        {onboardingProgress && (
+          <OnboardingChecklist
+            initialProgress={onboardingProgress}
+            canManage={userRole === "super_admin"}
+          />
+        )}
+
+        {syncError && (
+          <ApiErrorAlert
+            error={syncError}
+            className="mb-4"
+            onDismiss={() => setSyncError(null)}
+          />
+        )}
         {syncFeedback && (
           <SyncFeedbackBanner
             results={syncFeedback}
@@ -375,7 +411,7 @@ export function TendersDashboard({
 
         <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
           {normalizedTenders.map((tender) => (
-            <TenderCard
+            <OpportunityCard
               key={tender.id}
               tender={tender}
               canSave={canSaveTenders(userRole)}
@@ -384,11 +420,12 @@ export function TendersDashboard({
         </div>
 
         {normalizedTenders.length === 0 && (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white py-16 text-center dark:border-border dark:bg-card">
-            <p className="text-muted-foreground">
-              No tenders match your filters.
-            </p>
-          </div>
+          <OpportunityEmptyState
+            canSync={canSync(userRole) && features.sync}
+            canAddSource={canCreateSources(userRole)}
+            onAddSource={triggerAddSource}
+            onSync={handleSync}
+          />
         )}
 
         <Pagination
