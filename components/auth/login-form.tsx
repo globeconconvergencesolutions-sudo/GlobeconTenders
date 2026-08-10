@@ -18,6 +18,7 @@ import { useLexicon, useOrg } from "@/components/providers/org-context-provider"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { clearSessionBeforeLogin } from "@/lib/auth/sign-out-client";
 import { DEFAULT_ORG_SLUG } from "@/lib/tenant/config";
 import { cn } from "@/lib/utils";
 
@@ -47,11 +48,15 @@ export function LoginForm({
 
     const normalizedEmail = email.trim().toLowerCase();
 
+    const targetWorkspace = workspace.trim().toLowerCase() || DEFAULT_ORG_SLUG;
+
     try {
+      await clearSessionBeforeLogin();
+
       const result = await signIn("credentials", {
         email: normalizedEmail,
         password,
-        orgSlug: workspace.trim().toLowerCase() || DEFAULT_ORG_SLUG,
+        orgSlug: targetWorkspace,
         redirect: false,
       });
 

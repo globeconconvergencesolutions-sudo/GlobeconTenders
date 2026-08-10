@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { LoginForm } from "@/components/auth/login-form";
 import { LoginHero } from "@/components/auth/login-hero";
 import { LoginSessionCleanup } from "@/components/auth/login-session-cleanup";
+import { LoginWorkspaceSwitch } from "@/components/auth/login-workspace-switch";
 import { AppLogo } from "@/components/brand/app-logo";
+import { OrgContextProvider } from "@/components/providers/org-context-provider";
 import { sanitizeCallbackUrl } from "@/lib/auth/callback-url";
 import { DEFAULT_ORG_SLUG, PLATFORM_PRODUCT_NAME } from "@/lib/tenant/config";
-import { getOrgContext } from "@/lib/tenant/org-context";
+import { getOrgContextBySlug } from "@/lib/tenant/org-context";
 import { isValidOrgSlug } from "@/lib/tenant/resolution";
 
 export const metadata: Metadata = {
@@ -33,11 +36,18 @@ export default async function LoginPage({
     workspaceParam && isValidOrgSlug(workspaceParam)
       ? workspaceParam
       : DEFAULT_ORG_SLUG;
-  const orgContext = await getOrgContext();
+  const orgContext = await getOrgContextBySlug(orgSlug);
   const session = await auth();
+  const currentWorkspace = session?.user?.orgSlug;
+  const switchingWorkspace = Boolean(
+    session?.user &&
+      !signedOut &&
+      currentWorkspace &&
+      currentWorkspace !== orgSlug,
+  );
 
-  // Stale sessions after logout are cleared on the client (Route Handler only).
-  if (session?.user && !signedOut) {
+  // Already in the requested workspace — skip the form.
+  if (session?.user && !signedOut && !switchingWorkspace) {
     redirect(callbackUrl);
   }
 
@@ -53,6 +63,11 @@ export default async function LoginPage({
           </div>
 
           <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20 backdrop-blur-sm sm:p-8">
+            <LoginWorkspaceSwitch
+              targetWorkspace={orgSlug}
+              currentWorkspace={currentWorkspace}
+            />
+
             <div className="mb-8">
               <h2 className="text-2xl font-semibold tracking-tight text-white">
                 Welcome back
@@ -63,7 +78,18 @@ export default async function LoginPage({
               </p>
             </div>
 
-            <LoginForm callbackUrl={callbackUrl} orgSlug={orgSlug} />
+            <OrgContextProvider value={orgContext}>
+              <LoginForm callbackUrl={callbackUrl} orgSlug={orgSlug} />
+            </OrgContextProvider>
+
+            {session?.user && switchingWorkspace && (
+              <p className="mt-4 text-center text-xs text-slate-500">
+                Stay in {currentWorkspace}?{" "}
+                <Link href={callbackUrl} className="text-slate-300 hover:text-white">
+                  Continue to dashboard
+                </Link>
+              </p>
+            )}
           </div>
 
           {process.env.NODE_ENV === "development" && (

@@ -18,6 +18,7 @@ import { getWorkspaceSettings } from "@/lib/settings/workspace";
 import { DEFAULT_ORG_SLUG } from "@/lib/tenant/config";
 
 import { getCurrentOrg } from "./context";
+import { getOrganizationBySlug } from "./org";
 
 export type OrgTemplateInfo = {
   id: string;
@@ -152,6 +153,14 @@ async function buildOrgContext(input: {
 
 export async function getOrgContext(): Promise<OrgContextValue> {
   const org = await getCurrentOrg();
+  if (!org) return buildFallbackContext();
+  return buildOrgContext(org);
+}
+
+export async function getOrgContextBySlug(
+  slug: string,
+): Promise<OrgContextValue> {
+  const org = await getOrganizationBySlug(slug);
   if (!org) return buildFallbackContext();
   return buildOrgContext(org);
 }

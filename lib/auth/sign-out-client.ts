@@ -104,3 +104,18 @@ export async function signOutToLogin(): Promise<void> {
 export function clearSignOutState(): void {
   clearSigningOut();
 }
+
+/** Clear session before credentials sign-in so workspace/org changes apply. */
+export async function clearSessionBeforeLogin(): Promise<void> {
+  try {
+    await clearServerSession();
+  } catch {
+    // continue with client sign-out
+  }
+
+  try {
+    await signOut({ redirect: false });
+  } catch {
+    // session may already be cleared
+  }
+}

@@ -18,7 +18,7 @@ import { SidebarFiltersLazy } from "@/components/filters/sidebar-filters-lazy";
 import { AppLogo } from "@/components/brand/app-logo";
 import { SidebarContextPanel } from "@/components/layout/sidebar-context-panel";
 import { SidebarFooter } from "@/components/layout/sidebar-footer";
-import { useLexicon, useFeatures } from "@/components/providers/org-context-provider";
+import { useLexicon, useFeatures, useOrg } from "@/components/providers/org-context-provider";
 import { hasPermission } from "@/lib/auth/permissions";
 import type { UserRole } from "@/lib/db/schema";
 import {
@@ -59,6 +59,7 @@ export function SidebarPanel({
   const pathname = usePathname();
   const { data: session } = useSession();
   const { t } = useLexicon();
+  const { orgSlug } = useOrg();
   const features = useFeatures();
   const role = session?.user?.role as UserRole | undefined;
   const showTeamNav = role ? hasPermission(role, "users:read") : false;
@@ -123,6 +124,11 @@ export function SidebarPanel({
             </button>
           )}
         </div>
+        {orgSlug && (
+          <p className="mt-2 truncate text-[11px] font-medium uppercase tracking-wide text-slate-500">
+            Workspace · {orgSlug}
+          </p>
+        )}
       </div>
 
       <div className="shrink-0 px-4 pt-3 pb-2">

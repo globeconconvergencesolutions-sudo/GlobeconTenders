@@ -2,32 +2,14 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 
-import { clearSignOutState } from "@/lib/auth/sign-out-client";
+import { clearSessionBeforeLogin, clearSignOutState } from "@/lib/auth/sign-out-client";
 import { showSuccessToast } from "@/lib/toast";
 
 type LoginSessionCleanupProps = {
   signedOut?: boolean;
 };
-
-async function clearStaleSessionOnClient(): Promise<void> {
-  try {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-      credentials: "same-origin",
-      cache: "no-store",
-    });
-  } catch {
-    // continue with client sign-out
-  }
-
-  try {
-    await signOut({ redirect: false });
-  } catch {
-    // session may already be cleared
-  }
-}
 
 export function LoginSessionCleanup({ signedOut = false }: LoginSessionCleanupProps) {
   const router = useRouter();
@@ -45,7 +27,7 @@ export function LoginSessionCleanup({ signedOut = false }: LoginSessionCleanupPr
     if (session?.user && !staleCleanupStarted.current) {
       staleCleanupStarted.current = true;
       void (async () => {
-        await clearStaleSessionOnClient();
+        await clearSessionBeforeLogin();
         router.refresh();
       })();
       return;
