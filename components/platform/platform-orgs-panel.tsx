@@ -31,8 +31,9 @@ import {
 import {
   PLATFORM_PRODUCT_NAME,
   PLATFORM_STAGING_HOST,
-  PLATFORM_WORKSPACE_HOST,
+  getWorkspaceHostLabel,
 } from "@/lib/tenant/config";
+import { buildOrgLoginUrl } from "@/lib/platform/login-url";
 import { PLAN_DEFINITIONS, type PlanId } from "@/lib/platform/plans";
 import { showErrorToast, showSuccessToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -200,11 +201,11 @@ export function PlatformOrgsPanel() {
         <div>
           <h2 className="text-lg font-semibold">Organizations</h2>
           <p className="text-sm text-muted-foreground">
-            Tenants on {PLATFORM_PRODUCT_NAME}. Workspace URLs:{" "}
+            Tenants on {PLATFORM_PRODUCT_NAME}. All workspaces share{" "}
             <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">
-              {"{slug}." + PLATFORM_WORKSPACE_HOST}
+              {getWorkspaceHostLabel()}/login
             </code>{" "}
-            (or Netlify staging until DNS cutover).
+            and sign in with their workspace ID.
           </p>
         </div>
         <Button onClick={() => setDialogOpen(true)}>
@@ -266,10 +267,10 @@ export function PlatformOrgsPanel() {
                       asChild
                     >
                       <a
-                        href={`https://${org.slug}.${PLATFORM_WORKSPACE_HOST}`}
+                        href={buildOrgLoginUrl(org.slug)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        title="Open workspace"
+                        title="Open workspace login"
                       >
                         <ExternalLink className="h-4 w-4" />
                       </a>
@@ -297,10 +298,10 @@ export function PlatformOrgsPanel() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Current deployment host: {PLATFORM_STAGING_HOST} → future{" "}
-        {PLATFORM_WORKSPACE_HOST}. Apex host maps to the default{" "}
-        <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">globecon</code>{" "}
-        org until wildcard DNS is live.
+        Current deployment host: {PLATFORM_STAGING_HOST}. Each org uses a workspace
+        ID at login (e.g.{" "}
+        <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">globecon</code>
+        ).
       </p>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

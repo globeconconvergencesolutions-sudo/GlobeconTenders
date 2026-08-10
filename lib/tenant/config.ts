@@ -11,6 +11,9 @@ export const PLATFORM_STAGING_HOST =
 /** Default tenant when visiting apex workspace host (no org subdomain) */
 export const DEFAULT_ORG_SLUG = "globecon";
 
+/** Query param used on /login to select workspace in single-URL mode */
+export const WORKSPACE_LOGIN_PARAM = "workspace";
+
 /** Hosts that serve the workspace app (not marketing/platform-only) */
 export const WORKSPACE_HOSTS = [
   PLATFORM_WORKSPACE_HOST,
@@ -26,17 +29,6 @@ export function getPlatformAppUrl(): string {
   );
 }
 
-/**
- * Optional comma-separated extra apex hosts (e.g. Netlify deploy URLs).
- * Example: PLATFORM_APEX_HOSTS=gcstendersvic.netlify.app
- */
-export function getExtraApexHosts(): string[] {
-  return (process.env.PLATFORM_APEX_HOSTS ?? "")
-    .split(",")
-    .map((host) => host.trim().toLowerCase().split(":")[0] ?? "")
-    .filter(Boolean);
-}
-
 export function getAppUrlHost(): string | null {
   const raw = process.env.APP_URL?.replace(/\/$/, "");
   if (!raw) return null;
@@ -47,9 +39,7 @@ export function getAppUrlHost(): string | null {
   }
 }
 
-/**
- * Workspace URL pattern shown in signup UI — prefers APP_URL host when set.
- */
+/** Host label for signup/login copy — prefers APP_URL when set. */
 export function getWorkspaceHostLabel(): string {
   return getAppUrlHost() ?? PLATFORM_STAGING_HOST;
 }

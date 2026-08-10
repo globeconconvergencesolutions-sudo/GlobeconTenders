@@ -21,6 +21,7 @@ import { readApiError, type ParsedClientError } from "@/lib/api/client-error";
 import {
   getWorkspaceHostLabel,
   PLATFORM_PRODUCT_NAME,
+  WORKSPACE_LOGIN_PARAM,
 } from "@/lib/tenant/config";
 import { cn } from "@/lib/utils";
 
@@ -96,15 +97,6 @@ export function SignupWizard() {
   }, []);
 
   const workspaceHostLabel = getWorkspaceHostLabel();
-
-  const workspaceHost = useMemo(
-    () =>
-      typeof window !== "undefined" &&
-      window.location.hostname.includes("localhost")
-        ? "{slug}.localhost:3000"
-        : `{slug}.${workspaceHostLabel}`,
-    [workspaceHostLabel],
-  );
 
   const selectedTemplate = templates.find((t) => t.id === form.templateId);
 
@@ -219,7 +211,7 @@ export function SignupWizard() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="org-slug" className="text-slate-200">
-                    Workspace URL
+                    Workspace ID
                   </Label>
                   <Input
                     id="org-slug"
@@ -234,10 +226,10 @@ export function SignupWizard() {
                     placeholder="acme"
                   />
                   <p className="text-xs text-slate-500">
-                    Your team will sign in at{" "}
-                    <code className="text-slate-400">
-                      {form.slug || "acme"}.{workspaceHostLabel}
-                    </code>
+                    Your team signs in at{" "}
+                    <code className="text-slate-400">{workspaceHostLabel}/login</code>{" "}
+                    with workspace ID{" "}
+                    <code className="text-slate-400">{form.slug || "acme"}</code>
                   </p>
                 </div>
               </div>
@@ -350,7 +342,7 @@ export function SignupWizard() {
                   <p className="text-sm text-slate-400">
                     Sign in at{" "}
                     <code className="text-slate-300">
-                      {form.slug}.{workspaceHost.replace("{slug}", form.slug)}
+                      {workspaceHostLabel}/login?{WORKSPACE_LOGIN_PARAM}={form.slug}
                     </code>
                   </p>
                 )}

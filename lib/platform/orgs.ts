@@ -12,7 +12,6 @@ import {
 } from "@/lib/db/schema";
 import { planLimitsFor, TRIAL_DURATION_MS } from "@/lib/platform/plans";
 import { isReservedOrgSlug, isValidOrgSlug } from "@/lib/tenant/resolution";
-import { getPlatformAppUrl } from "@/lib/tenant/config";
 import { applyTemplateToOrg } from "@/lib/templates/apply";
 
 export type CreateOrganizationInput = {
@@ -130,17 +129,4 @@ export async function createOrganization(input: CreateOrganizationInput) {
   return { org, admin };
 }
 
-export function buildOrgLoginUrl(slug: string): string {
-  const appUrl = getPlatformAppUrl();
-  const base = new URL(appUrl);
-  const hostname = base.hostname;
-
-  if (hostname === "localhost" || hostname === "127.0.0.1") {
-    const port = base.port || "3000";
-    return `${base.protocol}//${slug}.localhost:${port}/login`;
-  }
-
-  const hostWithSlug = `${slug}.${hostname}`;
-  const portSuffix = base.port ? `:${base.port}` : "";
-  return `${base.protocol}//${hostWithSlug}${portSuffix}/login`;
-}
+export { buildOrgLoginUrl } from "@/lib/platform/login-url";

@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { auth, signOut } from "@/auth";
+import { auth } from "@/auth";
 import { LoginForm } from "@/components/auth/login-form";
 import { LoginHero } from "@/components/auth/login-hero";
 import { LoginSessionCleanup } from "@/components/auth/login-session-cleanup";
 import { AppLogo } from "@/components/brand/app-logo";
 import { sanitizeCallbackUrl } from "@/lib/auth/callback-url";
+import { DEFAULT_ORG_SLUG, PLATFORM_PRODUCT_NAME } from "@/lib/tenant/config";
 import { getOrgContext } from "@/lib/tenant/org-context";
-import { getRequestOrgSlug } from "@/lib/tenant/context";
-import { PLATFORM_PRODUCT_NAME } from "@/lib/tenant/config";
+import { isValidOrgSlug } from "@/lib/tenant/resolution";
 
 export const metadata: Metadata = {
   title: "Sign in",
@@ -19,18 +19,25 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string; signedOut?: string }>;
+  searchParams: Promise<{
+    callbackUrl?: string;
+    signedOut?: string;
+    workspace?: string;
+  }>;
 }) {
   const params = await searchParams;
   const callbackUrl = sanitizeCallbackUrl(params.callbackUrl);
   const signedOut = params.signedOut === "1";
-  const orgSlug = await getRequestOrgSlug();
+  const workspaceParam = params.workspace?.trim().toLowerCase();
+  const orgSlug =
+    workspaceParam && isValidOrgSlug(workspaceParam)
+      ? workspaceParam
+      : DEFAULT_ORG_SLUG;
   const orgContext = await getOrgContext();
   const session = await auth();
 
-  if (signedOut && session?.user) {
-    await signOut({ redirect: false });
-  } else if (session?.user) {
+  // Stale sessions after logout are cleared on the client (Route Handler only).
+  if (session?.user && !signedOut) {
     redirect(callbackUrl);
   }
 

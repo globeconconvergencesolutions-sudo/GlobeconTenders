@@ -10,7 +10,7 @@ import { sanitizeCallbackUrl } from "@/lib/auth/callback-url";
 
 import { ORG_STATUS_SUSPENDED } from "@/lib/platform/org-status";
 
-import { DEFAULT_ORG_SLUG, getPlatformAppUrl } from "@/lib/tenant/config";
+import { getPlatformAppUrl } from "@/lib/tenant/config";
 
 import { lookupOrganizationStatus } from "@/lib/tenant/lookup-org";
 
@@ -18,13 +18,13 @@ import {
 
   ORG_SLUG_HEADER,
 
-  isApexHost,
+  hostsMatch,
 
-  normalizeHost,
+  isApexHost,
 
   resolveOrgSlugFromHost,
 
-  hostsMatch,
+  resolveWorkspaceSlugFromSearchParams,
 
 } from "@/lib/tenant/resolution";
 
@@ -56,7 +56,16 @@ export default auth(async (request) => {
 
   const host = request.headers.get("host");
 
-  const orgSlug = resolveOrgSlugFromHost(host);
+  const hostOrgSlug = resolveOrgSlugFromHost(host);
+
+  const workspaceFromLogin = resolveWorkspaceSlugFromSearchParams(
+    request.nextUrl.searchParams,
+  );
+
+  const orgSlug =
+    session?.user?.orgSlug ??
+    workspaceFromLogin ??
+    hostOrgSlug;
 
 
 
@@ -132,9 +141,9 @@ export default auth(async (request) => {
 
 
 
-  const orgRecord =
+  const contextOrgSlug = session?.user?.orgSlug ?? orgSlug;
 
-    orgSlug !== DEFAULT_ORG_SLUG ? await lookupOrganizationStatus(orgSlug) : null;
+  const orgRecord = await lookupOrganizationStatus(contextOrgSlug);
 
 
 
@@ -172,20 +181,6 @@ export default auth(async (request) => {
     if (session?.user) {
 
       if (signedOut) {
-
-        return withOrgHeader();
-
-      }
-
-      if (
-
-        session.user.orgSlug &&
-
-        session.user.orgSlug !== orgSlug &&
-
-        !session.user.isPlatformAdmin
-
-      ) {
 
         return withOrgHeader();
 
@@ -236,38 +231,6 @@ export default auth(async (request) => {
     if (pathname.startsWith("/api/")) {
 
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    }
-
-    const loginUrl = new URL("/login", request.url);
-
-    loginUrl.searchParams.set("callbackUrl", pathname);
-
-    return NextResponse.redirect(loginUrl);
-
-  }
-
-
-
-  if (
-
-    session.user.orgSlug &&
-
-    session.user.orgSlug !== orgSlug &&
-
-    !session.user.isPlatformAdmin
-
-  ) {
-
-    if (pathname.startsWith("/api/")) {
-
-      return NextResponse.json(
-
-        { error: "Organization context mismatch" },
-
-        { status: 403 },
-
-      );
 
     }
 

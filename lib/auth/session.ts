@@ -6,10 +6,10 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { getDb } from "@/lib/db";
 import {
   orgMemberships,
+  organizations,
   users,
   type UserRole,
 } from "@/lib/db/schema";
-import { requireCurrentOrg } from "@/lib/tenant/context";
 
 export type SessionUser = {
   id: number;
@@ -38,9 +38,11 @@ async function loadSessionUserFromDb(
       orgRole: orgMemberships.role,
       membershipActive: orgMemberships.isActive,
       orgId: orgMemberships.orgId,
+      orgSlug: organizations.slug,
     })
     .from(orgMemberships)
     .innerJoin(users, eq(users.id, orgMemberships.userId))
+    .innerJoin(organizations, eq(organizations.id, orgMemberships.orgId))
     .where(
       and(
         eq(orgMemberships.userId, userId),
@@ -53,41 +55,35 @@ async function loadSessionUserFromDb(
     return null;
   }
 
-  const org = await requireCurrentOrg();
-
   return {
     id: row.id,
     email: row.email,
     name: row.name,
     role: row.orgRole as UserRole,
     orgId: row.orgId,
-    orgSlug: org.slug,
+    orgSlug: row.orgSlug,
     isPlatformAdmin: row.isPlatformAdmin,
   };
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {
   const session = await auth();
-  if (!session?.user?.id) return null;
+  if (!session?.user?.id || !session.user.orgId) return null;
 
-  const org = await requireCurrentOrg();
   const userId = Number(session.user.id);
+  const orgId = Number(session.user.orgId);
 
-  const dbUser = await loadSessionUserFromDb(userId, org.id);
+  const dbUser = await loadSessionUserFromDb(userId, orgId);
   if (dbUser) return dbUser;
 
-  if (
-    session.user.orgId === org.id &&
-    session.user.role &&
-    session.user.email
-  ) {
+  if (session.user.role && session.user.email && session.user.orgSlug) {
     return {
       id: userId,
       email: session.user.email,
       name: session.user.name ?? session.user.email,
       role: session.user.role as UserRole,
-      orgId: org.id,
-      orgSlug: org.slug,
+      orgId,
+      orgSlug: session.user.orgSlug,
       isPlatformAdmin: Boolean(session.user.isPlatformAdmin),
     };
   }

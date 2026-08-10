@@ -19,6 +19,7 @@ import {
   PLATFORM_PRODUCT_NAME,
   PLATFORM_STAGING_HOST,
   PLATFORM_WORKSPACE_HOST,
+  getWorkspaceHostLabel,
 } from "@/lib/tenant/config";
 import { listTemplateSummaries } from "@/lib/templates/load";
 
@@ -85,7 +86,7 @@ const PLANS = [
 
 export function MarketingLanding() {
   const templates = listTemplateSummaries();
-  const workspaceHost = PLATFORM_WORKSPACE_HOST;
+  const workspaceHost = getWorkspaceHostLabel();
 
   return (
     <div className="min-h-dvh bg-slate-950 text-white">
@@ -156,9 +157,9 @@ export function MarketingLanding() {
               </Button>
             </div>
             <p className="mt-6 text-sm text-slate-500">
-              14-day free trial · No credit card · Workspace at{" "}
+              14-day free trial · No credit card · Sign in with your workspace ID at{" "}
               <code className="rounded bg-white/5 px-1.5 py-0.5 text-slate-400">
-                {"{your-slug}." + workspaceHost}
+                {workspaceHost}/login
               </code>
             </p>
           </div>

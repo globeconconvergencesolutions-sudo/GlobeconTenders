@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 
+import { auth } from "@/auth";
 import {
   ORG_SLUG_HEADER,
   resolveOrgSlugFromRequest,
@@ -10,6 +11,11 @@ import {
 } from "@/lib/tenant/org";
 
 export async function getRequestOrgSlug(): Promise<string> {
+  const session = await auth();
+  if (session?.user?.orgSlug) {
+    return session.user.orgSlug;
+  }
+
   const headerStore = await headers();
   return resolveOrgSlugFromRequest({
     host: headerStore.get("host"),

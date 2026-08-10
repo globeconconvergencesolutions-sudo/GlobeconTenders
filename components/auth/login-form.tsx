@@ -11,12 +11,14 @@ import {
   Lock,
   Mail,
   ShieldCheck,
+  Building2,
 } from "lucide-react";
 
 import { useLexicon, useOrg } from "@/components/providers/org-context-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DEFAULT_ORG_SLUG } from "@/lib/tenant/config";
 import { cn } from "@/lib/utils";
 
 type LoginFormProps = {
@@ -26,11 +28,12 @@ type LoginFormProps = {
 
 export function LoginForm({
   callbackUrl = "/",
-  orgSlug = "globecon",
+  orgSlug = DEFAULT_ORG_SLUG,
 }: LoginFormProps) {
   const router = useRouter();
   const { branding } = useOrg();
   const { t } = useLexicon();
+  const [workspace, setWorkspace] = useState(orgSlug);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -48,7 +51,7 @@ export function LoginForm({
       const result = await signIn("credentials", {
         email: normalizedEmail,
         password,
-        orgSlug,
+        orgSlug: workspace.trim().toLowerCase() || DEFAULT_ORG_SLUG,
         redirect: false,
       });
 
@@ -73,6 +76,31 @@ export function LoginForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
+      <div className="space-y-2">
+        <Label htmlFor="workspace" className="text-slate-200">
+          Workspace ID
+        </Label>
+        <div className="relative">
+          <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <Input
+            id="workspace"
+            type="text"
+            autoComplete="organization"
+            value={workspace}
+            onChange={(e) =>
+              setWorkspace(e.target.value.toLowerCase().replace(/\s+/g, "-"))
+            }
+            placeholder="globecon"
+            disabled={loading}
+            required
+            className="h-11 border-slate-700 bg-slate-950/60 pl-10 text-white placeholder:text-slate-500 focus-visible:ring-blue-500"
+          />
+        </div>
+        <p className="text-xs text-slate-500">
+          The ID you chose at signup (e.g. globecon, acme).
+        </p>
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="email" className="text-slate-200">
           Work email
