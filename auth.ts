@@ -28,12 +28,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig.callbacks,
     jwt: async ({ token, user }) => {
       if (user) {
+        token.sub = user.id;
         token.role = user.role;
         token.name = user.name;
         token.email = user.email;
         token.orgId = user.orgId;
         token.orgSlug = user.orgSlug;
         token.isPlatformAdmin = user.isPlatformAdmin;
+        token.isActive = true;
       }
 
       if (token.sub) {

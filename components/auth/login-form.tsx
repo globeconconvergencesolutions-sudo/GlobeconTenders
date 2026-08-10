@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import {
   Eye,
@@ -18,7 +17,10 @@ import { useLexicon, useOrg } from "@/components/providers/org-context-provider"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { clearSessionBeforeLogin } from "@/lib/auth/sign-out-client";
+import {
+  clearSessionBeforeLogin,
+  waitForLoginSession,
+} from "@/lib/auth/sign-out-client";
 import { DEFAULT_ORG_SLUG } from "@/lib/tenant/config";
 import { cn } from "@/lib/utils";
 
@@ -31,7 +33,6 @@ export function LoginForm({
   callbackUrl = "/",
   orgSlug = DEFAULT_ORG_SLUG,
 }: LoginFormProps) {
-  const router = useRouter();
   const { branding } = useOrg();
   const { t } = useLexicon();
   const [workspace, setWorkspace] = useState(orgSlug);
@@ -40,6 +41,10 @@ export function LoginForm({
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setWorkspace(orgSlug);
+  }, [orgSlug]);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -70,8 +75,15 @@ export function LoginForm({
         return;
       }
 
-      router.push(callbackUrl);
-      router.refresh();
+      const sessionReady = await waitForLoginSession(targetWorkspace);
+      if (!sessionReady) {
+        setError(
+          "Sign-in succeeded but the workspace did not switch. Sign out and try again.",
+        );
+        return;
+      }
+
+      window.location.assign(callbackUrl);
     } catch {
       setError("Something went wrong. Check your connection and try again.");
     } finally {

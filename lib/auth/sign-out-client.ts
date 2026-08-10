@@ -71,6 +71,34 @@ async function waitForSessionCleared(): Promise<void> {
   }
 }
 
+async function waitForSessionOrg(orgSlug: string): Promise<boolean> {
+  const deadline = Date.now() + SESSION_POLL_MAX_MS;
+  const normalized = orgSlug.trim().toLowerCase();
+
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch("/api/auth/session", {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+      if (!response.ok) continue;
+
+      const payload = (await response.json()) as {
+        user?: { orgSlug?: string };
+      };
+      if (payload?.user?.orgSlug?.toLowerCase() === normalized) return true;
+    } catch {
+      // keep polling
+    }
+
+    await new Promise((resolve) => {
+      window.setTimeout(resolve, SESSION_POLL_INTERVAL_MS);
+    });
+  }
+
+  return false;
+}
+
 /**
  * Sign out on server + client, wait until the session cookie is gone, then hard
  * redirect to login. Prevents the login page from bouncing back to the dashboard
@@ -118,4 +146,11 @@ export async function clearSessionBeforeLogin(): Promise<void> {
   } catch {
     // session may already be cleared
   }
+
+  await waitForSessionCleared();
+}
+
+/** After sign-in, wait until JWT reflects the chosen workspace. */
+export async function waitForLoginSession(orgSlug: string): Promise<boolean> {
+  return waitForSessionOrg(orgSlug);
 }
