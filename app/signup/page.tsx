@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
+import { auth } from "@/auth";
 import { SignupWizard } from "@/components/signup/signup-wizard";
 import { getPlatformAppUrl, PLATFORM_PRODUCT_NAME } from "@/lib/tenant/config";
-import { isApexHost } from "@/lib/tenant/resolution";
+import { hostsMatch, isApexHost } from "@/lib/tenant/resolution";
 
 export const metadata: Metadata = {
   title: "Sign up",
@@ -12,11 +13,19 @@ export const metadata: Metadata = {
 };
 
 export default async function SignupPage() {
+  const session = await auth();
+  if (session?.user) {
+    redirect("/");
+  }
+
   const headerStore = await headers();
   const host = headerStore.get("host");
 
   if (!isApexHost(host)) {
-    redirect(new URL("/signup", getPlatformAppUrl()).toString());
+    const signupUrl = new URL("/signup", getPlatformAppUrl());
+    if (!hostsMatch(host, signupUrl.host)) {
+      redirect(signupUrl.toString());
+    }
   }
 
   return <SignupWizard />;

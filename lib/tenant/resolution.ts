@@ -1,5 +1,7 @@
 import {
   DEFAULT_ORG_SLUG,
+  getAppUrlHost,
+  getExtraApexHosts,
   PLATFORM_STAGING_HOST,
   PLATFORM_WORKSPACE_HOST,
   WORKSPACE_HOSTS,
@@ -29,28 +31,85 @@ export function isReservedOrgSlug(slug: string): boolean {
   return RESERVED_SLUGS.has(slug);
 }
 
-function normalizeHost(host: string): string {
+export function normalizeHost(host: string): string {
   return host.split(":")[0]?.toLowerCase() ?? host.toLowerCase();
 }
 
+function configuredApexHosts(): string[] {
+  const appHost = getAppUrlHost();
+  return [
+    PLATFORM_WORKSPACE_HOST,
+    PLATFORM_STAGING_HOST,
+    "localhost",
+    "127.0.0.1",
+    ...getExtraApexHosts(),
+    ...(appHost ? [appHost] : []),
+  ];
+}
+
+/**
+ * Netlify deploy apex: `{site}.netlify.app` (3 labels).
+ * Tenant subdomain: `{slug}.{site}.netlify.app` (4+ labels).
+ */
+function isNetlifyApexHost(hostname: string): boolean {
+  if (!hostname.endsWith(".netlify.app")) return false;
+  return hostname.split(".").length === 3;
+}
+
+function netlifyTenantSlug(hostname: string): string | null {
+  if (!hostname.endsWith(".netlify.app")) return null;
+  const labels = hostname.split(".");
+  if (labels.length < 4) return null;
+  const slug = labels[0];
+  if (!slug || !isValidOrgSlug(slug) || isReservedOrgSlug(slug)) return null;
+  return slug;
+}
+
 function isWorkspaceHost(hostname: string): boolean {
-  return WORKSPACE_HOSTS.some(
-    (allowed) =>
-      hostname === allowed ||
-      hostname.endsWith(`.${allowed}`) ||
-      hostname.endsWith(".localhost"),
-  );
+  if (
+    WORKSPACE_HOSTS.some(
+      (allowed) =>
+        hostname === allowed ||
+        hostname.endsWith(`.${allowed}`) ||
+        hostname.endsWith(".localhost"),
+    )
+  ) {
+    return true;
+  }
+
+  const appHost = getAppUrlHost();
+  if (
+    appHost &&
+    (hostname === appHost || hostname.endsWith(`.${appHost}`))
+  ) {
+    return true;
+  }
+
+  if (getExtraApexHosts().includes(hostname)) {
+    return true;
+  }
+
+  // Any Netlify deploy URL is a valid workspace host.
+  if (hostname.endsWith(".netlify.app")) {
+    return true;
+  }
+
+  return false;
 }
 
 export function isApexHost(host: string | null): boolean {
   if (!host) return true;
   const hostname = normalizeHost(host);
-  return (
-    hostname === PLATFORM_WORKSPACE_HOST ||
-    hostname === PLATFORM_STAGING_HOST ||
-    hostname === "localhost" ||
-    hostname === "127.0.0.1"
-  );
+
+  if (configuredApexHosts().includes(hostname)) {
+    return true;
+  }
+
+  if (isNetlifyApexHost(hostname)) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -59,7 +118,8 @@ export function isApexHost(host: string | null): boolean {
  * Patterns:
  * - `globecon.gcstenders.globeconcs.com` → `globecon`
  * - `acme.localhost` → `acme`
- * - `gcstenders.globeconcs.com` / `gcstenders.netlify.app` → default org
+ * - `acme.gcstendersvic.netlify.app` → `acme`
+ * - `gcstenders.globeconcs.com` / apex Netlify URL → default org
  */
 export function resolveOrgSlugFromHost(host: string | null): string {
   if (!host) return DEFAULT_ORG_SLUG;
@@ -70,12 +130,10 @@ export function resolveOrgSlugFromHost(host: string | null): string {
     return DEFAULT_ORG_SLUG;
   }
 
-  if (
-    hostname === PLATFORM_WORKSPACE_HOST ||
-    hostname === PLATFORM_STAGING_HOST ||
-    hostname === "localhost" ||
-    hostname === "127.0.0.1"
-  ) {
+  const netlifySlug = netlifyTenantSlug(hostname);
+  if (netlifySlug) return netlifySlug;
+
+  if (isApexHost(hostname)) {
     return DEFAULT_ORG_SLUG;
   }
 
@@ -97,6 +155,12 @@ export function resolveOrgSlugFromHost(host: string | null): string {
     return DEFAULT_ORG_SLUG;
   }
 
+  const appHost = getAppUrlHost();
+  if (appHost && hostname.endsWith(`.${appHost}`)) {
+    const sub = hostname.slice(0, -`.${appHost}`.length);
+    if (sub && isValidOrgSlug(sub)) return sub;
+  }
+
   return DEFAULT_ORG_SLUG;
 }
 
@@ -116,4 +180,15 @@ export function resolveOrgSlugFromRequest(input: {
   if (fromQuery && isValidOrgSlug(fromQuery)) return fromQuery;
 
   return DEFAULT_ORG_SLUG;
+}
+
+/**
+ * Compare two hosts for equality (ignoring port).
+ */
+export function hostsMatch(
+  left: string | null | undefined,
+  right: string | null | undefined,
+): boolean {
+  if (!left || !right) return false;
+  return normalizeHost(left) === normalizeHost(right);
 }

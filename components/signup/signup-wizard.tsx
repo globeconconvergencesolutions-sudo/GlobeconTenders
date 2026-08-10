@@ -19,9 +19,8 @@ import { Label } from "@/components/ui/label";
 import { ApiErrorAlert } from "@/components/ui/api-error-alert";
 import { readApiError, type ParsedClientError } from "@/lib/api/client-error";
 import {
+  getWorkspaceHostLabel,
   PLATFORM_PRODUCT_NAME,
-  PLATFORM_STAGING_HOST,
-  PLATFORM_WORKSPACE_HOST,
 } from "@/lib/tenant/config";
 import { cn } from "@/lib/utils";
 
@@ -96,13 +95,15 @@ export function SignupWizard() {
       .finally(() => setLoadingTemplates(false));
   }, []);
 
+  const workspaceHostLabel = getWorkspaceHostLabel();
+
   const workspaceHost = useMemo(
     () =>
       typeof window !== "undefined" &&
       window.location.hostname.includes("localhost")
         ? "{slug}.localhost:3000"
-        : `{slug}.${PLATFORM_STAGING_HOST}`,
-    [],
+        : `{slug}.${workspaceHostLabel}`,
+    [workspaceHostLabel],
   );
 
   const selectedTemplate = templates.find((t) => t.id === form.templateId);
@@ -235,7 +236,7 @@ export function SignupWizard() {
                   <p className="text-xs text-slate-500">
                     Your team will sign in at{" "}
                     <code className="text-slate-400">
-                      {form.slug || "acme"}.{PLATFORM_WORKSPACE_HOST}
+                      {form.slug || "acme"}.{workspaceHostLabel}
                     </code>
                   </p>
                 </div>

@@ -1,17 +1,15 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { headers } from "next/headers";
 
 import { auth } from "@/auth";
 import { SignOutOverlay } from "@/components/auth/sign-out-overlay";
 import { OrgThemeStyles } from "@/components/branding/org-theme-styles";
-import { AppShell } from "@/components/layout/app-shell";
+import { AppShellGate } from "@/components/layout/app-shell-gate";
 import { Toaster } from "@/components/ui/sonner";
 import { OrgContextProvider } from "@/components/providers/org-context-provider";
 import { AuthSessionProvider } from "@/components/providers/session-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { BRAND_ASSETS } from "@/lib/brand";
-import { shouldSkipAppShell } from "@/lib/layout/shell-routes";
 import { getOrgContext } from "@/lib/tenant/org-context";
 import { PLATFORM_PRODUCT_NAME } from "@/lib/tenant/config";
 
@@ -61,15 +59,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const orgContext = await getOrgContext();
-  const headerStore = await headers();
-  const pathname = headerStore.get("x-pathname") ?? "/";
-  const host = headerStore.get("host");
   const session = await auth();
-  const skipAppShell = shouldSkipAppShell(
-    pathname,
-    host,
-    Boolean(session?.user?.id),
-  );
 
   return (
     <html lang="en" suppressHydrationWarning className="h-full">
@@ -84,11 +74,9 @@ export default async function RootLayout({
           <AuthSessionProvider>
             <OrgContextProvider value={orgContext}>
               <SignOutOverlay />
-              {skipAppShell ? (
-                children
-              ) : (
-                <AppShell>{children}</AppShell>
-              )}
+              <AppShellGate isAuthenticated={Boolean(session?.user?.id)}>
+                {children}
+              </AppShellGate>
               <Toaster richColors closeButton position="top-right" />
             </OrgContextProvider>
           </AuthSessionProvider>

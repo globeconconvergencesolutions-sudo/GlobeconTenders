@@ -20,7 +20,11 @@ import {
 
   isApexHost,
 
+  normalizeHost,
+
   resolveOrgSlugFromHost,
+
+  hostsMatch,
 
 } from "@/lib/tenant/resolution";
 
@@ -88,7 +92,17 @@ export default auth(async (request) => {
 
       const signupUrl = new URL("/signup", getPlatformAppUrl());
 
-      return NextResponse.redirect(signupUrl);
+      if (!hostsMatch(host, signupUrl.host)) {
+
+        return NextResponse.redirect(signupUrl);
+
+      }
+
+    }
+
+    if (session?.user && pathname === "/signup") {
+
+      return NextResponse.redirect(new URL("/", request.url));
 
     }
 
