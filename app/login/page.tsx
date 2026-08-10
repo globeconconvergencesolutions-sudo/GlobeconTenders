@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { LoginForm } from "@/components/auth/login-form";
 import { LoginHero } from "@/components/auth/login-hero";
-import { LoginSessionCleanup } from "@/components/auth/login-session-cleanup";
-import { LoginWorkspaceSwitch } from "@/components/auth/login-workspace-switch";
+import { LoginSignedOutToast } from "@/components/auth/login-signed-out-toast";
 import { AppLogo } from "@/components/brand/app-logo";
 import { OrgContextProvider } from "@/components/providers/org-context-provider";
 import { sanitizeCallbackUrl } from "@/lib/auth/callback-url";
@@ -38,68 +36,55 @@ export default async function LoginPage({
       : DEFAULT_ORG_SLUG;
   const orgContext = await getOrgContextBySlug(orgSlug);
   const session = await auth();
-  const currentWorkspace = session?.user?.orgSlug;
-  const switchingWorkspace = Boolean(
-    session?.user &&
-      !signedOut &&
-      currentWorkspace &&
-      currentWorkspace !== orgSlug,
-  );
 
-  // Already in the requested workspace — skip the form.
-  if (session?.user && !signedOut && !switchingWorkspace) {
+  if (session?.user) {
     redirect(callbackUrl);
   }
 
   return (
-    <div className="flex min-h-dvh w-full overflow-y-auto bg-slate-950">
-      <LoginSessionCleanup signedOut={signedOut} />
-      <LoginHero />
+    <OrgContextProvider value={orgContext}>
+      <div className="flex min-h-dvh w-full overflow-y-auto bg-slate-950">
+        <LoginSignedOutToast signedOut={signedOut} />
+        <LoginHero />
 
-      <div className="flex w-full flex-1 flex-col justify-center px-6 py-10 pb-[max(2.5rem,env(safe-area-inset-bottom))] sm:px-10 lg:px-16 xl:px-24">
-        <div className="mx-auto w-full max-w-md">
-          <div className="mb-8 lg:hidden">
-            <AppLogo size="md" variant="login" />
-          </div>
-
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20 backdrop-blur-sm sm:p-8">
-            <LoginWorkspaceSwitch
-              targetWorkspace={orgSlug}
-              currentWorkspace={currentWorkspace}
-            />
-
-            <div className="mb-8">
-              <h2 className="text-2xl font-semibold tracking-tight text-white">
-                Welcome back
-              </h2>
-              <p className="mt-2 text-sm text-slate-400">
-                Sign in to access {orgContext.lexicon.opportunityPlural.toLowerCase()},
-                filters, and {orgContext.lexicon.sync.toLowerCase()} tools.
-              </p>
+        <div className="flex w-full flex-1 flex-col justify-center px-6 py-10 pb-[max(2.5rem,env(safe-area-inset-bottom))] sm:px-10 lg:px-16 xl:px-24">
+          <div className="mx-auto w-full max-w-md">
+            <div className="mb-8 lg:hidden">
+              <AppLogo size="md" variant="login" />
             </div>
 
-            <OrgContextProvider value={orgContext}>
-              <LoginForm callbackUrl={callbackUrl} orgSlug={orgSlug} />
-            </OrgContextProvider>
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-black/20 backdrop-blur-sm sm:p-8">
+              <div className="mb-8">
+                <h2 className="text-2xl font-semibold tracking-tight text-white">
+                  Welcome back
+                </h2>
+                <p className="mt-2 text-sm text-slate-400">
+                  Sign in to access{" "}
+                  {orgContext.lexicon.opportunityPlural.toLowerCase()}, filters,
+                  and {orgContext.lexicon.sync.toLowerCase()} tools.
+                </p>
+              </div>
 
-            {session?.user && switchingWorkspace && (
-              <p className="mt-4 text-center text-xs text-slate-500">
-                Stay in {currentWorkspace}?{" "}
-                <Link href={callbackUrl} className="text-slate-300 hover:text-white">
-                  Continue to dashboard
-                </Link>
+              {signedOut && (
+                <p className="mb-6 rounded-lg border border-slate-700/80 bg-slate-800/50 px-4 py-3 text-sm text-slate-300">
+                  Signed out. Enter the{" "}
+                  <span className="font-medium text-white">workspace ID</span>{" "}
+                  for the organization you want — each workspace is separate.
+                </p>
+              )}
+
+              <LoginForm callbackUrl={callbackUrl} orgSlug={orgSlug} />
+            </div>
+
+            {process.env.NODE_ENV === "development" && (
+              <p className="mt-6 text-center text-xs text-slate-600">
+                Dev: seeded admin is admin@globecon.com — change password after
+                first login.
               </p>
             )}
           </div>
-
-          {process.env.NODE_ENV === "development" && (
-            <p className="mt-6 text-center text-xs text-slate-600">
-              Dev: seeded admin is admin@globecon.com — change password after
-              first login.
-            </p>
-          )}
         </div>
       </div>
-    </div>
+    </OrgContextProvider>
   );
 }

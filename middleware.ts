@@ -175,29 +175,14 @@ export default auth(async (request) => {
 
 
   if (pathname === "/login" || pathname.startsWith("/login/")) {
-
-    const signedOut = request.nextUrl.searchParams.get("signedOut") === "1";
-
     if (session?.user) {
-
-      if (signedOut) {
-
-        return withOrgHeader();
-
-      }
-
       const callback = sanitizeCallbackUrl(
-
         request.nextUrl.searchParams.get("callbackUrl"),
-
       );
-
       return NextResponse.redirect(new URL(callback, request.url));
-
     }
 
     return withOrgHeader();
-
   }
 
 

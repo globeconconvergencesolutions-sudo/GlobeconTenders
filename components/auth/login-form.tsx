@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { signIn } from "next-auth/react";
+import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Eye,
   EyeOff,
@@ -13,15 +13,15 @@ import {
   Building2,
 } from "lucide-react";
 
-import { useLexicon, useOrg } from "@/components/providers/org-context-provider";
+import { useOrg } from "@/components/providers/org-context-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  clearSessionBeforeLogin,
-  waitForLoginSession,
-} from "@/lib/auth/sign-out-client";
-import { DEFAULT_ORG_SLUG } from "@/lib/tenant/config";
+  loginWithCredentials,
+  type LoginActionState,
+} from "@/lib/auth/login-action";
+import { DEFAULT_ORG_SLUG, WORKSPACE_LOGIN_PARAM } from "@/lib/tenant/config";
 import { cn } from "@/lib/utils";
 
 type LoginFormProps = {
@@ -29,70 +29,38 @@ type LoginFormProps = {
   orgSlug?: string;
 };
 
+const initialState: LoginActionState = {};
+
 export function LoginForm({
   callbackUrl = "/",
   orgSlug = DEFAULT_ORG_SLUG,
 }: LoginFormProps) {
+  const router = useRouter();
   const { branding } = useOrg();
-  const { t } = useLexicon();
   const [workspace, setWorkspace] = useState(orgSlug);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [state, formAction, pending] = useActionState(
+    loginWithCredentials,
+    initialState,
+  );
 
   useEffect(() => {
     setWorkspace(orgSlug);
   }, [orgSlug]);
 
-  async function onSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    setLoading(true);
-    setError(null);
+  function handleWorkspaceBlur() {
+    const normalized = workspace.trim().toLowerCase();
+    if (!normalized || normalized === orgSlug) return;
 
-    const normalizedEmail = email.trim().toLowerCase();
-
-    const targetWorkspace = workspace.trim().toLowerCase() || DEFAULT_ORG_SLUG;
-
-    try {
-      await clearSessionBeforeLogin();
-
-      const result = await signIn("credentials", {
-        email: normalizedEmail,
-        password,
-        orgSlug: targetWorkspace,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        setError("Invalid email or password. Please try again.");
-        return;
-      }
-
-      if (!result?.ok) {
-        setError("Unable to sign in right now. Please try again.");
-        return;
-      }
-
-      const sessionReady = await waitForLoginSession(targetWorkspace);
-      if (!sessionReady) {
-        setError(
-          "Sign-in succeeded but the workspace did not switch. Sign out and try again.",
-        );
-        return;
-      }
-
-      window.location.assign(callbackUrl);
-    } catch {
-      setError("Something went wrong. Check your connection and try again.");
-    } finally {
-      setLoading(false);
-    }
+    const url = new URL(window.location.href);
+    url.searchParams.set(WORKSPACE_LOGIN_PARAM, normalized);
+    router.replace(`${url.pathname}${url.search}`);
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
+    <form action={formAction} className="space-y-5">
+      <input type="hidden" name="callbackUrl" value={callbackUrl} />
+
       <div className="space-y-2">
         <Label htmlFor="workspace" className="text-slate-200">
           Workspace ID
@@ -101,20 +69,23 @@ export function LoginForm({
           <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           <Input
             id="workspace"
+            name="workspace"
             type="text"
             autoComplete="organization"
             value={workspace}
             onChange={(e) =>
               setWorkspace(e.target.value.toLowerCase().replace(/\s+/g, "-"))
             }
+            onBlur={handleWorkspaceBlur}
             placeholder="globecon"
-            disabled={loading}
+            disabled={pending}
             required
             className="h-11 border-slate-700 bg-slate-950/60 pl-10 text-white placeholder:text-slate-500 focus-visible:ring-blue-500"
           />
         </div>
         <p className="text-xs text-slate-500">
-          The ID you chose at signup (e.g. globecon, acme).
+          The ID from signup (e.g. globecon, acme). Wrong workspace? Sign out and
+          sign in again with the correct ID.
         </p>
       </div>
 
@@ -126,12 +97,11 @@ export function LoginForm({
           <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           <Input
             id="email"
+            name="email"
             type="email"
             autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
             placeholder="you@globecon.com"
-            disabled={loading}
+            disabled={pending}
             required
             className="h-11 border-slate-700 bg-slate-950/60 pl-10 text-white placeholder:text-slate-500 focus-visible:ring-blue-500"
           />
@@ -154,12 +124,11 @@ export function LoginForm({
           <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           <Input
             id="password"
+            name="password"
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter your password"
-            disabled={loading}
+            disabled={pending}
             required
             minLength={6}
             className="h-11 border-slate-700 bg-slate-950/60 pl-10 pr-10 text-white placeholder:text-slate-500 focus-visible:ring-blue-500"
@@ -180,24 +149,24 @@ export function LoginForm({
         </div>
       </div>
 
-      {error && (
+      {state.error && (
         <div
           role="alert"
           className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
         >
-          {error}
+          {state.error}
         </div>
       )}
 
       <Button
         type="submit"
-        disabled={loading}
+        disabled={pending}
         className={cn(
           "h-11 w-full bg-blue-600 text-base font-medium text-white hover:bg-blue-500",
-          loading && "opacity-80",
+          pending && "opacity-80",
         )}
       >
-        {loading ? (
+        {pending ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
             Signing in...

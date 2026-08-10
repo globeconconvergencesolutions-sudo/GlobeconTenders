@@ -36,6 +36,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.orgSlug = user.orgSlug;
         token.isPlatformAdmin = user.isPlatformAdmin;
         token.isActive = true;
+        return token;
       }
 
       if (token.sub) {
