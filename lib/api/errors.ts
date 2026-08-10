@@ -63,6 +63,11 @@ function mapKnownErrorMessage(message: string): ApiErrorBody | null {
       error: "An account with this email already exists",
       code: "EMAIL_TAKEN",
     },
+    INVALID_CREDENTIALS: {
+      error:
+        "That email is already registered. Sign in with your existing password to create another workspace.",
+      code: "UNAUTHORIZED",
+    },
     INVALID_SLUG: {
       error: "Invalid or reserved workspace URL",
       code: "INVALID_SLUG",

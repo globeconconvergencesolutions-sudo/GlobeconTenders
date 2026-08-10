@@ -64,6 +64,15 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === "EMAIL_TAKEN") {
       return NextResponse.json({ error: "Admin email already registered" }, { status: 409 });
     }
+    if (error instanceof Error && error.message === "INVALID_CREDENTIALS") {
+      return NextResponse.json(
+        {
+          error:
+            "That email is already registered. Use the correct existing password to create another workspace.",
+        },
+        { status: 401 },
+      );
+    }
     if (error instanceof Error && error.message === "INVALID_SLUG") {
       return NextResponse.json({ error: "Invalid organization slug" }, { status: 400 });
     }

@@ -253,6 +253,11 @@ const statements = [
      AND NOT EXISTS (
        SELECT 1 FROM "org_memberships" m
        WHERE m."org_id" = o."id" AND m."user_id" = u."id"
+     )
+     AND NOT EXISTS (
+       SELECT 1 FROM "org_memberships" m2
+       JOIN "organizations" o2 ON o2."id" = m2."org_id"
+       WHERE m2."user_id" = u."id" AND o2."slug" <> 'globecon'
      );`,
 
   `UPDATE "users" SET "is_platform_admin" = true WHERE "role" = 'super_admin' AND "is_platform_admin" = false;`,

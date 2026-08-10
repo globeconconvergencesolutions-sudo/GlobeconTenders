@@ -66,16 +66,25 @@ export async function createOrganization(input: CreateOrganizationInput) {
   }
 
   const [existingUser] = await db
-    .select({ id: users.id })
+    .select({
+      id: users.id,
+      name: users.name,
+      passwordHash: users.passwordHash,
+    })
     .from(users)
     .where(eq(users.email, email))
     .limit(1);
 
   if (existingUser) {
-    throw new Error("EMAIL_TAKEN");
+    const valid = await bcrypt.compare(
+      input.adminPassword,
+      existingUser.passwordHash,
+    );
+    if (!valid) {
+      throw new Error("INVALID_CREDENTIALS");
+    }
   }
 
-  const passwordHash = await bcrypt.hash(input.adminPassword, 12);
   const adminRole = input.adminRole ?? "super_admin";
   const plan = input.selfServe ? "trial" : "trial";
   const limits = planLimitsFor(plan);
@@ -109,6 +118,25 @@ export async function createOrganization(input: CreateOrganizationInput) {
     templateId: input.templateId ?? "procurement",
     organizationName: input.name.trim(),
   });
+
+  if (existingUser) {
+    await db.insert(orgMemberships).values({
+      orgId: org.id,
+      userId: existingUser.id,
+      role: adminRole,
+    });
+
+    return {
+      org,
+      admin: {
+        id: existingUser.id,
+        email,
+        name: existingUser.name,
+      },
+    };
+  }
+
+  const passwordHash = await bcrypt.hash(input.adminPassword, 12);
 
   const [admin] = await db
     .insert(users)
