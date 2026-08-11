@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 import { signOut } from "@/auth";
 import { buildLoginUrl } from "@/lib/auth/sign-out-constants";
@@ -12,23 +12,24 @@ function sanitizeLogoutRedirect(path: string | null): string {
   return path;
 }
 
-/** Full-page sign out: clear session cookie, then redirect to login. */
+/**
+ * Full-page sign out. Must return signOut({ redirectTo }) so Auth.js attaches
+ * Set-Cookie headers that clear the session (including chunked cookies on HTTPS).
+ * A manual NextResponse.redirect after signOut({ redirect: false }) drops those
+ * headers and leaves users logged in on Netlify/production.
+ */
 export async function GET(request: NextRequest) {
   const redirectTo = sanitizeLogoutRedirect(
     request.nextUrl.searchParams.get("redirect"),
   );
 
-  await signOut({ redirect: false });
-
-  const response = NextResponse.redirect(new URL(redirectTo, request.url));
-  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
-  return response;
+  return signOut({ redirectTo });
 }
 
-export async function POST() {
-  await signOut({ redirect: false });
+export async function POST(request: NextRequest) {
+  const redirectTo = sanitizeLogoutRedirect(
+    request.nextUrl.searchParams.get("redirect"),
+  );
 
-  const response = NextResponse.json({ ok: true });
-  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
-  return response;
+  return signOut({ redirectTo });
 }

@@ -56,6 +56,11 @@ export default auth(async (request) => {
 
   const host = request.headers.get("host");
 
+  // Auth routes first — no tenant DB work; logout must stay fast on edge.
+  if (pathname.startsWith("/api/auth")) {
+    return NextResponse.next();
+  }
+
   const hostOrgSlug = resolveOrgSlugFromHost(host);
 
   const workspaceFromLogin = resolveWorkspaceSlugFromSearchParams(

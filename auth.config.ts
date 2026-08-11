@@ -2,6 +2,11 @@ import type { NextAuthConfig } from "next-auth";
 
 import { DEFAULT_ORG_SLUG } from "@/lib/tenant/config";
 
+// Auth.js uses AUTH_URL for secure cookies in production. Fall back to APP_URL.
+if (!process.env.AUTH_URL && process.env.APP_URL) {
+  process.env.AUTH_URL = process.env.APP_URL.replace(/\/$/, "");
+}
+
 type UserRole = "super_admin" | "admin" | "analyst" | "viewer";
 
 declare module "next-auth" {
