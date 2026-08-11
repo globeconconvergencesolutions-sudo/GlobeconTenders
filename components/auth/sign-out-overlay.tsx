@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { Loader2, LogOut } from "lucide-react";
 
-import { SIGN_OUT_STORAGE_KEY } from "@/lib/auth/sign-out-constants";
+import {
+  buildLoginUrl,
+  SIGN_OUT_STORAGE_KEY,
+} from "@/lib/auth/sign-out-constants";
+import { clearSignOutState } from "@/lib/auth/sign-out-client";
+
+const OVERLAY_FALLBACK_MS = 5000;
 
 export function SignOutOverlay() {
   const [signingOut, setSigningOut] = useState(false);
@@ -19,14 +25,28 @@ export function SignOutOverlay() {
 
     syncState();
     const interval = window.setInterval(syncState, 100);
-    window.addEventListener("storage", syncState);
 
     return () => {
       window.clearInterval(interval);
-      window.removeEventListener("storage", syncState);
-      window.removeEventListener("focus", syncState);
     };
   }, []);
+
+  useEffect(() => {
+    if (!signingOut) return;
+
+    const fallback = window.setTimeout(() => {
+      clearSignOutState();
+      setSigningOut(false);
+      const login = buildLoginUrl(true);
+      window.location.assign(
+        `/api/auth/logout?redirect=${encodeURIComponent(login)}`,
+      );
+    }, OVERLAY_FALLBACK_MS);
+
+    return () => {
+      window.clearTimeout(fallback);
+    };
+  }, [signingOut]);
 
   if (!signingOut) return null;
 

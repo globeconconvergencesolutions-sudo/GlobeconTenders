@@ -1,5 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 
+import { DEFAULT_ORG_SLUG } from "@/lib/tenant/config";
+
 type UserRole = "super_admin" | "admin" | "analyst" | "viewer";
 
 declare module "next-auth" {
@@ -57,8 +59,11 @@ export const authConfig = {
         session.user.email =
           (token.email as string | undefined) ?? session.user.email;
         session.user.orgId = Number(token.orgId ?? 0);
-        session.user.orgSlug = (token.orgSlug as string | undefined) ?? "globecon";
-        session.user.isPlatformAdmin = Boolean(token.isPlatformAdmin);
+        session.user.orgSlug =
+          (token.orgSlug as string | undefined) ?? DEFAULT_ORG_SLUG;
+        session.user.isPlatformAdmin =
+          Boolean(token.isPlatformAdmin) &&
+          session.user.orgSlug === DEFAULT_ORG_SLUG;
       }
       return session;
     },

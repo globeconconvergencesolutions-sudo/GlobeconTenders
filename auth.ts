@@ -14,6 +14,7 @@ import {
 } from "@/lib/db/schema";
 import { DEFAULT_ORG_SLUG } from "@/lib/tenant/config";
 import { orgAllowsLogin } from "@/lib/platform/org-status";
+import { canAccessPlatformAdmin } from "@/lib/platform/access";
 import { isValidOrgSlug } from "@/lib/tenant/resolution";
 
 const credentialsSchema = z.object({
@@ -114,7 +115,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.orgId = Number(token.orgId ?? 0);
         session.user.orgSlug =
           (token.orgSlug as string | undefined) ?? DEFAULT_ORG_SLUG;
-        session.user.isPlatformAdmin = Boolean(token.isPlatformAdmin);
+        session.user.isPlatformAdmin = canAccessPlatformAdmin({
+          isPlatformAdmin: Boolean(token.isPlatformAdmin),
+          orgSlug: session.user.orgSlug,
+        });
       }
       return session;
     },

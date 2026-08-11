@@ -1,7 +1,5 @@
 "use client";
 
-import { signOut } from "next-auth/react";
-
 import {
   buildLoginUrl,
   SIGN_OUT_STORAGE_KEY,
@@ -24,10 +22,13 @@ export function clearSignOutState(): void {
 }
 
 /**
- * One NextAuth sign-out + redirect. Clears the session cookie and sends the
- * browser to login — no polling, no duplicate server/client logout calls.
+ * Hard navigation to server logout — clears cookie and redirects in one trip.
+ * Avoids client signOut() which can fail to redirect and leave the overlay stuck.
  */
 export function signOutToLogin(): void {
   markSigningOut();
-  void signOut({ callbackUrl: buildLoginUrl(true), redirect: true });
+  const login = buildLoginUrl(true);
+  window.location.assign(
+    `/api/auth/logout?redirect=${encodeURIComponent(login)}`,
+  );
 }

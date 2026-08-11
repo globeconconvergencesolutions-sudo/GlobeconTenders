@@ -63,25 +63,35 @@ export function SidebarPanel({
   const features = useFeatures();
   const role = session?.user?.role as UserRole | undefined;
   const showTeamNav = role ? hasPermission(role, "users:read") : false;
-  const [showSettingsNav, setShowSettingsNav] = useState(false);
+  const showSettingsFromRole = role
+    ? hasPermission(role, "settings:manage")
+    : false;
+  const [showSettingsFromGrants, setShowSettingsFromGrants] = useState(false);
 
   useEffect(() => {
+    if (!session?.user || showSettingsFromRole) return;
+
     let cancelled = false;
     async function loadSettingsAccess() {
       try {
         const response = await fetch("/api/settings/access");
         if (!response.ok) return;
         const data = await response.json();
-        if (!cancelled) setShowSettingsNav(Boolean(data.canAccessSettings));
+        if (!cancelled) {
+          setShowSettingsFromGrants(Boolean(data.canAccessSettings));
+        }
       } catch {
         // ignore — settings nav stays hidden
       }
     }
-    if (session?.user) void loadSettingsAccess();
+
+    void loadSettingsAccess();
     return () => {
       cancelled = true;
     };
-  }, [session?.user]);
+  }, [session?.user, showSettingsFromRole]);
+
+  const showSettingsNav = showSettingsFromRole || showSettingsFromGrants;
 
   const mode = getSidebarMode(pathname);
   const showFilters = sidebarShowsFilters(mode);

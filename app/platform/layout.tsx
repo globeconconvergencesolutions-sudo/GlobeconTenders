@@ -3,6 +3,7 @@ import { Cloud } from "lucide-react";
 
 import { PlatformOrgsPanel } from "@/components/platform/platform-orgs-panel";
 import { getSessionUser } from "@/lib/auth/session";
+import { canAccessPlatformAdmin } from "@/lib/platform/access";
 import { PLATFORM_PRODUCT_NAME } from "@/lib/tenant/config";
 
 export default async function PlatformLayout({
@@ -12,7 +13,7 @@ export default async function PlatformLayout({
 }) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
-  if (!user.isPlatformAdmin) redirect("/");
+  if (!canAccessPlatformAdmin(user)) redirect("/");
 
   return (
     <div className="flex min-h-full flex-col bg-slate-50 dark:bg-background">

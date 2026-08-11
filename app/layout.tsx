@@ -71,7 +71,7 @@ export default async function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <AuthSessionProvider>
+          <AuthSessionProvider session={session}>
             <OrgContextProvider value={orgContext}>
               <SignOutOverlay />
               <AppShellGate isAuthenticated={Boolean(session?.user?.id)}>

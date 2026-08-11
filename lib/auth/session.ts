@@ -10,6 +10,7 @@ import {
   users,
   type UserRole,
 } from "@/lib/db/schema";
+import { canAccessPlatformAdmin } from "@/lib/platform/access";
 
 export type SessionUser = {
   id: number;
@@ -62,7 +63,10 @@ async function loadSessionUserFromDb(
     role: row.orgRole as UserRole,
     orgId: row.orgId,
     orgSlug: row.orgSlug,
-    isPlatformAdmin: row.isPlatformAdmin,
+    isPlatformAdmin: canAccessPlatformAdmin({
+      isPlatformAdmin: row.isPlatformAdmin,
+      orgSlug: row.orgSlug,
+    }),
   };
 }
 
@@ -84,7 +88,10 @@ export async function getSessionUser(): Promise<SessionUser | null> {
       role: session.user.role as UserRole,
       orgId,
       orgSlug: session.user.orgSlug,
-      isPlatformAdmin: Boolean(session.user.isPlatformAdmin),
+      isPlatformAdmin: canAccessPlatformAdmin({
+        isPlatformAdmin: Boolean(session.user.isPlatformAdmin),
+        orgSlug: session.user.orgSlug,
+      }),
     };
   }
 
@@ -109,7 +116,7 @@ export async function requirePermission(permission: Permission) {
 
 export async function requirePlatformAdmin() {
   const user = await requireSessionUser();
-  if (!user.isPlatformAdmin) {
+  if (!canAccessPlatformAdmin(user)) {
     throw new Error("FORBIDDEN");
   }
   return user;

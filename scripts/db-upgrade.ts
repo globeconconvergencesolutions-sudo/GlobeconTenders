@@ -260,7 +260,17 @@ const statements = [
        WHERE m2."user_id" = u."id" AND o2."slug" <> 'globecon'
      );`,
 
-  `UPDATE "users" SET "is_platform_admin" = true WHERE "role" = 'super_admin' AND "is_platform_admin" = false;`,
+  `UPDATE "users" SET "is_platform_admin" = true
+   WHERE "role" = 'super_admin'
+     AND "is_platform_admin" = false
+     AND EXISTS (
+       SELECT 1 FROM "org_memberships" m
+       JOIN "organizations" o ON o."id" = m."org_id"
+       WHERE m."user_id" = "users"."id"
+         AND o."slug" = 'globecon'
+         AND m."is_active" = true
+         AND m."role" = 'super_admin'
+     );`,
 
   `ALTER TABLE "sources" DROP CONSTRAINT IF EXISTS "sources_slug_key";`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "sources_org_slug_idx" ON "sources" ("org_id", "slug");`,
