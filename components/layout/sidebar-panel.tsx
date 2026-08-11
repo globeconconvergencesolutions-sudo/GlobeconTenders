@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import {
   BarChart3,
@@ -18,9 +17,8 @@ import { SidebarFiltersLazy } from "@/components/filters/sidebar-filters-lazy";
 import { AppLogo } from "@/components/brand/app-logo";
 import { SidebarContextPanel } from "@/components/layout/sidebar-context-panel";
 import { SidebarFooter } from "@/components/layout/sidebar-footer";
+import { useNavAccess } from "@/components/providers/nav-access-provider";
 import { useLexicon, useFeatures, useOrg } from "@/components/providers/org-context-provider";
-import { hasPermission } from "@/lib/auth/permissions";
-import type { UserRole } from "@/lib/db/schema";
 import {
   getSidebarMode,
   sidebarShowsFilters,
@@ -57,19 +55,14 @@ export function SidebarPanel({
   onClose,
 }: SidebarPanelProps) {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const navAccess = useNavAccess();
   const { t } = useLexicon();
   const { orgSlug } = useOrg();
   const features = useFeatures();
-  const role = session?.user?.role as UserRole | undefined;
-  const showTeamNav = role ? hasPermission(role, "users:read") : false;
-  const showSettingsFromRole = role
-    ? hasPermission(role, "settings:manage")
-    : false;
   const [showSettingsFromGrants, setShowSettingsFromGrants] = useState(false);
 
   useEffect(() => {
-    if (!session?.user || showSettingsFromRole) return;
+    if (!navAccess || navAccess.showSettingsNav) return;
 
     let cancelled = false;
     async function loadSettingsAccess() {
@@ -89,21 +82,22 @@ export function SidebarPanel({
     return () => {
       cancelled = true;
     };
-  }, [session?.user, showSettingsFromRole]);
+  }, [navAccess]);
 
-  const showSettingsNav = showSettingsFromRole || showSettingsFromGrants;
+  const showSettingsNav =
+    Boolean(navAccess?.showSettingsNav) || showSettingsFromGrants;
 
   const mode = getSidebarMode(pathname);
   const showFilters = sidebarShowsFilters(mode);
 
   const extraNavItems = [
-    ...(session?.user?.isPlatformAdmin
+    ...(navAccess?.isPlatformAdmin
       ? [{ href: "/platform/orgs", label: "Platform", icon: Cloud }]
       : []),
     ...(showSettingsNav
       ? [{ href: "/settings", label: t("navSettings"), icon: Settings }]
       : []),
-    ...(showTeamNav
+    ...(navAccess?.showTeamNav
       ? [{ href: "/admin/users", label: t("navTeam"), icon: Users }]
       : []),
   ];
