@@ -20,7 +20,33 @@ const AUTH_COOKIE_BASE_NAMES = [
   "__Host-next-auth.csrf-token",
 ] as const;
 
-const CHUNK_SUFFIXES = ["", ".0", ".1", ".2", ".3", ".4", ".5"] as const;
+const CHUNK_SUFFIXES = [
+  "",
+  ".0",
+  ".1",
+  ".2",
+  ".3",
+  ".4",
+  ".5",
+  ".6",
+  ".7",
+  ".8",
+  ".9",
+] as const;
+
+function getAuthCookieDomain(name: string, request: NextRequest): string | undefined {
+  if (name.startsWith("__Host-")) {
+    return undefined;
+  }
+
+  const hostHeader = request.headers.get("host");
+  if (!hostHeader) return undefined;
+
+  const host = hostHeader.split(":")[0].toLowerCase();
+  if (!host || host === "localhost" || host === "127.0.0.1") return undefined;
+
+  return host;
+}
 
 export function listAuthCookieNamesToClear(request: NextRequest): string[] {
   const names = new Set<string>();
@@ -59,11 +85,14 @@ function expireOptions(name: string, request: NextRequest) {
   // Prefixed cookies MUST be cleared with Secure or the browser ignores the clear.
   const secure = isPrefixedSecureCookie(name) || requestHttps;
 
+  const cookieDomain = getAuthCookieDomain(name, request);
+
   return {
     httpOnly: true as const,
     sameSite: "lax" as const,
     path: "/",
     secure,
+    domain: cookieDomain,
     maxAge: 0,
     expires: new Date(0),
   };
@@ -83,9 +112,13 @@ export function appendClearedAuthCookies(
     response.cookies.set(name, "", options);
     // Raw header as well — matches Auth.js serialization more reliably on edge.
     const securePart = options.secure ? "; Secure" : "";
+    const domainPart = options.domain ? `; Domain=${options.domain}` : "";
+    const sameSitePart = options.sameSite
+      ? `; SameSite=${options.sameSite}`
+      : "";
     response.headers.append(
       "Set-Cookie",
-      `${name}=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax${securePart}`,
+      `${name}=; Path=/;${domainPart} Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly${sameSitePart}${securePart}`,
     );
   }
 }
