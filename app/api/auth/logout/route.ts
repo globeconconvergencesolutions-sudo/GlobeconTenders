@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import {
-  appendClearedAuthCookies,
-  clearAuthCookiesInJar,
-} from "@/lib/auth/clear-session-cookies";
+import { performLogout } from "@/lib/auth/clear-session-cookies";
 import { buildLoginUrl } from "@/lib/auth/sign-out-constants";
 
 export const dynamic = "force-dynamic";
@@ -40,8 +37,6 @@ async function handleLogout(request: NextRequest) {
     request.nextUrl.searchParams.get("redirect"),
   );
 
-  await clearAuthCookiesInJar(request);
-
   const safePath = escapeHtmlAttr(redirectTo);
   const safeJson = JSON.stringify(redirectTo);
   const html = `<!DOCTYPE html>
@@ -75,7 +70,7 @@ async function handleLogout(request: NextRequest) {
     },
   });
 
-  appendClearedAuthCookies(response, request);
+  await performLogout(response, request);
 
   return response;
 }

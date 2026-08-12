@@ -1,9 +1,28 @@
 import type { NextRequest, NextResponse } from "next/server";
-import { cookies as nextCookies } from "next/headers";
+
+import { signOut as authSignOut } from "@/auth";
 
 /**
- * Auth.js v5 (and legacy next-auth) session cookie names we must expire on logout.
- * Includes chunked variants used when the JWT exceeds ~4KB.
+ * Clears the real Auth.js session cookie by delegating to Auth.js's own
+ * signOut action instead of reimplementing its cookie name/attribute logic.
+ * This guarantees the clearing Set-Cookie is byte-for-byte symmetric with
+ * whatever cookie Auth.js actually set at login — including chunking and
+ * any future change to cookie naming/attributes in an Auth.js upgrade.
+ *
+ * `redirect: false` stops next-auth from throwing a Next.js redirect for
+ * us; the resulting Set-Cookie instructions are written into this request's
+ * `next/headers` cookie jar (next-auth does this internally), which Next.js
+ * merges into whatever response this route handler ultimately returns.
+ */
+async function clearRealSessionCookie(): Promise<void> {
+  await authSignOut({ redirect: false });
+}
+
+/**
+ * Auth.js v5 (and legacy next-auth v4) cookie base names, including chunked
+ * variants used when the JWT exceeds ~4KB. Session-token names are also
+ * covered here as belt-and-braces on top of `clearRealSessionCookie` above,
+ * which is the authoritative clear.
  */
 const AUTH_COOKIE_BASE_NAMES = [
   "authjs.session-token",
@@ -34,21 +53,18 @@ const CHUNK_SUFFIXES = [
   ".9",
 ] as const;
 
-function getAuthCookieDomain(name: string, request: NextRequest): string | undefined {
-  if (name.startsWith("__Host-")) {
-    return undefined;
-  }
-
-  const hostHeader = request.headers.get("host");
-  if (!hostHeader) return undefined;
-
-  const host = hostHeader.split(":")[0].toLowerCase();
-  if (!host || host === "localhost" || host === "127.0.0.1") return undefined;
-
-  return host;
+function isAuthCookieName(name: string): boolean {
+  return (
+    name.includes("authjs.") ||
+    name.includes("next-auth.") ||
+    name.startsWith("__Secure-authjs") ||
+    name.startsWith("__Host-authjs") ||
+    name.startsWith("__Secure-next-auth") ||
+    name.startsWith("__Host-next-auth")
+  );
 }
 
-export function listAuthCookieNamesToClear(request: NextRequest): string[] {
+function namesToSweep(request: NextRequest): string[] {
   const names = new Set<string>();
 
   for (const base of AUTH_COOKIE_BASE_NAMES) {
@@ -57,106 +73,78 @@ export function listAuthCookieNamesToClear(request: NextRequest): string[] {
     }
   }
 
+  // Also sweep anything actually present that looks like an Auth.js cookie,
+  // in case a name/chunk pattern above ever falls out of date.
   for (const cookie of request.cookies.getAll()) {
-    const name = cookie.name;
-    if (
-      name.includes("authjs.") ||
-      name.includes("next-auth.") ||
-      name.startsWith("__Secure-authjs") ||
-      name.startsWith("__Host-authjs") ||
-      name.startsWith("__Secure-next-auth") ||
-      name.startsWith("__Host-next-auth")
-    ) {
-      names.add(name);
+    if (isAuthCookieName(cookie.name)) {
+      names.add(cookie.name);
     }
   }
 
   return [...names];
 }
 
-function isPrefixedSecureCookie(name: string): boolean {
-  return name.startsWith("__Secure-") || name.startsWith("__Host-");
-}
-
-function expireOptions(name: string, request: NextRequest) {
+/**
+ * Expiry options for the defensive sweep below.
+ *
+ * IMPORTANT: never set an explicit `Domain` here. Auth.js sets its cookies
+ * as host-only (no Domain attribute) by default, and this app does not
+ * override that in auth.config.ts (no `cookies` key is configured there).
+ * A clearing Set-Cookie with an explicit Domain — even one that textually
+ * matches the request host — creates a *separate* entry in the browser's
+ * cookie store rather than expiring the host-only cookie that's actually
+ * there, so the browser silently keeps the original session cookie alive.
+ *
+ * That was the root cause of a previous bug where logout looked successful
+ * (the page navigated to /login) while the real auth cookie stayed valid:
+ * this code used to derive `Domain` from the request's `Host` header. It
+ * only ever manifested in production, because `localhost`/`127.0.0.1` were
+ * special-cased to skip Domain, masking the bug in local dev.
+ *
+ * If a custom cookie `domain` is ever added to auth.config.ts's `cookies`
+ * option (e.g. for cross-subdomain SSO), mirror that exact fixed value
+ * here explicitly — never derive it from the request host.
+ */
+function sweepExpireOptions(name: string, request: NextRequest) {
   const forwardedProto = request.headers.get("x-forwarded-proto");
   const requestHttps =
     forwardedProto === "https" || request.nextUrl.protocol === "https:";
   // Prefixed cookies MUST be cleared with Secure or the browser ignores the clear.
-  const secure = isPrefixedSecureCookie(name) || requestHttps;
-
-  const cookieDomain = getAuthCookieDomain(name, request);
+  const secure =
+    name.startsWith("__Secure-") || name.startsWith("__Host-") || requestHttps;
 
   return {
     httpOnly: true as const,
     sameSite: "lax" as const,
     path: "/",
     secure,
-    domain: cookieDomain,
     maxAge: 0,
     expires: new Date(0),
   };
 }
 
 /**
- * Explicitly expire Auth.js cookies on a response.
- * Prefer attaching these to a 200 response — some CDNs (incl. Netlify) drop
- * Set-Cookie on 3xx redirects.
+ * Defensive sweep: expires every cookie name Auth.js could plausibly have
+ * set (current + legacy + chunked variants), plus anything actually present
+ * on the request that looks like an Auth.js cookie. Pure belt-and-braces —
+ * `clearRealSessionCookie` is what actually has to succeed for logout to
+ * work; this covers auxiliary cookies (CSRF token, OAuth callback URL) and
+ * any stray chunks it doesn't touch.
  */
-export function appendClearedAuthCookies(
-  response: NextResponse,
-  request: NextRequest,
-): void {
-  for (const name of listAuthCookieNamesToClear(request)) {
-    const options = expireOptions(name, request);
-    response.cookies.set(name, "", options);
-    // Raw header as well — matches Auth.js serialization more reliably on edge.
-    const securePart = options.secure ? "; Secure" : "";
-    const domainPart = options.domain ? `; Domain=${options.domain};` : "";
-    const sameSitePart = options.sameSite
-      ? `; SameSite=${options.sameSite}`
-      : "";
-    response.headers.append(
-      "Set-Cookie",
-      `${name}=; Path=/;${domainPart} Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly${sameSitePart}${securePart}`,
-    );
+function sweepStaleAuthCookies(response: NextResponse, request: NextRequest): void {
+  for (const name of namesToSweep(request)) {
+    response.cookies.set(name, "", sweepExpireOptions(name, request));
   }
 }
 
-export type AuthSignOutCookie = {
-  name: string;
-  value: string;
-  options?: Parameters<NextResponse["cookies"]["set"]>[2];
-};
-
-/** Merge Auth.js clear-cookie instructions onto a response. */
-export function applyAuthSignOutCookies(
+/**
+ * Full logout: authoritative session-cookie clear (via Auth.js's own
+ * signOut) plus a defensive sweep of any other Auth.js cookies.
+ */
+export async function performLogout(
   response: NextResponse,
-  cookies: AuthSignOutCookie[] | undefined,
-): void {
-  if (!cookies?.length) return;
-  for (const cookie of cookies) {
-    response.cookies.set(cookie.name, cookie.value, {
-      ...cookie.options,
-      path: cookie.options?.path ?? "/",
-    });
-  }
-}
-
-/** Also clear via Next.js cookie jar (merged into the outgoing response). */
-export async function clearAuthCookiesInJar(
   request: NextRequest,
 ): Promise<void> {
-  const jar = await nextCookies();
-  for (const name of listAuthCookieNamesToClear(request)) {
-    try {
-      jar.set(name, "", expireOptions(name, request));
-    } catch {
-      try {
-        jar.delete(name);
-      } catch {
-        // ignore — response.cookies is the primary path
-      }
-    }
-  }
+  await clearRealSessionCookie();
+  sweepStaleAuthCookies(response, request);
 }
