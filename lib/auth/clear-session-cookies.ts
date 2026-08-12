@@ -112,7 +112,7 @@ export function appendClearedAuthCookies(
     response.cookies.set(name, "", options);
     // Raw header as well — matches Auth.js serialization more reliably on edge.
     const securePart = options.secure ? "; Secure" : "";
-    const domainPart = options.domain ? `; Domain=${options.domain}` : "";
+    const domainPart = options.domain ? `; Domain=${options.domain};` : "";
     const sameSitePart = options.sameSite
       ? `; SameSite=${options.sameSite}`
       : "";

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { signOut } from "next-auth/react";
 
 import {
   buildLoginUrl,
@@ -47,12 +46,6 @@ export function ForceSessionClear({ active = false }: ForceSessionClearProps) {
         sessionStorage.setItem(SIGN_OUT_STORAGE_KEY, "1");
       } catch {
         // ignore
-      }
-
-      try {
-        await signOut({ redirect: false });
-      } catch {
-        // ignore — server route clears httpOnly cookies
       }
 
       if (cancelled) return;

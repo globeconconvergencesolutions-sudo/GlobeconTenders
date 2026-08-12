@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { signOut } from "@/auth";
 import {
   appendClearedAuthCookies,
-  applyAuthSignOutCookies,
   clearAuthCookiesInJar,
-  type AuthSignOutCookie,
 } from "@/lib/auth/clear-session-cookies";
 import { buildLoginUrl } from "@/lib/auth/sign-out-constants";
 
@@ -43,20 +40,6 @@ async function handleLogout(request: NextRequest) {
     request.nextUrl.searchParams.get("redirect"),
   );
 
-  let authCookies: AuthSignOutCookie[] | undefined;
-  try {
-    const result = (await signOut({
-      redirect: false,
-      redirectTo,
-    })) as { cookies?: AuthSignOutCookie[] } | undefined;
-    authCookies = result?.cookies;
-  } catch (error) {
-    console.error(
-      "[auth/logout] signOut failed; clearing cookies manually",
-      error,
-    );
-  }
-
   await clearAuthCookiesInJar(request);
 
   const safePath = escapeHtmlAttr(redirectTo);
@@ -92,7 +75,6 @@ async function handleLogout(request: NextRequest) {
     },
   });
 
-  applyAuthSignOutCookies(response, authCookies);
   appendClearedAuthCookies(response, request);
 
   return response;
