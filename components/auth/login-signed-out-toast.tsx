@@ -2,7 +2,10 @@
 
 import { useEffect, useRef } from "react";
 
-import { clearSignOutState } from "@/lib/auth/sign-out-client";
+import {
+  clearSignOutState,
+  clearForceLogoutAttempt,
+} from "@/lib/auth/sign-out-client";
 import { showSuccessToast } from "@/lib/toast";
 
 type LoginSignedOutToastProps = {
@@ -15,6 +18,7 @@ export function LoginSignedOutToast({ signedOut = false }: LoginSignedOutToastPr
 
   useEffect(() => {
     clearSignOutState();
+    clearForceLogoutAttempt();
   }, []);
 
   useEffect(() => {

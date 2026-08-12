@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { handleApiError } from "@/lib/api/errors";
 import { requirePlatformAdmin } from "@/lib/auth/session";
+import { deleteOrganizationForPlatform } from "@/lib/platform/delete-org";
 import {
   getOrganizationForPlatform,
   updateOrganizationForPlatform,
@@ -12,6 +13,10 @@ import { getPlanDefinition, isPlanId } from "@/lib/platform/plans";
 const patchSchema = z.object({
   status: z.enum(["active", "suspended", "trial_expired"]).optional(),
   plan: z.string().optional(),
+});
+
+const deleteSchema = z.object({
+  confirmSlug: z.string().min(1),
 });
 
 export async function GET(
@@ -78,5 +83,35 @@ export async function PATCH(
     });
   } catch (error) {
     return handleApiError(error, "Failed to update organization");
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    await requirePlatformAdmin();
+    const { id } = await context.params;
+    const orgId = Number(id);
+    if (!Number.isFinite(orgId)) {
+      return NextResponse.json({ error: "Invalid organization id" }, { status: 400 });
+    }
+
+    const payload = deleteSchema.parse(await request.json());
+    const result = await deleteOrganizationForPlatform(
+      orgId,
+      payload.confirmSlug,
+    );
+
+    return NextResponse.json({
+      ok: true,
+      organization: result.organization,
+      deletedUserCount: result.deletedUserIds.length,
+      cloudinaryDeleted: result.cloudinaryDeleted,
+      cloudinaryErrors: result.cloudinaryErrors,
+    });
+  } catch (error) {
+    return handleApiError(error, "Failed to delete organization");
   }
 }

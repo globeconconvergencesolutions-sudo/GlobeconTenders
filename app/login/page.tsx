@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
+import { ForceSessionClear } from "@/components/auth/force-session-clear";
 import { LoginForm } from "@/components/auth/login-form";
 import { LoginHero } from "@/components/auth/login-hero";
 import { LoginSignedOutToast } from "@/components/auth/login-signed-out-toast";
@@ -36,15 +37,22 @@ export default async function LoginPage({
       : DEFAULT_ORG_SLUG;
   const orgContext = await getOrgContextBySlug(orgSlug);
   const session = await auth();
+  const hasSession = Boolean(session?.user);
 
-  if (session?.user) {
+  // Normal bounce for already-signed-in users — but never when they just signed out.
+  // That case means the session cookie failed to clear; ForceSessionClear handles it.
+  if (hasSession && !signedOut) {
     redirect(callbackUrl);
   }
 
   return (
     <OrgContextProvider value={orgContext}>
       <div className="flex min-h-dvh w-full overflow-y-auto bg-slate-950">
-        <LoginSignedOutToast signedOut={signedOut} />
+        {hasSession && signedOut ? (
+          <ForceSessionClear active />
+        ) : (
+          <LoginSignedOutToast signedOut={signedOut} />
+        )}
         <LoginHero />
 
         <div className="flex w-full flex-1 flex-col justify-center px-6 py-10 pb-[max(2.5rem,env(safe-area-inset-bottom))] sm:px-10 lg:px-16 xl:px-24">

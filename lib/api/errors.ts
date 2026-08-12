@@ -14,6 +14,8 @@ export type ApiErrorCode =
   | "EMAIL_TAKEN"
   | "ORG_NOT_FOUND"
   | "ORG_SUSPENDED"
+  | "PROTECTED_ORG"
+  | "CONFIRM_SLUG_MISMATCH"
   | "SYNC_BLOCKED"
   | "SEAT_LIMIT"
   | "SOURCE_LIMIT"
@@ -54,6 +56,14 @@ function mapKnownErrorMessage(message: string): ApiErrorBody | null {
     ORG_SUSPENDED: {
       error: "This workspace is suspended",
       code: "ORG_SUSPENDED",
+    },
+    PROTECTED_ORG: {
+      error: "The Globecon platform organization cannot be deleted",
+      code: "PROTECTED_ORG",
+    },
+    CONFIRM_SLUG_MISMATCH: {
+      error: "Confirmation slug does not match the organization",
+      code: "CONFIRM_SLUG_MISMATCH",
     },
     SLUG_TAKEN: {
       error: "That workspace URL is already taken",
@@ -106,13 +116,17 @@ export function handleApiError(
           ? 401
           : mapped.code === "FORBIDDEN" ||
               mapped.code === "ORG_SUSPENDED" ||
-              mapped.code === "FEATURE_DISABLED"
+              mapped.code === "FEATURE_DISABLED" ||
+              mapped.code === "PROTECTED_ORG"
             ? 403
             : mapped.code === "SLUG_TAKEN" || mapped.code === "EMAIL_TAKEN"
               ? 409
-              : mapped.code === "INVALID_SLUG"
-                ? 400
-                : 400;
+              : mapped.code === "ORG_NOT_FOUND"
+                ? 404
+                : mapped.code === "INVALID_SLUG" ||
+                    mapped.code === "CONFIRM_SLUG_MISMATCH"
+                  ? 400
+                  : 400;
       return apiErrorResponse(status, mapped);
     }
 

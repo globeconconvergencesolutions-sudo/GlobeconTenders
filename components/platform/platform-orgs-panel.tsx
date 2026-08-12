@@ -7,10 +7,12 @@ import {
   Loader2,
   Plus,
   Settings2,
+  Trash2,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -29,6 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  DEFAULT_ORG_SLUG,
   PLATFORM_PRODUCT_NAME,
   PLATFORM_STAGING_HOST,
   getWorkspaceHostLabel,
@@ -92,6 +95,10 @@ export function PlatformOrgsPanel() {
     plan: "trial",
   });
   const [manageSaving, setManageSaving] = useState(false);
+
+  const [deleteTarget, setDeleteTarget] = useState<OrgRow | null>(null);
+  const [deleteSaving, setDeleteSaving] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -187,6 +194,37 @@ export function PlatformOrgsPanel() {
     }
   }
 
+  async function confirmDeleteOrg() {
+    if (!deleteTarget) return;
+    setDeleteSaving(true);
+    setDeleteError(null);
+    try {
+      const response = await fetch(`/api/platform/orgs/${deleteTarget.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmSlug: deleteTarget.slug }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "Failed to delete organization");
+      }
+      const orphanNote =
+        typeof data.deletedUserCount === "number" && data.deletedUserCount > 0
+          ? ` · ${data.deletedUserCount} orphan user(s) removed`
+          : "";
+      showSuccessToast(`${deleteTarget.name} deleted${orphanNote}`);
+      setDeleteTarget(null);
+      setManageTarget(null);
+      await load();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Delete failed";
+      setDeleteError(message);
+      showErrorToast(message);
+    } finally {
+      setDeleteSaving(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center py-16 text-muted-foreground">
@@ -260,12 +298,7 @@ export function PlatformOrgsPanel() {
                 </td>
                 <td className="px-5 py-4 text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      asChild
-                    >
+                    <Button type="button" variant="ghost" size="sm" asChild>
                       <a
                         href={buildOrgLoginUrl(org.slug)}
                         target="_blank"
@@ -301,7 +334,8 @@ export function PlatformOrgsPanel() {
         Current deployment host: {PLATFORM_STAGING_HOST}. Each org uses a workspace
         ID at login (e.g.{" "}
         <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">globecon</code>
-        ).
+        ). Only platform admins signed into Globecon can permanently delete a
+        workspace.
       </p>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -406,7 +440,10 @@ export function PlatformOrgsPanel() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(manageTarget)} onOpenChange={(open) => !open && setManageTarget(null)}>
+      <Dialog
+        open={Boolean(manageTarget)}
+        onOpenChange={(open) => !open && setManageTarget(null)}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Manage {manageTarget?.name}</DialogTitle>
@@ -466,6 +503,30 @@ export function PlatformOrgsPanel() {
                   </SelectContent>
                 </Select>
               </div>
+              {manageTarget.slug !== DEFAULT_ORG_SLUG && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900 dark:bg-red-950/30">
+                  <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                    Danger zone
+                  </p>
+                  <p className="mt-1 text-xs text-red-700 dark:text-red-300">
+                    Permanently delete this workspace and all of its tenders, sources,
+                    members, settings, and related data. This cannot be undone.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => {
+                      setDeleteError(null);
+                      setDeleteTarget(manageTarget);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete organization
+                  </Button>
+                </div>
+              )}
             </div>
           )}
           <DialogFooter>
@@ -479,6 +540,25 @@ export function PlatformOrgsPanel() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null);
+            setDeleteError(null);
+          }
+        }}
+        title={`Delete ${deleteTarget?.name ?? "organization"}?`}
+        description={`This permanently removes the workspace, all memberships, tenders, sources, catalog data, shares, and settings. Orphan user accounts that only belonged here will also be removed. Type the slug “${deleteTarget?.slug ?? ""}” to confirm.`}
+        confirmLabel="Delete forever"
+        destructive
+        loading={deleteSaving}
+        error={deleteError}
+        requireTypedPhrase={deleteTarget?.slug}
+        typedPhraseLabel={`Type ${deleteTarget?.slug ?? "slug"} to confirm`}
+        onConfirm={() => void confirmDeleteOrg()}
+      />
     </div>
   );
 }

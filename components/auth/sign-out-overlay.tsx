@@ -38,7 +38,7 @@ export function SignOutOverlay() {
       clearSignOutState();
       setSigningOut(false);
       const login = buildLoginUrl(true);
-      window.location.assign(
+      window.location.replace(
         `/api/auth/logout?redirect=${encodeURIComponent(login)}`,
       );
     }, OVERLAY_FALLBACK_MS);
