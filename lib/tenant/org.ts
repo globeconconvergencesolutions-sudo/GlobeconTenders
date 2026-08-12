@@ -50,6 +50,33 @@ export const getOrganizationBySlug = cache(
   },
 );
 
+export const getOrganizationById = cache(
+  async (orgId: number): Promise<ResolvedOrganization | null> => {
+    const db = getDb();
+    if (!db || !Number.isFinite(orgId) || orgId <= 0) return null;
+
+    const [row] = await db
+      .select({
+        id: organizations.id,
+        name: organizations.name,
+        slug: organizations.slug,
+        status: organizations.status,
+        templateId: organizations.templateId,
+        templateVersion: organizations.templateVersion,
+        plan: organizations.plan,
+        trialEndsAt: organizations.trialEndsAt,
+        maxSeats: organizations.maxSeats,
+        maxSources: organizations.maxSources,
+        syncIntervalHours: organizations.syncIntervalHours,
+      })
+      .from(organizations)
+      .where(eq(organizations.id, orgId))
+      .limit(1);
+
+    return row ?? null;
+  },
+);
+
 export async function listActiveOrganizations(): Promise<ResolvedOrganization[]> {
   const db = getDb();
   if (!db) return [];

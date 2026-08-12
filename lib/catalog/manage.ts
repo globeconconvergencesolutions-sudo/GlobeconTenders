@@ -46,7 +46,7 @@ export async function archiveSource(id: number) {
     .where(eq(sources.id, id))
     .returning();
 
-  await removeIdsFromAllUserFilters("sourceIds", [id]);
+  await removeIdsFromAllUserFilters("sourceIds", [id], source.orgId);
 
   return NextResponse.json({ source: updated, archived: true });
 }
@@ -125,7 +125,7 @@ export async function deleteSourcePermanently(id: number) {
   }
 
   await db.delete(sources).where(eq(sources.id, id));
-  await removeIdsFromAllUserFilters("sourceIds", [id]);
+  await removeIdsFromAllUserFilters("sourceIds", [id], source.orgId);
 
   return NextResponse.json({ deleted: true, id });
 }
@@ -212,7 +212,7 @@ export async function archiveServiceLine(id: number) {
     .where(eq(serviceLines.id, id))
     .returning();
 
-  await removeIdsFromAllUserFilters("serviceLineIds", [id]);
+  await removeIdsFromAllUserFilters("serviceLineIds", [id], line.orgId);
 
   return NextResponse.json({ serviceLine: updated, archived: true });
 }
@@ -262,7 +262,7 @@ export async function deleteServiceLinePermanently(id: number) {
   }
 
   await db.delete(serviceLines).where(eq(serviceLines.id, id));
-  await removeIdsFromAllUserFilters("serviceLineIds", [id]);
+  await removeIdsFromAllUserFilters("serviceLineIds", [id], line.orgId);
 
   return NextResponse.json({ deleted: true, id });
 }

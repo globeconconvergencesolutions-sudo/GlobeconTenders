@@ -101,6 +101,15 @@ export const orgMemberships = pgTable(
       .notNull(),
     role: userRoleEnum("role").notNull(),
     isActive: boolean("is_active").notNull().default(true),
+    /** Per-workspace filters — never share across orgs on the global users row. */
+    filterState: jsonb("filter_state")
+      .$type<FilterState>()
+      .default({
+        sourceIds: [],
+        serviceLineIds: [],
+        regionIds: [],
+        countryIds: [],
+      }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [

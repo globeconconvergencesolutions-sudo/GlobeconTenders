@@ -12,7 +12,6 @@ import {
   users,
   type UserRole,
 } from "@/lib/db/schema";
-import { DEFAULT_ORG_SLUG } from "@/lib/tenant/config";
 import { orgAllowsLogin } from "@/lib/platform/org-status";
 import { canAccessPlatformAdmin } from "@/lib/platform/access";
 import { isValidOrgSlug } from "@/lib/tenant/resolution";
@@ -114,7 +113,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           (token.email as string | undefined) ?? session.user.email;
         session.user.orgId = Number(token.orgId ?? 0);
         session.user.orgSlug =
-          (token.orgSlug as string | undefined) ?? DEFAULT_ORG_SLUG;
+          (token.orgSlug as string | undefined) ?? "";
         session.user.isPlatformAdmin = canAccessPlatformAdmin({
           isPlatformAdmin: Boolean(token.isPlatformAdmin),
           orgSlug: session.user.orgSlug,
@@ -131,23 +130,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         orgSlug: { label: "Organization", type: "text" },
       },
       authorize: async (credentials) => {
+        const orgSlugRaw =
+          typeof credentials?.orgSlug === "string"
+            ? credentials.orgSlug.trim().toLowerCase()
+            : "";
         const parsed = credentialsSchema.safeParse({
           email:
             typeof credentials?.email === "string"
               ? credentials.email.trim().toLowerCase()
               : credentials?.email,
           password: credentials?.password,
-          orgSlug:
-            typeof credentials?.orgSlug === "string"
-              ? credentials.orgSlug.trim().toLowerCase()
-              : DEFAULT_ORG_SLUG,
+          orgSlug: orgSlugRaw || undefined,
         });
         if (!parsed.success) return null;
 
-        const orgSlug =
-          parsed.data.orgSlug && isValidOrgSlug(parsed.data.orgSlug)
-            ? parsed.data.orgSlug
-            : DEFAULT_ORG_SLUG;
+        // Workspace ID is required — never silently fall back to globecon.
+        if (!parsed.data.orgSlug || !isValidOrgSlug(parsed.data.orgSlug)) {
+          return null;
+        }
+        const orgSlug = parsed.data.orgSlug;
 
         const db = getDb();
         if (!db) {

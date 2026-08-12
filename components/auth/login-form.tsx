@@ -21,7 +21,7 @@ import {
   loginWithCredentials,
   type LoginActionState,
 } from "@/lib/auth/login-action";
-import { DEFAULT_ORG_SLUG, WORKSPACE_LOGIN_PARAM } from "@/lib/tenant/config";
+import { WORKSPACE_LOGIN_PARAM } from "@/lib/tenant/config";
 import { cn } from "@/lib/utils";
 
 type LoginFormProps = {
@@ -33,7 +33,7 @@ const initialState: LoginActionState = {};
 
 export function LoginForm({
   callbackUrl = "/",
-  orgSlug = DEFAULT_ORG_SLUG,
+  orgSlug = "",
 }: LoginFormProps) {
   const router = useRouter();
   const { branding } = useOrg();
@@ -77,15 +77,15 @@ export function LoginForm({
               setWorkspace(e.target.value.toLowerCase().replace(/\s+/g, "-"))
             }
             onBlur={handleWorkspaceBlur}
-            placeholder="globecon"
+            placeholder="your-workspace-id"
             disabled={pending}
             required
             className="h-11 border-slate-700 bg-slate-950/60 pl-10 text-white placeholder:text-slate-500 focus-visible:ring-blue-500"
           />
         </div>
         <p className="text-xs text-slate-500">
-          The ID from signup (e.g. globecon, acme). Wrong workspace? Sign out and
-          sign in again with the correct ID.
+          Required. Use the ID from signup (e.g. acme). Signing into the wrong
+          workspace shows that organization&apos;s data only.
         </p>
       </div>
 
@@ -100,7 +100,7 @@ export function LoginForm({
             name="email"
             type="email"
             autoComplete="email"
-            placeholder="you@globecon.com"
+            placeholder="you@company.com"
             disabled={pending}
             required
             className="h-11 border-slate-700 bg-slate-950/60 pl-10 text-white placeholder:text-slate-500 focus-visible:ring-blue-500"
@@ -178,7 +178,7 @@ export function LoginForm({
 
       <p className="flex items-center justify-center gap-2 text-center text-xs text-slate-500">
         <ShieldCheck className="h-3.5 w-3.5" />
-        Role-based access · {branding.displayName} team only
+        Role-based access · workspace-isolated data
       </p>
 
       <p className="mt-4 text-center text-xs text-slate-500">

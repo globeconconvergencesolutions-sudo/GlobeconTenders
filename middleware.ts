@@ -50,8 +50,10 @@ export default auth(async (request) => {
   const workspaceFromLogin = resolveWorkspaceSlugFromSearchParams(
     request.nextUrl.searchParams,
   );
-  const orgSlug =
-    session?.user?.orgSlug ?? workspaceFromLogin ?? hostOrgSlug;
+  // Authenticated requests must never fall back to the host default (globecon).
+  const orgSlug = session?.user?.orgSlug
+    ? session.user.orgSlug
+    : (workspaceFromLogin ?? hostOrgSlug);
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set(ORG_SLUG_HEADER, orgSlug);

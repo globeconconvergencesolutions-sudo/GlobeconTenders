@@ -9,7 +9,7 @@ import { LoginSignedOutToast } from "@/components/auth/login-signed-out-toast";
 import { AppLogo } from "@/components/brand/app-logo";
 import { OrgContextProvider } from "@/components/providers/org-context-provider";
 import { sanitizeCallbackUrl } from "@/lib/auth/callback-url";
-import { DEFAULT_ORG_SLUG, PLATFORM_PRODUCT_NAME } from "@/lib/tenant/config";
+import { PLATFORM_PRODUCT_NAME } from "@/lib/tenant/config";
 import { getOrgContextBySlug } from "@/lib/tenant/org-context";
 import { isValidOrgSlug } from "@/lib/tenant/resolution";
 
@@ -31,10 +31,9 @@ export default async function LoginPage({
   const callbackUrl = sanitizeCallbackUrl(params.callbackUrl);
   const signedOut = params.signedOut === "1";
   const workspaceParam = params.workspace?.trim().toLowerCase();
+  // Never default login branding/workspace to globecon — require explicit workspace.
   const orgSlug =
-    workspaceParam && isValidOrgSlug(workspaceParam)
-      ? workspaceParam
-      : DEFAULT_ORG_SLUG;
+    workspaceParam && isValidOrgSlug(workspaceParam) ? workspaceParam : "";
   const orgContext = await getOrgContextBySlug(orgSlug);
   const session = await auth();
   const hasSession = Boolean(session?.user);

@@ -15,15 +15,15 @@ export async function GET() {
   try {
     const user = await requireSessionUser();
     const [catalog, filterState] = await Promise.all([
-      getFilterCatalog(),
-      getUserFilterState(user.id),
+      getFilterCatalog(user.orgId),
+      getUserFilterState(user.id, user.orgId),
     ]);
 
     const canManageSources = hasPermission(user.role, "sources:update");
     const canManageServiceLines = hasPermission(user.role, "service_lines:delete");
     const archived =
       canManageSources || canManageServiceLines
-        ? await getArchivedCatalog()
+        ? await getArchivedCatalog(user.orgId)
         : { sources: [], serviceLines: [] };
 
     return NextResponse.json({
@@ -32,6 +32,8 @@ export async function GET() {
       archivedServiceLines: canManageServiceLines ? archived.serviceLines : [],
       filterState,
       role: user.role,
+      orgId: user.orgId,
+      orgSlug: user.orgSlug,
       permissions: {
         manageSources: canManageSources,
         manageServiceLines: canManageServiceLines,
@@ -57,7 +59,7 @@ export async function PATCH(request: Request) {
   try {
     const user = await requireSessionUser();
     const body = filterSchema.parse(await request.json());
-    const current = await getUserFilterState(user.id);
+    const current = await getUserFilterState(user.id, user.orgId);
     const next = {
       sourceIds: body.sourceIds ?? current.sourceIds,
       serviceLineIds: body.serviceLineIds ?? current.serviceLineIds,
@@ -68,8 +70,8 @@ export async function PATCH(request: Request) {
       savedOnly: body.savedOnly ?? current.savedOnly,
       hideClosed: body.hideClosed ?? current.hideClosed,
     };
-    await updateUserFilterState(user.id, next);
-    return NextResponse.json({ filterState: next });
+    const saved = await updateUserFilterState(user.id, next, user.orgId);
+    return NextResponse.json({ filterState: saved });
   } catch (error) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -83,8 +85,8 @@ export async function DELETE() {
       hideClosed: true,
       savedOnly: false,
     };
-    await updateUserFilterState(user.id, next);
-    return NextResponse.json({ filterState: next, cleared: true });
+    const saved = await updateUserFilterState(user.id, next, user.orgId);
+    return NextResponse.json({ filterState: saved, cleared: true });
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

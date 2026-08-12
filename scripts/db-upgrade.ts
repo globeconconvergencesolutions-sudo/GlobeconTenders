@@ -307,6 +307,8 @@ const statements = [
   `ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS "stripe_customer_id" text;`,
   `ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS "stripe_subscription_id" text;`,
   `ALTER TABLE "workspace_settings" ADD COLUMN IF NOT EXISTS "onboarding" jsonb DEFAULT '{}'::jsonb NOT NULL;`,
+
+  `ALTER TABLE "org_memberships" ADD COLUMN IF NOT EXISTS "filter_state" jsonb DEFAULT '{"sourceIds":[],"serviceLineIds":[],"regionIds":[],"countryIds":[]}'::jsonb;`,
 ];
 
 async function upgrade() {

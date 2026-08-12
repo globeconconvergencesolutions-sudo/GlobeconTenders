@@ -12,16 +12,17 @@ import {
   sql,
 } from "drizzle-orm";
 
+import { auth } from "@/auth";
 import { getDb } from "@/lib/db";
 import {
   countries,
+  orgMemberships,
   regions,
   serviceLines,
   sources,
   syncLogs,
   tenderServiceLineMatches,
   tenders,
-  users,
   type FilterState,
   type TenderWithSource,
   EMPTY_FILTER_STATE,
@@ -29,7 +30,10 @@ import {
 import { requireCurrentOrg } from "@/lib/tenant/context";
 
 async function resolveOrgId(orgId?: number): Promise<number> {
-  if (orgId != null) return orgId;
+  if (orgId != null && orgId > 0) return orgId;
+  const session = await auth();
+  const sessionOrgId = Number(session?.user?.orgId ?? 0);
+  if (sessionOrgId > 0) return sessionOrgId;
   const org = await requireCurrentOrg();
   return org.id;
 }
@@ -133,30 +137,100 @@ export function buildFilterConditions(filters: TenderQueryFilters) {
   return conditions.length ? and(...conditions) : undefined;
 }
 
-export async function getUserFilterState(userId: number): Promise<FilterState> {
+export async function getUserFilterState(
+  userId: number,
+  orgId?: number,
+): Promise<FilterState> {
   const db = getDb();
   if (!db) return EMPTY_FILTER_STATE;
 
-  const [user] = await db
-    .select({ filterState: users.filterState })
-    .from(users)
-    .where(eq(users.id, userId))
+  const resolvedOrgId = await resolveOrgId(orgId);
+
+  const [membership] = await db
+    .select({ filterState: orgMemberships.filterState })
+    .from(orgMemberships)
+    .where(
+      and(
+        eq(orgMemberships.userId, userId),
+        eq(orgMemberships.orgId, resolvedOrgId),
+      ),
+    )
     .limit(1);
 
-  return user?.filterState ?? EMPTY_FILTER_STATE;
+  const raw = membership?.filterState ?? EMPTY_FILTER_STATE;
+  return sanitizeFilterStateForOrg(raw, resolvedOrgId);
 }
 
 export async function updateUserFilterState(
   userId: number,
   filterState: FilterState,
+  orgId?: number,
 ) {
   const db = getDb();
   if (!db) throw new Error("Database not configured");
 
+  const resolvedOrgId = await resolveOrgId(orgId);
+  const sanitized = await sanitizeFilterStateForOrg(filterState, resolvedOrgId);
+
   await db
-    .update(users)
-    .set({ filterState, updatedAt: new Date() })
-    .where(eq(users.id, userId));
+    .update(orgMemberships)
+    .set({ filterState: sanitized })
+    .where(
+      and(
+        eq(orgMemberships.userId, userId),
+        eq(orgMemberships.orgId, resolvedOrgId),
+      ),
+    );
+
+  return sanitized;
+}
+
+async function sanitizeFilterStateForOrg(
+  filterState: FilterState,
+  orgId: number,
+): Promise<FilterState> {
+  const db = getDb();
+  if (!db) return EMPTY_FILTER_STATE;
+
+  const [sourceRows, serviceLineRows, regionRows, countryRows] =
+    await Promise.all([
+      db
+        .select({ id: sources.id })
+        .from(sources)
+        .where(and(eq(sources.orgId, orgId), isNull(sources.archivedAt))),
+      db
+        .select({ id: serviceLines.id })
+        .from(serviceLines)
+        .where(
+          and(eq(serviceLines.orgId, orgId), isNull(serviceLines.archivedAt)),
+        ),
+      db
+        .select({ id: regions.id })
+        .from(regions)
+        .where(eq(regions.orgId, orgId)),
+      db
+        .select({ id: countries.id })
+        .from(countries)
+        .where(eq(countries.orgId, orgId)),
+    ]);
+
+  const sourceIds = new Set(sourceRows.map((r) => r.id));
+  const serviceLineIds = new Set(serviceLineRows.map((r) => r.id));
+  const regionIds = new Set(regionRows.map((r) => r.id));
+  const countryIds = new Set(countryRows.map((r) => r.id));
+
+  return {
+    ...EMPTY_FILTER_STATE,
+    ...filterState,
+    sourceIds: (filterState.sourceIds ?? []).filter((id) => sourceIds.has(id)),
+    serviceLineIds: (filterState.serviceLineIds ?? []).filter((id) =>
+      serviceLineIds.has(id),
+    ),
+    regionIds: (filterState.regionIds ?? []).filter((id) => regionIds.has(id)),
+    countryIds: (filterState.countryIds ?? []).filter((id) =>
+      countryIds.has(id),
+    ),
+  };
 }
 
 export async function getTendersPaginated(

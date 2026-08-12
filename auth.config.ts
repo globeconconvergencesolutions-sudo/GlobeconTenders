@@ -65,7 +65,7 @@ export const authConfig = {
           (token.email as string | undefined) ?? session.user.email;
         session.user.orgId = Number(token.orgId ?? 0);
         session.user.orgSlug =
-          (token.orgSlug as string | undefined) ?? DEFAULT_ORG_SLUG;
+          (token.orgSlug as string | undefined) ?? "";
         session.user.isPlatformAdmin =
           Boolean(token.isPlatformAdmin) &&
           session.user.orgSlug === DEFAULT_ORG_SLUG;

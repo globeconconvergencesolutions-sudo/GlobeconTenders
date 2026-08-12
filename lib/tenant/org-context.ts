@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 
+import { auth } from "@/auth";
 import { resolveBranding, type ResolvedBranding } from "@/lib/branding/resolve";
 import type {
   CustomFieldDefinition,
@@ -15,7 +16,6 @@ import {
 } from "@/lib/lexicon";
 import { loadTemplate } from "@/lib/templates/load";
 import { getWorkspaceSettings } from "@/lib/settings/workspace";
-import { DEFAULT_ORG_SLUG } from "@/lib/tenant/config";
 
 import { getCurrentOrg } from "./context";
 import { getOrganizationBySlug } from "./org";
@@ -75,19 +75,20 @@ function buildCommercialInfo(input: {
   };
 }
 
+/** Generic anonymous context — must NOT impersonate Globecon or any real tenant. */
 function buildFallbackContext(): OrgContextValue {
   const template = loadTemplate("procurement");
   const lexicon = { ...DEFAULT_PROCUREMENT_LEXICON };
   const branding = resolveBranding({
-    organizationName: "Globecon",
+    organizationName: "Workspace",
     branding: {},
     lexicon,
   });
 
   return {
-    orgSlug: DEFAULT_ORG_SLUG,
-    orgName: "Globecon",
-    organizationName: "Globecon",
+    orgSlug: "",
+    orgName: "Workspace",
+    organizationName: "Workspace",
     orgId: 0,
     template: {
       id: template.id,
@@ -102,7 +103,7 @@ function buildFallbackContext(): OrgContextValue {
     customFields: template.customFields ?? [],
     commercial: buildCommercialInfo({
       status: "active",
-      plan: "enterprise",
+      plan: "trial",
       trialEndsAt: null,
     }),
   };
@@ -152,6 +153,12 @@ async function buildOrgContext(input: {
 }
 
 export async function getOrgContext(): Promise<OrgContextValue> {
+  const session = await auth();
+  const sessionOrgId = Number(session?.user?.orgId ?? 0);
+  if (session?.user && sessionOrgId > 0) {
+    return getOrgContextByOrgId(sessionOrgId);
+  }
+
   const org = await getCurrentOrg();
   if (!org) return buildFallbackContext();
   return buildOrgContext(org);
@@ -160,6 +167,7 @@ export async function getOrgContext(): Promise<OrgContextValue> {
 export async function getOrgContextBySlug(
   slug: string,
 ): Promise<OrgContextValue> {
+  if (!slug.trim()) return buildFallbackContext();
   const org = await getOrganizationBySlug(slug);
   if (!org) return buildFallbackContext();
   return buildOrgContext(org);
@@ -169,7 +177,9 @@ export async function getOrgContextByOrgId(
   orgId: number,
 ): Promise<OrgContextValue> {
   const db = getDb();
-  if (!db) return buildFallbackContext();
+  if (!db || !Number.isFinite(orgId) || orgId <= 0) {
+    return buildFallbackContext();
+  }
 
   const [org] = await db
     .select({
@@ -192,7 +202,12 @@ export async function getOrgContextByOrgId(
 
 export type SharePresentation = Pick<
   OrgContextValue,
-  "branding" | "lexicon" | "features" | "layout" | "customFields" | "organizationName"
+  | "branding"
+  | "lexicon"
+  | "features"
+  | "layout"
+  | "customFields"
+  | "organizationName"
 >;
 
 export function toSharePresentation(context: OrgContextValue): SharePresentation {

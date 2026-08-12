@@ -49,7 +49,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const params = await searchParams;
   const user = await getSessionUser();
   const page = Math.max(1, Number(params.page) || 1);
-  const filterState = user ? await getUserFilterState(user.id) : undefined;
+  const filterState = user
+    ? await getUserFilterState(user.id, user.orgId)
+    : undefined;
 
   const search = params.q ?? filterState?.search;
   const sort = params.sort ?? filterState?.sort ?? "closing_soonest";
@@ -68,9 +70,10 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     pageSize: DEFAULT_PAGE_SIZE,
   };
 
+  const orgId = user?.orgId;
   const [paginated, stats] = await Promise.all([
-    getTendersPaginated(queryFilters),
-    getDashboardStats(queryFilters),
+    getTendersPaginated(queryFilters, orgId),
+    getDashboardStats(queryFilters, orgId),
   ]);
 
   let onboardingProgress = null;

@@ -44,7 +44,11 @@ export type AlertUser = {
 };
 
 async function resolveOrgId(orgId?: number) {
-  if (orgId != null) return orgId;
+  if (orgId != null && orgId > 0) return orgId;
+  const { auth } = await import("@/auth");
+  const session = await auth();
+  const sessionOrgId = Number(session?.user?.orgId ?? 0);
+  if (sessionOrgId > 0) return sessionOrgId;
   const org = await requireCurrentOrg();
   return org.id;
 }
@@ -110,7 +114,7 @@ export async function getAlertUsers(orgId?: number): Promise<AlertUser[]> {
       id: users.id,
       email: users.email,
       name: users.name,
-      filterState: users.filterState,
+      filterState: orgMemberships.filterState,
       notificationPrefs: users.notificationPrefs,
     })
     .from(users)

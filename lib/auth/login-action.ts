@@ -5,7 +5,6 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 import { signIn } from "@/auth";
 import { sanitizeCallbackUrl } from "@/lib/auth/callback-url";
-import { DEFAULT_ORG_SLUG } from "@/lib/tenant/config";
 import { isValidOrgSlug } from "@/lib/tenant/resolution";
 
 export type LoginActionState = {
@@ -20,16 +19,18 @@ export async function loginWithCredentials(
     .trim()
     .toLowerCase();
   const password = String(formData.get("password") ?? "");
-  const workspaceRaw = String(formData.get("workspace") ?? "")
+  const workspace = String(formData.get("workspace") ?? "")
     .trim()
     .toLowerCase();
-  const workspace =
-    workspaceRaw && isValidOrgSlug(workspaceRaw)
-      ? workspaceRaw
-      : DEFAULT_ORG_SLUG;
   const callbackUrl = sanitizeCallbackUrl(
     String(formData.get("callbackUrl") ?? "/"),
   );
+
+  if (!workspace || !isValidOrgSlug(workspace)) {
+    return {
+      error: "Enter a valid workspace ID (e.g. acme). Each organization is separate.",
+    };
+  }
 
   if (!email || !password) {
     return { error: "Email and password are required." };

@@ -44,13 +44,14 @@ export async function GET(request: Request) {
     await requireOrgFeature("export");
 
     const { searchParams } = new URL(request.url);
-    const filterState = await getUserFilterState(user.id);
+    const filterState = await getUserFilterState(user.id, user.orgId);
     const rows = await getTendersForExport(
       resolveQueryFilters(searchParams, filterState),
+      user.orgId,
     );
 
     const csv = tendersToCsv(rows);
-    const filename = `globecon-tenders-${new Date().toISOString().slice(0, 10)}.csv`;
+    const filename = `${user.orgSlug || "workspace"}-tenders-${new Date().toISOString().slice(0, 10)}.csv`;
 
     return new NextResponse(csv, {
       status: 200,

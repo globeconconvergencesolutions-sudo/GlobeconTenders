@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard";
+import { getSessionUser } from "@/lib/auth/session";
 import { getAnalyticsSnapshot } from "@/lib/tenders/queries";
 import { getOrgContext } from "@/lib/tenant/org-context";
 
@@ -12,7 +13,8 @@ export default async function AnalyticsPage() {
     redirect("/");
   }
 
-  const data = await getAnalyticsSnapshot();
+  const user = await getSessionUser();
+  const data = await getAnalyticsSnapshot(user?.orgId);
 
   return (
     <div className="flex min-h-full flex-col bg-slate-50 dark:bg-background">
@@ -22,7 +24,8 @@ export default async function AnalyticsPage() {
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {orgContext.lexicon.opportunityPlural} pipeline insights across{" "}
-          {orgContext.lexicon.sourcePlural.toLowerCase()}, {orgContext.lexicon.region.toLowerCase()}s, and{" "}
+          {orgContext.lexicon.sourcePlural.toLowerCase()},{" "}
+          {orgContext.lexicon.region.toLowerCase()}s, and{" "}
           {orgContext.lexicon.categoryPlural.toLowerCase()}
         </p>
       </header>
