@@ -1,4 +1,5 @@
 import type { NextRequest, NextResponse } from "next/server";
+import { cookies as nextCookies } from "next/headers";
 
 /**
  * Auth.js v5 (and legacy next-auth) session cookie names we must expire on logout.
@@ -21,7 +22,7 @@ const AUTH_COOKIE_BASE_NAMES = [
 
 const CHUNK_SUFFIXES = ["", ".0", ".1", ".2", ".3", ".4", ".5"] as const;
 
-function cookieNamesToClear(request: NextRequest): string[] {
+export function listAuthCookieNamesToClear(request: NextRequest): string[] {
   const names = new Set<string>();
 
   for (const base of AUTH_COOKIE_BASE_NAMES) {
@@ -47,36 +48,45 @@ function cookieNamesToClear(request: NextRequest): string[] {
   return [...names];
 }
 
-function isSecureCookieName(name: string): boolean {
+function isPrefixedSecureCookie(name: string): boolean {
   return name.startsWith("__Secure-") || name.startsWith("__Host-");
+}
+
+function expireOptions(name: string, request: NextRequest) {
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const requestHttps =
+    forwardedProto === "https" || request.nextUrl.protocol === "https:";
+  // Prefixed cookies MUST be cleared with Secure or the browser ignores the clear.
+  const secure = isPrefixedSecureCookie(name) || requestHttps;
+
+  return {
+    httpOnly: true as const,
+    sameSite: "lax" as const,
+    path: "/",
+    secure,
+    maxAge: 0,
+    expires: new Date(0),
+  };
 }
 
 /**
  * Explicitly expire Auth.js cookies on a response.
- * Needed because some hosts drop Set-Cookie from Auth.js redirect responses,
- * and because chunked session cookies must each be cleared individually.
+ * Prefer attaching these to a 200 response — some CDNs (incl. Netlify) drop
+ * Set-Cookie on 3xx redirects.
  */
 export function appendClearedAuthCookies(
   response: NextResponse,
   request: NextRequest,
 ): void {
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  const envHttps =
-    process.env.AUTH_URL?.startsWith("https://") === true ||
-    process.env.APP_URL?.startsWith("https://") === true;
-  const requestHttps =
-    forwardedProto === "https" || request.nextUrl.protocol === "https:";
-
-  for (const name of cookieNamesToClear(request)) {
-    const secure = isSecureCookieName(name) || requestHttps || envHttps;
-    response.cookies.set(name, "", {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      secure,
-      maxAge: 0,
-      expires: new Date(0),
-    });
+  for (const name of listAuthCookieNamesToClear(request)) {
+    const options = expireOptions(name, request);
+    response.cookies.set(name, "", options);
+    // Raw header as well — matches Auth.js serialization more reliably on edge.
+    const securePart = options.secure ? "; Secure" : "";
+    response.headers.append(
+      "Set-Cookie",
+      `${name}=; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax${securePart}`,
+    );
   }
 }
 
@@ -86,7 +96,7 @@ export type AuthSignOutCookie = {
   options?: Parameters<NextResponse["cookies"]["set"]>[2];
 };
 
-/** Merge Auth.js clear-cookie instructions onto a redirect response. */
+/** Merge Auth.js clear-cookie instructions onto a response. */
 export function applyAuthSignOutCookies(
   response: NextResponse,
   cookies: AuthSignOutCookie[] | undefined,
@@ -97,5 +107,23 @@ export function applyAuthSignOutCookies(
       ...cookie.options,
       path: cookie.options?.path ?? "/",
     });
+  }
+}
+
+/** Also clear via Next.js cookie jar (merged into the outgoing response). */
+export async function clearAuthCookiesInJar(
+  request: NextRequest,
+): Promise<void> {
+  const jar = await nextCookies();
+  for (const name of listAuthCookieNamesToClear(request)) {
+    try {
+      jar.set(name, "", expireOptions(name, request));
+    } catch {
+      try {
+        jar.delete(name);
+      } catch {
+        // ignore — response.cookies is the primary path
+      }
+    }
   }
 }

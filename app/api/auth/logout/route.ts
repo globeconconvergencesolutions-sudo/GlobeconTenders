@@ -4,9 +4,13 @@ import { signOut } from "@/auth";
 import {
   appendClearedAuthCookies,
   applyAuthSignOutCookies,
+  clearAuthCookiesInJar,
   type AuthSignOutCookie,
 } from "@/lib/auth/clear-session-cookies";
 import { buildLoginUrl } from "@/lib/auth/sign-out-constants";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 function sanitizeLogoutRedirect(path: string | null): string {
   const fallback = buildLoginUrl(true);
@@ -17,57 +21,79 @@ function sanitizeLogoutRedirect(path: string | null): string {
   return path;
 }
 
-function absoluteRedirect(request: NextRequest, path: string): URL {
-  // Prefer forwarded host so Set-Cookie + Location match the public URL (Netlify/proxy).
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  const host = forwardedHost ?? request.headers.get("host");
-  const proto =
-    forwardedProto ??
-    (request.nextUrl.protocol === "https:" ? "https" : "http");
-
-  if (host) {
-    return new URL(path, `${proto}://${host}`);
-  }
-
-  const authUrl = process.env.AUTH_URL ?? process.env.APP_URL;
-  if (authUrl) {
-    return new URL(path, authUrl.replace(/\/$/, ""));
-  }
-
-  return new URL(path, request.nextUrl.origin);
+function escapeHtmlAttr(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 /**
  * Full-page sign out.
  *
- * Auth.js `signOut({ redirect: false })` returns cookie-clear instructions; we
- * apply those onto our own 303 redirect and also expire every known Auth.js
- * cookie name (including chunks). Returning a manual redirect without copying
- * cookies is what previously left users logged in on Netlify.
+ * IMPORTANT (Netlify / CDNs): Set-Cookie on 3xx redirects is often dropped.
+ * We return HTTP 200 HTML with clear-cookie headers, then the browser navigates
+ * to the login page via meta/script refresh. That is what actually clears
+ * `__Secure-authjs.session-token`.
  */
 async function handleLogout(request: NextRequest) {
   const redirectTo = sanitizeLogoutRedirect(
     request.nextUrl.searchParams.get("redirect"),
   );
-  const target = absoluteRedirect(request, redirectTo);
-  const response = NextResponse.redirect(target, 303);
 
+  let authCookies: AuthSignOutCookie[] | undefined;
   try {
     const result = (await signOut({
       redirect: false,
       redirectTo,
     })) as { cookies?: AuthSignOutCookie[] } | undefined;
-
-    applyAuthSignOutCookies(response, result?.cookies);
+    authCookies = result?.cookies;
   } catch (error) {
-    console.error("[auth/logout] signOut failed; clearing cookies manually", error);
+    console.error(
+      "[auth/logout] signOut failed; clearing cookies manually",
+      error,
+    );
   }
 
-  appendClearedAuthCookies(response, request);
+  await clearAuthCookiesInJar(request);
 
-  // Prevent caches from keeping a logged-in document around the redirect.
-  response.headers.set("Cache-Control", "no-store, max-age=0");
+  const safePath = escapeHtmlAttr(redirectTo);
+  const safeJson = JSON.stringify(redirectTo);
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="refresh" content="0;url=${safePath}" />
+  <title>Signing out…</title>
+  <style>
+    body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+      font-family:system-ui,sans-serif;background:#020617;color:#e2e8f0}
+  </style>
+</head>
+<body>
+  <p>Signing you out…</p>
+  <script>
+    try { sessionStorage.removeItem("globetender-signing-out"); } catch (e) {}
+    location.replace(${safeJson});
+  </script>
+</body>
+</html>`;
+
+  const response = new NextResponse(html, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+      Pragma: "no-cache",
+      Expires: "0",
+    },
+  });
+
+  applyAuthSignOutCookies(response, authCookies);
+  appendClearedAuthCookies(response, request);
 
   return response;
 }

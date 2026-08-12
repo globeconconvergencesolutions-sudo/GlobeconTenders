@@ -16,8 +16,8 @@ type ForceSessionClearProps = {
 };
 
 /**
- * Safety net when middleware/login still see a JWT after the logout redirect.
- * Runs at most once per tab to avoid redirect loops.
+ * Safety net when login still sees a JWT after logout.
+ * Hits the server logout route (200 + Set-Cookie clear), at most once per tab.
  */
 export function ForceSessionClear({ active = false }: ForceSessionClearProps) {
   const ran = useRef(false);
@@ -52,14 +52,14 @@ export function ForceSessionClear({ active = false }: ForceSessionClearProps) {
       try {
         await signOut({ redirect: false });
       } catch {
-        // ignore — server route is the source of truth for cookies
+        // ignore — server route clears httpOnly cookies
       }
 
       if (cancelled) return;
 
       const login = buildLoginUrl(true);
       window.location.replace(
-        `/api/auth/logout?redirect=${encodeURIComponent(login)}`,
+        `/api/auth/logout?redirect=${encodeURIComponent(login)}&t=${Date.now()}`,
       );
     }
 

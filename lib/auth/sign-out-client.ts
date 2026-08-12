@@ -32,14 +32,12 @@ export function clearForceLogoutAttempt(): void {
 }
 
 /**
- * Hard navigation to server logout — clears cookie and redirects in one trip.
- * Avoids client signOut() which can fail to redirect and leave the overlay stuck.
+ * Hard navigation to server logout — clears cookie via 200 HTML response,
+ * then client lands on login. Cache-bust so CDNs never serve a stale logout page.
  */
 export function signOutToLogin(): void {
   markSigningOut();
   const login = buildLoginUrl(true);
-  // replace so Back doesn't re-hit an authenticated page mid-logout
-  window.location.replace(
-    `/api/auth/logout?redirect=${encodeURIComponent(login)}`,
-  );
+  const url = `/api/auth/logout?redirect=${encodeURIComponent(login)}&t=${Date.now()}`;
+  window.location.replace(url);
 }
