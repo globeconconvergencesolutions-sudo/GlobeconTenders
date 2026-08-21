@@ -47,6 +47,7 @@ export const ingestPayloadSchema = z.object({
 });
 
 export type IngestPayload = z.infer<typeof ingestPayloadSchema>;
+export type IngestItem = z.infer<typeof ingestItemSchema>;
 
 /** Dynamic ingest URL — follows APP_URL so staging/prod hosts can change freely. */
 export function getIngestOpportunitiesUrl(): string {
@@ -61,7 +62,163 @@ function slugify(value: string): string {
     .slice(0, 80);
 }
 
-function referenceFromItem(item: z.infer<typeof ingestItemSchema>): string {
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function asString(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+/**
+ * Parse titles like:
+ * "Recruitment Specialist at Oasis Outsourcing | Fuzu"
+ */
+function parsePageTitle(pageTitle: string): {
+  title?: string;
+  company?: string;
+  portal?: string;
+} {
+  const portalSplit = pageTitle.split("|");
+  const portal = portalSplit.length > 1 ? portalSplit.pop()?.trim() : undefined;
+  const main = portalSplit.join("|").trim();
+  const atMatch = main.match(/^(.*?)\s+at\s+(.+)$/i);
+  if (atMatch) {
+    return {
+      title: atMatch[1]?.trim() || undefined,
+      company: atMatch[2]?.trim() || undefined,
+      portal,
+    };
+  }
+  return { title: main || undefined, portal };
+}
+
+function mapN8nJob(raw: unknown): IngestItem | null {
+  const job = asRecord(raw);
+  if (!job) return null;
+
+  const pageTitle = asString(job.page_title);
+  const parsed = pageTitle ? parsePageTitle(pageTitle) : {};
+  const title =
+    asString(job.job_title) ||
+    parsed.title ||
+    pageTitle;
+  if (!title) return null;
+
+  const url =
+    asString(job.application_url) ||
+    asString(job.job_url) ||
+    asString(job.url);
+
+  const deadlineRaw = job.deadline;
+  const deadline =
+    deadlineRaw === null || deadlineRaw === undefined
+      ? null
+      : asString(deadlineRaw) ?? String(deadlineRaw);
+
+  return {
+    title,
+    company: asString(job.company) || parsed.company,
+    description: asString(job.description),
+    category: asString(job.job_type) || asString(job.category) || "Human Resources",
+    deadline,
+    url,
+    status:
+      asString(job.deadline_status) ||
+      asString(job.status) ||
+      "NO DEADLINE",
+    portal: asString(job.source) || parsed.portal,
+    countryLabel: asString(job.countryLabel) || asString(job.country) || "Kenya",
+    regionLabel: asString(job.regionLabel) || asString(job.region),
+    referenceId: asString(job.referenceId) || asString(job.reference_id),
+  };
+}
+
+function collectJobs(raw: unknown): unknown[] {
+  if (Array.isArray(raw)) {
+    // n8n often sends: [{ total_jobs, jobs: [...] }]
+    if (
+      raw.length === 1 &&
+      asRecord(raw[0]) &&
+      Array.isArray(asRecord(raw[0])?.jobs)
+    ) {
+      return asRecord(raw[0])!.jobs as unknown[];
+    }
+    // Or a flat list of job objects
+    if (raw.some((row) => asRecord(row)?.jobs)) {
+      return raw.flatMap((row) => {
+        const jobs = asRecord(row)?.jobs;
+        return Array.isArray(jobs) ? jobs : [row];
+      });
+    }
+    return raw;
+  }
+
+  const obj = asRecord(raw);
+  if (!obj) return [];
+  if (Array.isArray(obj.jobs)) return obj.jobs;
+  if (Array.isArray(obj.items)) return obj.items;
+  return [];
+}
+
+/**
+ * Accept either:
+ * 1) Canonical { orgSlug, source, items: [...] }
+ * 2) n8n digest [{ total_jobs, jobs: [...] }] / { jobs: [...] }
+ */
+export function normalizeIngestBody(
+  raw: unknown,
+  options?: { orgSlug?: string | null },
+): IngestPayload {
+  const root = Array.isArray(raw) ? asRecord(raw[0]) : asRecord(raw);
+  const explicitItems = root && Array.isArray(root.items) ? root.items : null;
+
+  const items = (explicitItems ?? collectJobs(raw))
+    .map(mapN8nJob)
+    .filter((item): item is IngestItem => Boolean(item));
+
+  if (items.length === 0) {
+    throw new z.ZodError([
+      {
+        code: "custom",
+        message: "No jobs/items found in payload",
+        path: ["jobs"],
+      },
+    ]);
+  }
+
+  const orgSlug =
+    options?.orgSlug ||
+    asString(root?.orgSlug) ||
+    asString(root?.org_slug) ||
+    DEFAULT_ORG_SLUG;
+
+  const vertical =
+    asString(root?.vertical) ||
+    (items.some((item) =>
+      `${item.category ?? ""} ${item.portal ?? ""}`.toLowerCase().includes("hr"),
+    )
+      ? "hr"
+      : undefined);
+
+  return ingestPayloadSchema.parse({
+    orgSlug,
+    source: {
+      slug:
+        asString(asRecord(root?.source)?.slug) ||
+        (vertical === "hr" ? "n8n-hr-jobs" : "n8n-feed"),
+      name:
+        asString(asRecord(root?.source)?.name) ||
+        (vertical === "hr" ? "N8N HR Job Feed" : "N8N Opportunity Feed"),
+    },
+    items,
+  });
+}
+
+function referenceFromItem(item: IngestItem): string {
   if (item.referenceId?.trim()) {
     return item.referenceId.trim().slice(0, 180);
   }
@@ -79,7 +236,6 @@ function referenceFromItem(item: z.infer<typeof ingestItemSchema>): string {
 
 function parseDeadline(raw: string | null | undefined): Date {
   if (!raw || !raw.trim()) {
-    // Open-ended jobs / "NO DEADLINE" — keep visible for ~1 year
     return new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
   }
   const normalized = raw.trim().toUpperCase();
@@ -136,7 +292,7 @@ export async function ingestOpportunities(
   if (!orgAllowsSync(org.status)) throw new Error("ORG_SUSPENDED");
 
   const sourceSlug = slugify(payload.source?.slug ?? "n8n-hr-jobs") || "n8n-hr-jobs";
-  const sourceName = payload.source?.name?.trim() || "N8N Opportunity Feed";
+  const sourceName = payload.source?.name?.trim() || "N8N HR Job Feed";
 
   const [existingSource] = await db
     .select()

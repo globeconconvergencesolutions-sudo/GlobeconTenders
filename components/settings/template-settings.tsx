@@ -15,16 +15,21 @@ import type {
   WorkspaceFeaturesSettings,
   WorkspaceLayoutSettings,
 } from "@/lib/db/schema";
+import { showErrorToast, showSuccessToast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
+
+type TemplateSummary = {
+  id: string;
+  version: string;
+  name: string;
+  description: string;
+};
 
 type TemplatePayload = {
   orgTemplateId: string;
   orgTemplateVersion: string;
-  template: {
-    id: string;
-    version: string;
-    name: string;
-    description: string;
-  };
+  template: TemplateSummary;
+  availableTemplates?: TemplateSummary[];
   features: WorkspaceFeaturesSettings;
   layout: WorkspaceLayoutSettings;
 };
@@ -68,6 +73,7 @@ const FEATURE_LABELS: Record<keyof WorkspaceFeaturesSettings, string> = {
 export function TemplateSettings() {
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState<string | null>(null);
+  const [switching, setSwitching] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [data, setData] = useState<TemplatePayload | null>(null);
@@ -117,6 +123,37 @@ export function TemplateSettings() {
     }
   }
 
+  async function switchTemplate(templateId: string) {
+    if (!data || templateId === data.orgTemplateId || switching) return;
+    setSwitching(templateId);
+    setError(null);
+    try {
+      const response = await fetch("/api/settings/template", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateId }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          typeof payload.error === "string"
+            ? payload.error
+            : "Failed to switch template",
+        );
+      }
+      showSuccessToast(
+        `Switched to ${payload.switched?.templateName ?? templateId}`,
+      );
+      window.location.reload();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Switch failed";
+      setError(message);
+      showErrorToast(message);
+    } finally {
+      setSwitching(null);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -128,6 +165,8 @@ export function TemplateSettings() {
 
   if (!data) return null;
 
+  const available = data.availableTemplates ?? [];
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-border dark:bg-card">
@@ -138,8 +177,8 @@ export function TemplateSettings() {
           <div>
             <h2 className="text-lg font-semibold">Workspace template</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Your organization was provisioned from a vertical template. Reapply
-              sections to restore defaults without affecting tenant data.
+              Choose how this workspace speaks and looks — Jobs (HR) or Tenders
+              (procurement). Same data pipeline; different labels and cards.
             </p>
           </div>
         </div>
@@ -165,6 +204,49 @@ export function TemplateSettings() {
             </span>
           </p>
         </div>
+
+        {available.length > 0 && (
+          <div className="mt-5 space-y-3">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Switch vertical
+            </h3>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {available.map((template) => {
+                const active = template.id === data.orgTemplateId;
+                return (
+                  <button
+                    key={template.id}
+                    type="button"
+                    disabled={switching !== null}
+                    onClick={() => void switchTemplate(template.id)}
+                    className={cn(
+                      "rounded-xl border p-4 text-left transition-colors",
+                      active
+                        ? "border-indigo-300 bg-indigo-50/80 dark:border-indigo-800 dark:bg-indigo-950/30"
+                        : "border-slate-200 hover:border-slate-300 dark:border-border dark:hover:border-border",
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium">{template.name}</p>
+                      {active ? (
+                        <Badge variant="secondary">Active</Badge>
+                      ) : switching === template.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          Switch
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {template.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-border dark:bg-card">
@@ -210,7 +292,7 @@ export function TemplateSettings() {
                 type="button"
                 variant="outline"
                 size="sm"
-                disabled={applying !== null}
+                disabled={applying !== null || switching !== null}
                 onClick={() => void reapplySection(section.id)}
               >
                 {applying === section.id ? (

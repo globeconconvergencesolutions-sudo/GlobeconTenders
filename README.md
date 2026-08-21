@@ -136,35 +136,33 @@ Use a Schedule Trigger → HTTP Request node:
 n8n parses jobs then posts them into GlobeTender:
 
 - Method: `POST`
-- URL: `{APP_URL}/api/ingest/opportunities`  
-  Example staging: `https://gcstendersvic.netlify.app/api/ingest/opportunities`  
-  Example prod: `https://gcstenders.netlify.app/api/ingest/opportunities`  
-  The path is fixed; the host always comes from **`APP_URL`** for that Netlify site.
-- Header: `Authorization: Bearer YOUR_SYNC_CRON_SECRET`  
-  (or `INGEST_SECRET` if you set one)
-- Body (JSON):
+- URL: `{APP_URL}/api/ingest/opportunities?orgSlug=globecon`
+- Header: `Authorization: Bearer YOUR_SYNC_CRON_SECRET`
+- Body: send the **previous Code node JSON as-is**, e.g.
 
 ```json
-{
-  "orgSlug": "globecon",
-  "source": { "slug": "n8n-hr-jobs", "name": "N8N HR Job Feed" },
-  "items": [
-    {
-      "title": "HUMAN RESOURCE OFFICER",
-      "company": "Example Ltd",
-      "deadline": "2026-08-30",
-      "url": "https://www.brightermonday.co.ke/listings/example",
-      "portal": "BrighterMonday",
-      "status": "OPEN",
-      "countryLabel": "Kenya"
-    }
-  ]
-}
+[
+  {
+    "total_jobs": 11,
+    "jobs": [
+      {
+        "page_title": "HR Officer at Example | Fuzu",
+        "job_title": "HR Officer",
+        "company": "Example",
+        "application_url": "https://www.fuzu.com/kenya/jobs/example",
+        "deadline": null,
+        "source": "FUZU",
+        "job_type": "HR Job",
+        "deadline_status": "NO DEADLINE"
+      }
+    ]
+  }
+]
 ```
 
-Discovery: `GET {APP_URL}/api/ingest/opportunities` with the same Bearer returns the live URL + schema.
+The API normalizes that shape automatically (no extra transform node required).
 
-No n8n required for adapter sync — the cron endpoint works with any scheduler. Ingest is for when n8n already has the records.
+Discovery: `GET {APP_URL}/api/ingest/opportunities` with the same Bearer returns the live URL + field map.
 
 ## Email alerts (Gmail)
 

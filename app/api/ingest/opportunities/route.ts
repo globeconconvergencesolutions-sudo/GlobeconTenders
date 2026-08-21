@@ -7,7 +7,7 @@ import {
   getIngestBearerSecret,
   getIngestOpportunitiesUrl,
   ingestOpportunities,
-  ingestPayloadSchema,
+  normalizeIngestBody,
 } from "@/lib/ingest/opportunities";
 
 export const dynamic = "force-dynamic";
@@ -23,12 +23,11 @@ function authorize(request: Request): boolean {
 /**
  * n8n / external crawler ingest.
  *
- * POST JSON opportunities → upsert into the target org dashboard.
- * URL is always derived from APP_URL (change host in env, not in code).
+ * Accepts either:
+ * - n8n digest JSON: [{ total_jobs, jobs: [...] }]
+ * - canonical: { orgSlug, source, items: [...] }
  *
- * Auth: Bearer token (INGEST_SECRET or SYNC_CRON_SECRET).
- * This is machine-to-machine protection — not a user login.
- * Leaving it open would let anyone spam fake jobs into your DB.
+ * Auth: Bearer INGEST_SECRET or SYNC_CRON_SECRET (machine secret, not user login).
  */
 export async function POST(request: Request) {
   loadEnv();
@@ -45,7 +44,10 @@ export async function POST(request: Request) {
 
   try {
     const json = await request.json();
-    const payload = ingestPayloadSchema.parse(json);
+    const url = new URL(request.url);
+    const payload = normalizeIngestBody(json, {
+      orgSlug: url.searchParams.get("orgSlug"),
+    });
     const result = await ingestOpportunities(payload);
     return NextResponse.json(result);
   } catch (error) {
@@ -54,20 +56,16 @@ export async function POST(request: Request) {
         {
           error: "Invalid payload",
           details: error.flatten(),
-          example: {
-            orgSlug: "globecon",
-            source: { slug: "n8n-hr-jobs", name: "N8N HR Job Feed" },
-            items: [
-              {
-                title: "HUMAN RESOURCE OFFICER",
-                company: "Example Ltd",
-                deadline: "2026-08-30",
-                url: "https://www.brightermonday.co.ke/listings/example",
-                portal: "BrighterMonday",
-                status: "OPEN",
-                countryLabel: "Kenya",
-              },
-            ],
+          acceptedShapes: [
+            "[{ total_jobs, jobs: [...] }]  ← your current n8n Code node output",
+            "{ jobs: [...] }",
+            "{ orgSlug, source, items: [...] }",
+          ],
+          n8nHint: {
+            method: "POST",
+            url: `${getIngestOpportunitiesUrl()}?orgSlug=globecon`,
+            header: "Authorization: Bearer <SYNC_CRON_SECRET>",
+            body: "Send the previous node JSON as-is (JSON / raw)",
           },
         },
         { status: 400 },
@@ -88,30 +86,21 @@ export async function GET(request: Request) {
   return NextResponse.json({
     ok: true,
     method: "POST",
-    url: getIngestOpportunitiesUrl(),
+    url: `${getIngestOpportunitiesUrl()}?orgSlug=globecon`,
     auth: "Authorization: Bearer <INGEST_SECRET or SYNC_CRON_SECRET>",
     notes: [
-      "Set APP_URL on the host (e.g. https://gcstendersvic.netlify.app) — this URL follows it.",
-      "Send JSON body with items[]. Upserts by source + referenceId/url.",
-      "No user login required — only the shared machine secret.",
+      "You can POST your n8n jobs payload as-is: [{ total_jobs, jobs: [...] }].",
+      "We map job_title/page_title, company, application_url/job_url, source, deadline_status.",
+      "Set APP_URL on the host — this URL follows it.",
     ],
-    body: {
-      orgSlug: "globecon",
-      source: { slug: "n8n-hr-jobs", name: "N8N HR Job Feed" },
-      items: [
-        {
-          title: "string (required)",
-          company: "string",
-          deadline: "YYYY-MM-DD or null/NO DEADLINE",
-          url: "https://...",
-          portal: "BrighterMonday | MyJobMag | FUZU",
-          status: "OPEN",
-          category: "Human Resources",
-          countryLabel: "Kenya",
-          regionLabel: "East Africa",
-          referenceId: "optional-stable-id",
-        },
-      ],
+    fieldMap: {
+      job_title_or_page_title: "title",
+      company: "company (or parsed from page_title)",
+      application_url_or_job_url: "url",
+      source: "portal (BrighterMonday/FUZU/…)",
+      job_type: "category",
+      deadline: "deadline",
+      deadline_status: "status",
     },
   });
 }

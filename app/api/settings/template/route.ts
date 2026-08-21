@@ -6,9 +6,10 @@ import { requireSessionUser } from "@/lib/auth/session";
 import { getWorkspaceSettings } from "@/lib/settings/workspace";
 import {
   reapplyTemplateSections,
+  switchOrgTemplate,
   type TemplateApplySection,
 } from "@/lib/templates/apply";
-import { loadTemplate } from "@/lib/templates/load";
+import { isKnownTemplateId, listTemplateSummaries, loadTemplate } from "@/lib/templates/load";
 import { requireCurrentOrg } from "@/lib/tenant/context";
 
 export async function GET() {
@@ -31,6 +32,7 @@ export async function GET() {
         name: template.name,
         description: template.description,
       },
+      availableTemplates: listTemplateSummaries(),
       features: settings.features,
       layout: settings.layout,
     });
@@ -56,6 +58,10 @@ const reapplySchema = z.object({
     .min(1),
 });
 
+const switchSchema = z.object({
+  templateId: z.string().min(1),
+});
+
 export async function POST(request: Request) {
   try {
     const user = await requireSessionUser();
@@ -63,8 +69,23 @@ export async function POST(request: Request) {
 
     const org = await requireCurrentOrg();
     const settings = await getWorkspaceSettings(org.id);
-    const payload = reapplySchema.parse(await request.json());
+    const body = await request.json();
 
+    // Switch vertical template (procurement ↔ hr)
+    if (body && typeof body === "object" && "templateId" in body && !("sections" in body)) {
+      const payload = switchSchema.parse(body);
+      if (!isKnownTemplateId(payload.templateId)) {
+        return NextResponse.json({ error: "Unknown template" }, { status: 400 });
+      }
+      const result = await switchOrgTemplate({
+        orgId: org.id,
+        templateId: payload.templateId,
+        updatedById: user.id,
+      });
+      return NextResponse.json({ ok: true, switched: result });
+    }
+
+    const payload = reapplySchema.parse(body);
     await reapplyTemplateSections({
       orgId: org.id,
       templateId: org.templateId,
