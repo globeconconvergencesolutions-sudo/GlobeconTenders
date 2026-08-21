@@ -34,6 +34,7 @@ const cronPaths = [
   "/api/sync/cron",
   "/api/alerts/cron",
   "/api/platform/trials/cron",
+  "/api/ingest",
 ];
 
 export default auth(async (request) => {

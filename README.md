@@ -125,13 +125,46 @@ Use **Add all featured** to install the main set automatically. `pnpm db:seed` a
 
 ### n8n (optional)
 
+#### A) Trigger existing source sync
 Use a Schedule Trigger → HTTP Request node:
 
 - Method: `POST`
 - URL: `https://your-domain.com/api/sync/cron`
 - Header: `Authorization: Bearer YOUR_SYNC_CRON_SECRET`
 
-No n8n required — the cron endpoint works with any scheduler.
+#### B) Push crawled / email opportunities (recommended for HR job digests)
+n8n parses jobs then posts them into GlobeTender:
+
+- Method: `POST`
+- URL: `{APP_URL}/api/ingest/opportunities`  
+  Example staging: `https://gcstendersvic.netlify.app/api/ingest/opportunities`  
+  Example prod: `https://gcstenders.netlify.app/api/ingest/opportunities`  
+  The path is fixed; the host always comes from **`APP_URL`** for that Netlify site.
+- Header: `Authorization: Bearer YOUR_SYNC_CRON_SECRET`  
+  (or `INGEST_SECRET` if you set one)
+- Body (JSON):
+
+```json
+{
+  "orgSlug": "globecon",
+  "source": { "slug": "n8n-hr-jobs", "name": "N8N HR Job Feed" },
+  "items": [
+    {
+      "title": "HUMAN RESOURCE OFFICER",
+      "company": "Example Ltd",
+      "deadline": "2026-08-30",
+      "url": "https://www.brightermonday.co.ke/listings/example",
+      "portal": "BrighterMonday",
+      "status": "OPEN",
+      "countryLabel": "Kenya"
+    }
+  ]
+}
+```
+
+Discovery: `GET {APP_URL}/api/ingest/opportunities` with the same Bearer returns the live URL + schema.
+
+No n8n required for adapter sync — the cron endpoint works with any scheduler. Ingest is for when n8n already has the records.
 
 ## Email alerts (Gmail)
 
