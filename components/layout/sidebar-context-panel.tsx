@@ -12,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 
+import { useLexicon } from "@/components/providers/org-context-provider";
 import type { SidebarMode } from "@/lib/navigation/sidebar-routes";
 
 type SidebarContextPanelProps = {
@@ -27,8 +28,10 @@ type PageBriefing = {
   hint?: string;
 };
 
-function briefingForMode(mode: SidebarMode): PageBriefing {
+function briefingForMode(mode: SidebarMode): PageBriefing | null {
   switch (mode) {
+    case "tenders":
+      return null;
     case "analytics":
       return {
         icon: <BarChart3 className="h-4 w-4" />,
@@ -36,7 +39,7 @@ function briefingForMode(mode: SidebarMode): PageBriefing {
         description:
           "Pipeline insights across all sources, regions, and recent sync runs.",
         accent: "from-violet-500/20 via-transparent to-blue-500/10",
-        hint: "Charts use the full database — not sidebar filters.",
+        hint: "Charts use the full database — not page filters.",
       };
     case "profile":
       return {
@@ -45,7 +48,7 @@ function briefingForMode(mode: SidebarMode): PageBriefing {
         description:
           "Manage Gmail alert preferences for closing-soon and high-match digests.",
         accent: "from-emerald-500/20 via-transparent to-blue-500/10",
-        hint: "Alert digests respect filters set on Tenders.",
+        hint: "Alert digests respect filters set on the home pipeline.",
       };
     case "team":
       return {
@@ -61,14 +64,14 @@ function briefingForMode(mode: SidebarMode): PageBriefing {
         icon: <Settings className="h-4 w-4" />,
         title: "Workspace settings",
         description:
-          "Control who receives tender digests and delegate recipient management.",
+          "Control who receives digests and delegate recipient management.",
         accent: "from-slate-500/20 via-transparent to-violet-500/10",
         hint: "Explicit recipient list — users can still opt out on Profile.",
       };
     default:
       return {
         icon: <Sparkles className="h-4 w-4" />,
-        title: "Globecon Tender Watch",
+        title: "GlobeTender Cloud",
         description:
           "Live opportunities from World Bank, PPIP, Tender Yetu, AfDB, UNDP & more.",
         accent: "from-slate-500/15 via-transparent to-blue-500/10",
@@ -76,10 +79,14 @@ function briefingForMode(mode: SidebarMode): PageBriefing {
   }
 }
 
-export function SidebarContextPanel({ mode, onNavigate }: SidebarContextPanelProps) {
-  if (mode === "tenders") return null;
-
+export function SidebarContextPanel({
+  mode,
+  onNavigate,
+}: SidebarContextPanelProps) {
+  const { t } = useLexicon();
   const briefing = briefingForMode(mode);
+
+  if (!briefing) return null;
 
   return (
     <div className="space-y-3 pb-1">
@@ -107,7 +114,7 @@ export function SidebarContextPanel({ mode, onNavigate }: SidebarContextPanelPro
       >
         <span className="flex items-center gap-2">
           <FileText className="h-3.5 w-3.5 text-blue-300" />
-          Tenders & filters
+          {t("navHome")} & filters
         </span>
         <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-500" />
       </Link>

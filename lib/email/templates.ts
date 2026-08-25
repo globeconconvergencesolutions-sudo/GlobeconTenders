@@ -25,6 +25,7 @@ const DEFAULT_PRESENTATION: EmailOrgPresentation = {
   primaryColor: "#2563eb",
   accentColor: "#1d4ed8",
   logoUrl: null,
+  coverUrl: null,
   fallbackLogoUrl: "/brand/logo-sidebar.png",
   lexicon: DEFAULT_PROCUREMENT_LEXICON,
   emailHeaderLabel: "Globecon Tender Watch",

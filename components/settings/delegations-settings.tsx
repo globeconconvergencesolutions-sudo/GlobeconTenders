@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SettingsPageHeader } from "@/components/settings/settings-page-header";
 import { SETTINGS_PERMISSION_LABELS } from "@/lib/auth/settings-labels";
 import { ROLE_LABELS } from "@/lib/auth/permissions";
 import type { UserRole } from "@/lib/db/schema";
@@ -168,14 +169,32 @@ export function DelegationsSettings() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin" />
+      <div className="space-y-6">
+        <div className="h-14 animate-pulse rounded-2xl bg-slate-100 dark:bg-white/5" />
+        <div className="h-24 animate-pulse rounded-xl bg-slate-100 dark:bg-white/5" />
+        <div className="h-64 animate-pulse rounded-xl bg-slate-100 dark:bg-white/5" />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
+      <SettingsPageHeader
+        icon={ShieldCheck}
+        title="Delegations"
+        description="Grant trusted teammates permission to manage alert recipients."
+        tone="violet"
+        actions={
+          <Button
+            onClick={() => setDialogOpen(true)}
+            disabled={grantableUsers.length === 0}
+          >
+            <UserPlus className="h-4 w-4" />
+            Grant access
+          </Button>
+        }
+      />
+
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
           {error}
@@ -192,20 +211,11 @@ export function DelegationsSettings() {
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-border dark:bg-card">
-        <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-4 dark:border-border sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
-              <ShieldCheck className="h-5 w-5 text-violet-600" />
-              Delegated access
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {SETTINGS_PERMISSION_LABELS["settings:notifications"]}
-            </p>
-          </div>
-          <Button onClick={() => setDialogOpen(true)} disabled={grantableUsers.length === 0}>
-            <UserPlus className="h-4 w-4" />
-            Grant access
-          </Button>
+        <div className="border-b border-slate-100 px-5 py-4 dark:border-border">
+          <h3 className="text-base font-semibold">Delegated access</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {SETTINGS_PERMISSION_LABELS["settings:notifications"]}
+          </p>
         </div>
 
         {delegates.length === 0 ? (

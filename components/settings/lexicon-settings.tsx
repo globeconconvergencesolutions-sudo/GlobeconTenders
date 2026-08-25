@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, Languages, Loader2, RotateCcw } from "lucide-react";
 
+import { SettingsPageHeader } from "@/components/settings/settings-page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -121,7 +122,6 @@ export function LexiconSettings() {
       setLexicon(payload.lexicon);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
-      window.location.reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
     } finally {
@@ -135,30 +135,79 @@ export function LexiconSettings() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        Loading terminology…
+      <div className="space-y-6">
+        <div className="h-14 animate-pulse rounded-2xl bg-slate-100 dark:bg-white/5" />
+        <div className="h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-white/5" />
+        <div className="h-96 animate-pulse rounded-2xl bg-slate-100 dark:bg-white/5" />
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSave} className="mx-auto max-w-3xl space-y-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-border dark:bg-card">
-        <div className="mb-6 flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-300">
-            <Languages className="h-5 w-5" />
+    <form onSubmit={handleSave} className="space-y-6">
+      <SettingsPageHeader
+        icon={Languages}
+        title="Terminology"
+        description="Customize labels across the dashboard, emails, and share pages."
+        tone="amber"
+      />
+
+      {/* Where labels appear */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-5 text-white shadow-sm dark:border-border">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+          Live label preview
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {[
+            lexicon.navHome,
+            lexicon.navAnalytics,
+            lexicon.navProfile,
+            lexicon.navSettings,
+            lexicon.navTeam,
+          ].map((label) => (
+            <span
+              key={label}
+              className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-medium ring-1 ring-white/10"
+            >
+              {label}
+            </span>
+          ))}
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+            <p className="text-[10px] uppercase tracking-wide text-slate-400">
+              Entities
+            </p>
+            <p className="mt-1 text-sm font-semibold">
+              {lexicon.opportunityPlural}
+            </p>
+            <p className="text-xs text-slate-400">
+              from {lexicon.sourcePlural.toLowerCase()}
+            </p>
           </div>
-          <div>
-            <h2 className="text-lg font-semibold">Terminology</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Customize labels across the dashboard, emails, and share pages.
-              Use &quot;Job&quot; / &quot;Jobs&quot; for HR, or keep procurement
-              defaults.
+          <div className="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+            <p className="text-[10px] uppercase tracking-wide text-slate-400">
+              Actions
+            </p>
+            <p className="mt-1 text-sm font-semibold">
+              {lexicon.sync} · {lexicon.export}
+            </p>
+            <p className="text-xs text-slate-400">
+              {lexicon.save} / {lexicon.share}
+            </p>
+          </div>
+          <div className="rounded-xl bg-white/5 p-3 ring-1 ring-white/10">
+            <p className="text-[10px] uppercase tracking-wide text-slate-400">
+              Empty state
+            </p>
+            <p className="mt-1 text-sm font-semibold leading-snug">
+              {lexicon.emptyOpportunities}
             </p>
           </div>
         </div>
+      </div>
 
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-border dark:bg-card sm:p-6">
         <div className="space-y-8">
           {LEXICON_GROUPS.map((group) => (
             <section key={group.title}>
@@ -212,7 +261,7 @@ export function LexiconSettings() {
         {saved && (
           <span className="flex items-center gap-1.5 text-sm text-emerald-600">
             <CheckCircle2 className="h-4 w-4" />
-            Saved — refreshing…
+            Saved
           </span>
         )}
       </div>

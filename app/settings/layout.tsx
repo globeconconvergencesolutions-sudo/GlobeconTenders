@@ -22,7 +22,7 @@ export default async function SettingsLayout({
   }
 
   return (
-    <SettingsShell canManageDelegations={access.canManageDelegations}>
+    <SettingsShell canManageSettings={access.canManageSettings}>
       {children}
     </SettingsShell>
   );

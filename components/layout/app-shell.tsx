@@ -89,7 +89,7 @@ export function AppShell({ children }: AppShellProps) {
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex shrink-0 items-center gap-3 border-b border-sidebar-border bg-sidebar px-4 py-3 lg:hidden">
+        <header className="flex shrink-0 items-center gap-3 border-b border-white/10 bg-gradient-to-r from-[hsl(var(--sidebar))] to-[hsl(222_47%_9%)] px-4 py-3 lg:hidden">
           <Button
             type="button"
             variant="ghost"

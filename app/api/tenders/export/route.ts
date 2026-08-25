@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { hasPermission } from "@/lib/auth/permissions";
 import { requireSessionUser } from "@/lib/auth/session";
 import { tendersToCsv } from "@/lib/export/csv";
+import { mergeFilterStateWithUrl } from "@/lib/filters/url-state";
 import {
   getTendersForExport,
   getUserFilterState,
@@ -12,10 +13,11 @@ import { requireOrgFeature } from "@/lib/tenant/features";
 
 function resolveQueryFilters(
   searchParams: URLSearchParams,
-  filterState: Awaited<ReturnType<typeof getUserFilterState>>,
+  savedFilterState: Awaited<ReturnType<typeof getUserFilterState>>,
 ) {
   const showClosed = searchParams.get("showClosed");
   const saved = searchParams.get("saved");
+  const filterState = mergeFilterStateWithUrl(savedFilterState, searchParams);
 
   return {
     search: searchParams.get("q") ?? filterState.search,

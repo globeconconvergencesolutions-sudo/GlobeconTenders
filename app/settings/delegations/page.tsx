@@ -1,21 +1,7 @@
-import { redirect } from "next/navigation";
-
 import { DelegationsSettings } from "@/components/settings/delegations-settings";
-import { getSettingsAccessForUser } from "@/lib/auth/settings-access";
-import { getSessionUser } from "@/lib/auth/session";
+import { requireSettingsManagePage } from "@/lib/auth/settings-page-guard";
 
 export default async function SettingsDelegationsPage() {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
-
-  const access = await getSettingsAccessForUser({
-    userId: user.id,
-    role: user.role,
-  });
-
-  if (!access.canManageDelegations) {
-    redirect("/settings/notifications");
-  }
-
+  await requireSettingsManagePage();
   return <DelegationsSettings />;
 }

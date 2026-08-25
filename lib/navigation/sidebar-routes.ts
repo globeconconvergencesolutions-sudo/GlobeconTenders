@@ -15,13 +15,14 @@ export function getSidebarMode(pathname: string): SidebarMode {
   return "default";
 }
 
-export function sidebarShowsFilters(mode: SidebarMode): boolean {
-  return mode === "tenders";
+/** @deprecated Filters moved to the page command bar / drawer */
+export function sidebarShowsFilters(_mode: SidebarMode): boolean {
+  return false;
 }
 
-export function sidebarWidthClass(mode: SidebarMode, viewport: "desktop" | "mobile") {
-  if (mode === "tenders") {
-    return viewport === "desktop" ? "lg:w-80" : "w-[min(100vw-2rem,20rem)]";
-  }
+export function sidebarWidthClass(
+  _mode: SidebarMode,
+  viewport: "desktop" | "mobile",
+) {
   return viewport === "desktop" ? "lg:w-64" : "w-[min(100vw-2rem,17rem)]";
 }

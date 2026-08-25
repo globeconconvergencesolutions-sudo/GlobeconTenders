@@ -2,17 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Check,
-  Download,
-  Heart,
-  Loader2,
-  RefreshCw,
-  Save,
-  Search,
-} from "lucide-react";
+import { Check, Loader2, Save } from "lucide-react";
 
-import { useLexicon, useFeatures } from "@/components/providers/org-context-provider";
+import { FilterCommandBar } from "@/components/filters/filter-command-bar";
+import { FilterDrawer } from "@/components/filters/filter-drawer";
+import { FilterResultsOverlay } from "@/components/filters/filter-results-overlay";
+import { FilterWorkspaceProvider, useFilterWorkspace } from "@/components/filters/filter-workspace-context";
+import { useFeatures, useLexicon } from "@/components/providers/org-context-provider";
 import { OnboardingChecklist } from "@/components/onboarding/onboarding-checklist";
 import { OpportunityEmptyState } from "@/components/tenders/opportunity-empty-state";
 import { StatsCards } from "@/components/tenders/stats-cards";
@@ -28,7 +24,6 @@ import { OpportunityCard } from "@/components/tenders/opportunity-card";
 import { ApiErrorAlert } from "@/components/ui/api-error-alert";
 import { readApiError, type ParsedClientError } from "@/lib/api/client-error";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import {
   Select,
@@ -43,11 +38,19 @@ import {
   canSync,
   canCreateSources,
 } from "@/lib/auth/permissions";
-import type { TenderWithSource, UserRole } from "@/lib/db/schema";
+import { EMPTY_FILTER_STATE, type TenderWithSource, type UserRole } from "@/lib/db/schema";
+import { mergeFilterStateWithUrl } from "@/lib/filters/url-state";
 import type { OnboardingProgress } from "@/lib/onboarding/steps";
 import type { TenderSort } from "@/lib/tenders/queries";
 import { showSuccessToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+
+type CatalogFilterIds = {
+  sourceIds: number[];
+  serviceLineIds: number[];
+  regionIds: number[];
+  countryIds: number[];
+};
 
 type SerializableTender = Omit<
   TenderWithSource,
@@ -82,11 +85,13 @@ type TendersDashboardProps = {
   initialSort?: TenderSort;
   savedOnly?: boolean;
   initialHideClosed?: boolean;
+  /** Effective catalog filters after URL∪DB merge (server). */
+  initialCatalogFilters?: CatalogFilterIds;
   userRole: UserRole;
   onboardingProgress?: OnboardingProgress | null;
 };
 
-export function TendersDashboard({
+function TendersDashboardInner({
   tenders,
   stats,
   pagination,
@@ -94,13 +99,22 @@ export function TendersDashboard({
   initialSort = "closing_soonest",
   savedOnly = false,
   initialHideClosed = true,
+  initialCatalogFilters = {
+    sourceIds: [],
+    serviceLineIds: [],
+    regionIds: [],
+    countryIds: [],
+  },
   userRole,
   onboardingProgress = null,
 }: TendersDashboardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { t, lexicon } = useLexicon();
+  const { lexicon } = useLexicon();
   const features = useFeatures();
+  const { openFilters, chips, removeChip, clearAll, applying, reloadDefaults } =
+    useFilterWorkspace();
+
   const [search, setSearch] = useState(initialSearch);
   const [hideClosed, setHideClosed] = useState(initialHideClosed);
   const [sort, setSort] = useState<TenderSort>(initialSort);
@@ -150,10 +164,6 @@ export function TendersDashboard({
     return `/?${params.toString()}`;
   }
 
-  function triggerAddSource() {
-    document.querySelector<HTMLButtonElement>("[data-add-source-trigger]")?.click();
-  }
-
   async function handleSync() {
     if (!canSync(userRole)) return;
     setSyncing(true);
@@ -173,8 +183,14 @@ export function TendersDashboard({
 
       if (payload.results?.length) {
         setSyncFeedback(payload.results);
-        const totalInserted = payload.results.reduce((sum, r) => sum + r.inserted, 0);
-        const totalUpdated = payload.results.reduce((sum, r) => sum + r.updated, 0);
+        const totalInserted = payload.results.reduce(
+          (sum, r) => sum + r.inserted,
+          0,
+        );
+        const totalUpdated = payload.results.reduce(
+          (sum, r) => sum + r.updated,
+          0,
+        );
         showSuccessToast(
           `Sync complete — ${totalInserted} new, ${totalUpdated} updated`,
         );
@@ -215,10 +231,23 @@ export function TendersDashboard({
     setSavingFilter(true);
     setFilterSaved(false);
     try {
+      // Persist the view the user is looking at (URL catalog overrides + toolbar).
+      // Existing membership.filter_state JSON only — no schema migration.
+      const effective = mergeFilterStateWithUrl(
+        {
+          ...EMPTY_FILTER_STATE,
+          ...initialCatalogFilters,
+        },
+        searchParams,
+      );
       const response = await fetch("/api/filters", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          sourceIds: effective.sourceIds,
+          serviceLineIds: effective.serviceLineIds,
+          regionIds: effective.regionIds,
+          countryIds: effective.countryIds,
           search: search || undefined,
           sort,
           savedOnly: savedFilter,
@@ -227,8 +256,10 @@ export function TendersDashboard({
       });
       if (response.ok) {
         setFilterSaved(true);
-        showSuccessToast("Filter preferences saved");
+        showSuccessToast("View saved as your default");
         setTimeout(() => setFilterSaved(false), 2500);
+        reloadDefaults();
+        router.refresh();
       }
     } finally {
       setSavingFilter(false);
@@ -237,86 +268,31 @@ export function TendersDashboard({
 
   return (
     <div className="flex flex-col bg-slate-50 dark:bg-background">
-      <header className="shrink-0 border-b border-slate-200 bg-white px-4 py-5 dark:border-border dark:bg-card sm:px-6 lg:px-8 lg:py-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-              Latest {lexicon.opportunityPlural.toLowerCase()}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Tracking {stats.trackingSources} {lexicon.sourcePlural.toLowerCase()} · last synced {lastSynced}
-            </p>
-          </div>
-          <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center xl:w-auto">
-            <form
-              className="relative w-full sm:min-w-[14rem] sm:flex-1 xl:w-64 xl:flex-none"
-              onSubmit={(e) => {
-                e.preventDefault();
-                pushParams({ q: search || undefined, page: "1" });
-              }}
-            >
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search title, agency, or se..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9"
-              />
-            </form>
-            <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
-              {features.sync && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full sm:w-auto"
-                disabled={!canSync(userRole) || syncing}
-                onClick={handleSync}
-                data-sync-trigger
-              >
-                {syncing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-                <span className="hidden sm:inline">{t("sync")}</span>
-              </Button>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "w-full sm:w-auto",
-                  savedFilter && "border-blue-300 bg-blue-50 dark:bg-blue-950/30",
-                )}
-                onClick={() => {
-                  const next = !savedFilter;
-                  setSavedFilter(next);
-                  pushParams({ saved: next ? "1" : undefined, page: "1" });
-                }}
-              >
-                <Heart className="h-4 w-4" />
-                <span className="hidden sm:inline">Saved</span>
-              </Button>
-              {features.export && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full sm:w-auto"
-                disabled={!canExportTenders(userRole) || exporting}
-                onClick={handleExport}
-              >
-                {exporting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-                <span className="hidden sm:inline">{t("export")}</span>
-              </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <FilterCommandBar
+        search={search}
+        onSearchChange={setSearch}
+        onSearchSubmit={() =>
+          pushParams({ q: search || undefined, page: "1" })
+        }
+        savedFilter={savedFilter}
+        onToggleSaved={() => {
+          const next = !savedFilter;
+          setSavedFilter(next);
+          pushParams({ saved: next ? "1" : undefined, page: "1" });
+        }}
+        onSync={() => void handleSync()}
+        onExport={() => void handleExport()}
+        syncing={syncing}
+        exporting={exporting}
+        userRole={userRole}
+        trackingSources={stats.trackingSources}
+        lastSyncedLabel={lastSynced}
+        chips={chips}
+        onRemoveChip={removeChip}
+        onClearAll={clearAll}
+      />
+
+      <FilterDrawer />
 
       <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         {onboardingProgress && (
@@ -362,7 +338,7 @@ export function TendersDashboard({
                 page: "1",
               });
             }}
-            className="w-full sm:w-auto"
+            className="w-full rounded-xl sm:w-auto"
           >
             {hideClosed ? "✓ Hiding closed" : "Show closed"}
           </Button>
@@ -375,7 +351,7 @@ export function TendersDashboard({
               pushParams({ sort: next, page: "1" });
             }}
           >
-            <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectTrigger className="w-full rounded-xl sm:w-[200px]">
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
             <SelectContent>
@@ -392,11 +368,12 @@ export function TendersDashboard({
             variant="outline"
             size="sm"
             className={cn(
-              "w-full sm:w-auto",
-              filterSaved && "border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30",
+              "w-full rounded-xl sm:w-auto",
+              filterSaved &&
+                "border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30",
             )}
             disabled={savingFilter}
-            onClick={handleSaveFilter}
+            onClick={() => void handleSaveFilter()}
           >
             {savingFilter ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -405,28 +382,36 @@ export function TendersDashboard({
             ) : (
               <Save className="h-4 w-4" />
             )}
-            {filterSaved ? "Filter saved" : "Save Filter"}
+            {filterSaved ? "Filter saved" : "Save view"}
           </Button>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
-          {normalizedTenders.map((tender) => (
-            <OpportunityCard
-              key={tender.id}
-              tender={tender}
-              canSave={canSaveTenders(userRole)}
-            />
-          ))}
-        </div>
+        <div className="relative">
+          <FilterResultsOverlay />
+          <div
+            className={cn(
+              "grid gap-4 transition-[filter,opacity] duration-300 sm:grid-cols-2 2xl:grid-cols-3",
+              applying && "opacity-60",
+            )}
+          >
+            {normalizedTenders.map((tender) => (
+              <OpportunityCard
+                key={tender.id}
+                tender={tender}
+                canSave={canSaveTenders(userRole)}
+              />
+            ))}
+          </div>
 
-        {normalizedTenders.length === 0 && (
-          <OpportunityEmptyState
-            canSync={canSync(userRole) && features.sync}
-            canAddSource={canCreateSources(userRole)}
-            onAddSource={triggerAddSource}
-            onSync={handleSync}
-          />
-        )}
+          {normalizedTenders.length === 0 && (
+            <OpportunityEmptyState
+              canSync={canSync(userRole) && features.sync}
+              canAddSource={canCreateSources(userRole)}
+              onAddSource={() => openFilters({ focusAddSource: true })}
+              onSync={() => void handleSync()}
+            />
+          )}
+        </div>
 
         <Pagination
           page={pagination.page}
@@ -437,5 +422,13 @@ export function TendersDashboard({
         />
       </div>
     </div>
+  );
+}
+
+export function TendersDashboard(props: TendersDashboardProps) {
+  return (
+    <FilterWorkspaceProvider>
+      <TendersDashboardInner {...props} />
+    </FilterWorkspaceProvider>
   );
 }

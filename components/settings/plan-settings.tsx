@@ -13,6 +13,7 @@ import {
 import { ApiErrorAlert } from "@/components/ui/api-error-alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SettingsPageHeader } from "@/components/settings/settings-page-header";
 import { readApiError, type ParsedClientError } from "@/lib/api/client-error";
 import { cn } from "@/lib/utils";
 
@@ -96,8 +97,14 @@ export function PlanSettings() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-16 text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin" />
+      <div className="space-y-6">
+        <div className="h-14 animate-pulse rounded-2xl bg-slate-100 dark:bg-white/5" />
+        <div className="h-48 animate-pulse rounded-2xl bg-slate-100 dark:bg-white/5" />
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="h-28 animate-pulse rounded-xl bg-slate-100 dark:bg-white/5" />
+          <div className="h-28 animate-pulse rounded-xl bg-slate-100 dark:bg-white/5" />
+          <div className="h-28 animate-pulse rounded-xl bg-slate-100 dark:bg-white/5" />
+        </div>
       </div>
     );
   }
@@ -106,7 +113,6 @@ export function PlanSettings() {
     return (
       <ApiErrorAlert
         error={error ?? { message: "Unable to load plan details" }}
-        className="mx-auto max-w-3xl"
       />
     );
   }
@@ -115,15 +121,13 @@ export function PlanSettings() {
   const sourcePct = usagePercent(data.usage.sources, data.organization.maxSources);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-border dark:bg-card">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold">Plan & usage</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Current plan for {data.organization.name}
-            </p>
-          </div>
+    <div className="space-y-6">
+      <SettingsPageHeader
+        icon={CreditCard}
+        title="Plan & usage"
+        description={`Current plan for ${data.organization.name}`}
+        tone="emerald"
+        actions={
           <div className="flex flex-wrap gap-2">
             <Badge variant="secondary" className="capitalize">
               {data.plan.label}
@@ -139,10 +143,13 @@ export function PlanSettings() {
               {data.organization.status.replace("_", " ")}
             </Badge>
           </div>
-        </div>
+        }
+      />
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-border dark:bg-card">
 
         {data.trialDaysRemaining != null && data.organization.plan === "trial" && (
-          <p className="mt-4 rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:bg-blue-950/30 dark:text-blue-100">
+          <p className="rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:bg-blue-950/30 dark:text-blue-100">
             {data.organization.status === "trial_expired"
               ? "Your trial has expired. Upgrade to restore sync and add sources."
               : data.trialDaysRemaining === 0
@@ -151,7 +158,7 @@ export function PlanSettings() {
           </p>
         )}
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        <div className={cn("grid gap-4 sm:grid-cols-3", data.trialDaysRemaining != null && data.organization.plan === "trial" ? "mt-6" : "")}>
           <UsageCard
             icon={Users}
             label="Team seats"

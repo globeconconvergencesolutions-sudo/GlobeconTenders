@@ -358,6 +358,9 @@ export type WorkspaceBrandingSettings = {
   primaryColor?: string;
   accentColor?: string;
   logoUrl?: string;
+  logoPublicId?: string;
+  coverUrl?: string;
+  coverPublicId?: string;
 };
 
 export type WorkspaceLexiconSettings = {

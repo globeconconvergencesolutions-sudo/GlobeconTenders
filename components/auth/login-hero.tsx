@@ -8,6 +8,7 @@ import {
 
 import { AppLogo } from "@/components/brand/app-logo";
 import { useLexicon, useOrg } from "@/components/providers/org-context-provider";
+import { cn } from "@/lib/utils";
 
 export function LoginHero() {
   const { branding } = useOrg();
@@ -34,9 +35,30 @@ export function LoginHero() {
 
   return (
     <div className="relative hidden overflow-hidden bg-gradient-to-br from-slate-950 via-[#0b1530] to-slate-900 lg:flex lg:w-[52%] lg:flex-col lg:justify-between lg:p-12 xl:p-16">
+      {branding.coverUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={branding.coverUrl}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+          aria-hidden
+        />
+      ) : null}
+      <div
+        className={cn(
+          "absolute inset-0",
+          branding.coverUrl
+            ? "bg-gradient-to-br from-slate-950/80 via-slate-950/70 to-slate-900/85"
+            : "bg-transparent",
+        )}
+      />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:48px_48px]" />
-      <div className="pointer-events-none absolute -left-24 top-20 h-72 w-72 rounded-full bg-blue-600/20 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 right-0 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
+      {!branding.coverUrl && (
+        <>
+          <div className="pointer-events-none absolute -left-24 top-20 h-72 w-72 rounded-full bg-blue-600/20 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-0 right-0 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
+        </>
+      )}
 
       <div className="relative">
         <AppLogo size="lg" variant="login" textClassName="[&_p:first-child]:text-lg" />

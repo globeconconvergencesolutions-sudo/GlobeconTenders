@@ -4,11 +4,14 @@ import { z } from "zod";
 import { requireSettingsManage } from "@/lib/auth/settings-access";
 import { requireSessionUser } from "@/lib/auth/session";
 import { resolveBranding } from "@/lib/branding/resolve";
+import { deleteCloudinaryImage } from "@/lib/cloudinary";
 import type { WorkspaceBrandingSettings } from "@/lib/db/schema";
 import {
   getWorkspaceSettings,
   updateWorkspaceBranding,
 } from "@/lib/settings/workspace";
+
+const optionalUrl = z.string().url().or(z.literal("")).optional();
 
 const patchSchema = z.object({
   displayName: z.string().trim().min(1).max(120).optional(),
@@ -20,7 +23,10 @@ const patchSchema = z.object({
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/, "Use a hex color like #1d4ed8")
     .optional(),
-  logoUrl: z.string().url().or(z.literal("")).optional(),
+  logoUrl: optionalUrl,
+  coverUrl: optionalUrl,
+  clearLogo: z.boolean().optional(),
+  clearCover: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -64,21 +70,58 @@ export async function PATCH(request: Request) {
 
     const next: WorkspaceBrandingSettings = {
       ...current.branding,
-      ...(payload.displayName !== undefined
-        ? { displayName: payload.displayName }
-        : {}),
-      ...(payload.primaryColor !== undefined
-        ? { primaryColor: payload.primaryColor }
-        : {}),
-      ...(payload.accentColor !== undefined
-        ? { accentColor: payload.accentColor }
-        : {}),
-      ...(payload.logoUrl !== undefined
-        ? { logoUrl: payload.logoUrl || undefined }
-        : {}),
     };
 
+    if (payload.displayName !== undefined) {
+      next.displayName = payload.displayName;
+    }
+    if (payload.primaryColor !== undefined) {
+      next.primaryColor = payload.primaryColor;
+    }
+    if (payload.accentColor !== undefined) {
+      next.accentColor = payload.accentColor;
+    }
+
+    const orphanIds: string[] = [];
+
+    if (payload.clearLogo) {
+      if (next.logoPublicId) orphanIds.push(next.logoPublicId);
+      delete next.logoUrl;
+      delete next.logoPublicId;
+    } else if (payload.logoUrl !== undefined) {
+      // Manual URL replaces hosted asset — drop previous Cloudinary id
+      if (payload.logoUrl.trim() === "") {
+        if (next.logoPublicId) orphanIds.push(next.logoPublicId);
+        delete next.logoUrl;
+        delete next.logoPublicId;
+      } else if (payload.logoUrl !== next.logoUrl) {
+        if (next.logoPublicId) orphanIds.push(next.logoPublicId);
+        next.logoUrl = payload.logoUrl;
+        delete next.logoPublicId;
+      }
+    }
+
+    if (payload.clearCover) {
+      if (next.coverPublicId) orphanIds.push(next.coverPublicId);
+      delete next.coverUrl;
+      delete next.coverPublicId;
+    } else if (payload.coverUrl !== undefined) {
+      if (payload.coverUrl.trim() === "") {
+        if (next.coverPublicId) orphanIds.push(next.coverPublicId);
+        delete next.coverUrl;
+        delete next.coverPublicId;
+      } else if (payload.coverUrl !== next.coverUrl) {
+        if (next.coverPublicId) orphanIds.push(next.coverPublicId);
+        next.coverUrl = payload.coverUrl;
+        delete next.coverPublicId;
+      }
+    }
+
     const saved = await updateWorkspaceBranding(next, user.id);
+
+    for (const id of orphanIds) {
+      void deleteCloudinaryImage(id);
+    }
 
     return NextResponse.json({
       branding: saved,

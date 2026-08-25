@@ -15,6 +15,7 @@ export type ResolvedBranding = {
   primaryColor: string;
   accentColor: string;
   logoUrl: string | null;
+  coverUrl: string | null;
   fallbackLogoUrl: string;
 };
 
@@ -30,6 +31,7 @@ export function resolveBranding(input: {
     primaryColor: branding.primaryColor?.trim() || DEFAULT_PRIMARY_COLOR,
     accentColor: branding.accentColor?.trim() || DEFAULT_ACCENT_COLOR,
     logoUrl: branding.logoUrl?.trim() || null,
+    coverUrl: branding.coverUrl?.trim() || null,
     fallbackLogoUrl: BRAND_ASSETS.logoSidebar,
   };
 }

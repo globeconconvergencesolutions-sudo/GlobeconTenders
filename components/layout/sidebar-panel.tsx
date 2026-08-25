@@ -13,16 +13,16 @@ import {
   X,
 } from "lucide-react";
 
-import { SidebarFiltersLazy } from "@/components/filters/sidebar-filters-lazy";
 import { AppLogo } from "@/components/brand/app-logo";
 import { SidebarContextPanel } from "@/components/layout/sidebar-context-panel";
 import { SidebarFooter } from "@/components/layout/sidebar-footer";
 import { useNavAccess } from "@/components/providers/nav-access-provider";
-import { useLexicon, useFeatures, useOrg } from "@/components/providers/org-context-provider";
 import {
-  getSidebarMode,
-  sidebarShowsFilters,
-} from "@/lib/navigation/sidebar-routes";
+  useFeatures,
+  useLexicon,
+  useOrg,
+} from "@/components/providers/org-context-provider";
+import { getSidebarMode } from "@/lib/navigation/sidebar-routes";
 import { cn } from "@/lib/utils";
 
 const navItemDefs = [
@@ -46,7 +46,14 @@ type SidebarPanelProps = {
 };
 
 export function SidebarBrand({ compact = false }: { compact?: boolean }) {
-  return <AppLogo size={compact ? "sm" : "sm"} showText compact={compact} variant="sidebar" />;
+  return (
+    <AppLogo
+      size={compact ? "sm" : "sm"}
+      showText
+      compact={compact}
+      variant="sidebar"
+    />
+  );
 }
 
 export function SidebarPanel({
@@ -88,7 +95,6 @@ export function SidebarPanel({
     Boolean(navAccess?.showSettingsNav) || showSettingsFromGrants;
 
   const mode = getSidebarMode(pathname);
-  const showFilters = sidebarShowsFilters(mode);
 
   const extraNavItems = [
     ...(navAccess?.isPlatformAdmin
@@ -150,7 +156,7 @@ export function SidebarPanel({
                     prefetch={false}
                     onClick={onNavigate}
                     className={cn(
-                      "flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all",
+                      "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
                       active
                         ? "bg-blue-600 text-white shadow-lg shadow-blue-900/30"
                         : "text-slate-400 hover:bg-white/[0.06] hover:text-white",
@@ -158,11 +164,6 @@ export function SidebarPanel({
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     <span className="truncate">{label}</span>
-                    {href === "/" && !showFilters && (
-                      <span className="ml-auto shrink-0 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-blue-200">
-                        Filters
-                      </span>
-                    )}
                   </Link>
                 </li>
               );
@@ -174,11 +175,7 @@ export function SidebarPanel({
       <div className="relative min-h-0 flex-1">
         <div className={cn("h-full px-4", sidebarScrollClass)}>
           <div className="py-2 pb-4">
-            {showFilters ? (
-              <SidebarFiltersLazy />
-            ) : (
-              <SidebarContextPanel mode={mode} onNavigate={onNavigate} />
-            )}
+            <SidebarContextPanel mode={mode} onNavigate={onNavigate} />
           </div>
         </div>
         <div

@@ -16,6 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { SettingsPageHeader } from "@/components/settings/settings-page-header";
 import { ROLE_LABELS } from "@/lib/auth/permissions";
 import type { AlertRecipientRow } from "@/lib/settings/recipients";
 import type { UserRole } from "@/lib/db/schema";
@@ -129,8 +130,14 @@ export function NotificationsSettings() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin" />
+      <div className="space-y-6">
+        <div className="h-14 animate-pulse rounded-2xl bg-slate-100 dark:bg-white/5" />
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="h-28 animate-pulse rounded-xl bg-slate-100 dark:bg-white/5" />
+          <div className="h-28 animate-pulse rounded-xl bg-slate-100 dark:bg-white/5" />
+          <div className="h-28 animate-pulse rounded-xl bg-slate-100 dark:bg-white/5" />
+        </div>
+        <div className="h-72 animate-pulse rounded-xl bg-slate-100 dark:bg-white/5" />
       </div>
     );
   }
@@ -138,7 +145,31 @@ export function NotificationsSettings() {
   const activeIncluded = includedIds.length;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
+      <SettingsPageHeader
+        icon={Bell}
+        title="Notifications"
+        description="Choose who receives tender digests. Personal opt-out on Profile still applies."
+        tone="blue"
+        actions={
+          (saving || saved) && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              {saving ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                  Saved
+                </>
+              )}
+            </span>
+          )
+        }
+      />
+
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
           {error}
@@ -202,36 +233,22 @@ export function NotificationsSettings() {
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-border dark:bg-card">
         <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-4 dark:border-border sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
-              <Mail className="h-5 w-5 text-blue-600" />
+            <h3 className="flex items-center gap-2 text-base font-semibold">
+              <Mail className="h-4 w-4 text-blue-600" />
               Alert recipients
-            </h2>
+            </h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Choose who receives tender digests from this workspace.
+              Toggle teammates onto the digest list.
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            {saved && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Saved
-              </span>
-            )}
-            {saving && (
-              <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Saving…
-              </span>
-            )}
-            <div className="relative w-full sm:w-64">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search team…"
-                className="pl-9"
-              />
-            </div>
+          <div className="relative w-full sm:w-64">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search team…"
+              className="pl-9"
+            />
           </div>
         </div>
 

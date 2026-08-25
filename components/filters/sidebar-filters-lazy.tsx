@@ -3,10 +3,10 @@
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
 
-const SidebarFilters = dynamic(
+const OpportunityFilters = dynamic(
   () =>
-    import("@/components/filters/sidebar-filters").then((mod) => ({
-      default: mod.SidebarFilters,
+    import("@/components/filters/opportunity-filters").then((mod) => ({
+      default: mod.OpportunityFilters,
     })),
   {
     ssr: false,
@@ -18,6 +18,7 @@ const SidebarFilters = dynamic(
   },
 );
 
+/** @deprecated Filters live in the dashboard drawer */
 export function SidebarFiltersLazy() {
-  return <SidebarFilters />;
+  return <OpportunityFilters />;
 }
