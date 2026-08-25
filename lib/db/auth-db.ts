@@ -1,25 +1,21 @@
-import { Pool, neonConfig } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-serverless";
-import ws from "ws";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 
 import * as schema from "./schema";
 
-neonConfig.webSocketConstructor = ws;
-
-let pool: Pool | null = null;
 let authDb: ReturnType<typeof drizzle<typeof schema>> | null = null;
 
 /**
- * WebSocket-backed Drizzle client for Better Auth (needs transactions).
- * App queries can keep using getDb() (neon-http).
+ * Better Auth Drizzle client (HTTP/fetch — safe on Netlify serverless).
+ * Avoids bundling the `ws` WebSocket driver, which breaks frame masking in prod.
  */
 export function getAuthDb() {
   const url = process.env.DATABASE_URL;
   if (!url) return null;
 
   if (!authDb) {
-    pool = new Pool({ connectionString: url });
-    authDb = drizzle(pool, { schema });
+    const sql = neon(url);
+    authDb = drizzle(sql, { schema });
   }
 
   return authDb;
