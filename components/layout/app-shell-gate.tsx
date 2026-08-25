@@ -27,12 +27,12 @@ export function AppShellGate({
   const host =
     typeof window !== "undefined" ? window.location.host : null;
 
-  const clientAuthenticated = Boolean(session?.user?.id);
+  // The live Auth.js client status is authoritative after navigation. Server
+  // props and nav access are only safe during the initial loading handoff;
+  // otherwise stale layout state can keep the authenticated shell mounted.
   const hasAppSession =
-    Boolean(navAccess) ||
-    serverAuthenticated ||
-    clientAuthenticated ||
-    (status === "loading" && serverAuthenticated);
+    status === "authenticated" ||
+    (status === "loading" && (serverAuthenticated || Boolean(navAccess)));
 
   if (!shouldUseAppShell(pathname, host, hasAppSession)) {
     return <>{children}</>;

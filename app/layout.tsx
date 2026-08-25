@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 
 import { auth } from "@/auth";
-import { SignOutOverlay } from "@/components/auth/sign-out-overlay";
 import { OrgThemeStyles } from "@/components/branding/org-theme-styles";
 import { AppShellGate } from "@/components/layout/app-shell-gate";
 import { Toaster } from "@/components/ui/sonner";
@@ -79,7 +78,6 @@ export default async function RootLayout({
           <AuthSessionProvider session={session}>
             <NavAccessProvider value={navAccess}>
               <OrgContextProvider value={orgContext}>
-                <SignOutOverlay />
                 <AppShellGate isAuthenticated={Boolean(session?.user)}>
                   {children}
                 </AppShellGate>

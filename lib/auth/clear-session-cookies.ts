@@ -1,23 +1,5 @@
 import type { NextRequest, NextResponse } from "next/server";
 
-import { signOut as authSignOut } from "@/auth";
-
-/**
- * Clears the real Auth.js session cookie by delegating to Auth.js's own
- * signOut action instead of reimplementing its cookie name/attribute logic.
- * This guarantees the clearing Set-Cookie is byte-for-byte symmetric with
- * whatever cookie Auth.js actually set at login — including chunking and
- * any future change to cookie naming/attributes in an Auth.js upgrade.
- *
- * `redirect: false` stops next-auth from throwing a Next.js redirect for
- * us; the resulting Set-Cookie instructions are written into this request's
- * `next/headers` cookie jar (next-auth does this internally), which Next.js
- * merges into whatever response this route handler ultimately returns.
- */
-async function clearRealSessionCookie(): Promise<void> {
-  await authSignOut({ redirect: false });
-}
-
 /**
  * Auth.js v5 (and legacy next-auth v4) cookie base names, including chunked
  * variants used when the JWT exceeds ~4KB. Session-token names are also
@@ -124,12 +106,11 @@ function sweepExpireOptions(name: string, request: NextRequest) {
 }
 
 /**
- * Defensive sweep: expires every cookie name Auth.js could plausibly have
- * set (current + legacy + chunked variants), plus anything actually present
- * on the request that looks like an Auth.js cookie. Pure belt-and-braces —
- * `clearRealSessionCookie` is what actually has to succeed for logout to
- * work; this covers auxiliary cookies (CSRF token, OAuth callback URL) and
- * any stray chunks it doesn't touch.
+ * Expires every cookie name Auth.js could plausibly have set (current +
+ * legacy + chunked variants), plus anything actually present on the request
+ * that looks like an Auth.js cookie. This also covers auxiliary cookies such
+ * as the CSRF token, callback URL, and any stray JWT chunks.
+
  */
 function sweepStaleAuthCookies(response: NextResponse, request: NextRequest): void {
   for (const name of namesToSweep(request)) {
@@ -145,6 +126,8 @@ export async function performLogout(
   response: NextResponse,
   request: NextRequest,
 ): Promise<void> {
-  await clearRealSessionCookie();
+  // Auth.js server actions cannot safely merge Set-Cookie headers into a
+  // separately-created response. Expire the exact host-only cookie names on
+  // this response instead, including chunked JWT variants.
   sweepStaleAuthCookies(response, request);
 }
