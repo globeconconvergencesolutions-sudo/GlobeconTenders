@@ -5,7 +5,10 @@ import { usePathname } from "next/navigation";
 import { useSession } from "@/lib/auth/auth-client";
 import { AppShell } from "@/components/layout/app-shell";
 import { useNavAccess } from "@/components/providers/nav-access-provider";
-import { shouldUseAppShell } from "@/lib/layout/shell-routes";
+import {
+  isAuthOnlyRoute,
+  shouldUseAppShell,
+} from "@/lib/layout/shell-routes";
 
 type AppShellGateProps = {
   children: React.ReactNode;
@@ -14,17 +17,33 @@ type AppShellGateProps = {
 
 /**
  * Wraps authenticated app pages in the dashboard shell.
- * Live client session is authoritative after navigation.
+ * Skips client session fetch on login/signup so /api/auth is not hit there.
  */
 export function AppShellGate({
   children,
   isAuthenticated: serverAuthenticated,
 }: AppShellGateProps) {
   const pathname = usePathname();
+
+  if (isAuthOnlyRoute(pathname)) {
+    return <>{children}</>;
+  }
+
+  return (
+    <AuthenticatedShellGate isAuthenticated={serverAuthenticated}>
+      {children}
+    </AuthenticatedShellGate>
+  );
+}
+
+function AuthenticatedShellGate({
+  children,
+  isAuthenticated: serverAuthenticated,
+}: AppShellGateProps) {
+  const pathname = usePathname();
   const { data: session, isPending } = useSession();
   const navAccess = useNavAccess();
-  const host =
-    typeof window !== "undefined" ? window.location.host : null;
+  const host = typeof window !== "undefined" ? window.location.host : null;
 
   const clientAuthenticated = Boolean(session?.session && session?.user);
   const hasAppSession =

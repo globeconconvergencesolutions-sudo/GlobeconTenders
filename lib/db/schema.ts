@@ -1,3 +1,4 @@
+import { relations } from "drizzle-orm";
 import {
   boolean,
   integer,
@@ -639,3 +640,23 @@ export const baVerification = pgTable("ba_verification", {
   createdAt: timestamp("createdAt").defaultNow(),
   updatedAt: timestamp("updatedAt").defaultNow(),
 });
+
+/** Relations required for Better Auth drizzle adapter `includeAccounts` joins. */
+export const baUserRelations = relations(baUser, ({ many }) => ({
+  sessions: many(baSession),
+  accounts: many(baAccount),
+}));
+
+export const baSessionRelations = relations(baSession, ({ one }) => ({
+  user: one(baUser, {
+    fields: [baSession.userId],
+    references: [baUser.id],
+  }),
+}));
+
+export const baAccountRelations = relations(baAccount, ({ one }) => ({
+  user: one(baUser, {
+    fields: [baAccount.userId],
+    references: [baUser.id],
+  }),
+}));

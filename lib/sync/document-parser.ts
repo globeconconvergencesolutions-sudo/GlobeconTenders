@@ -217,13 +217,32 @@ export async function extractDocumentText(
   format: DocumentFormat,
 ): Promise<string> {
   if (format === "pdf") {
-    const { PDFParse } = await import("pdf-parse");
-    const parser = new PDFParse({ data: buffer });
+    // pdfjs optional canvas deps are unavailable on Netlify; text extract still works.
+    const originalWarn = console.warn;
+    console.warn = (...args: unknown[]) => {
+      const msg = String(args[0] ?? "");
+      if (
+        msg.includes("@napi-rs/canvas") ||
+        msg.includes("Cannot polyfill") ||
+        msg.includes("DOMMatrix") ||
+        msg.includes("ImageData") ||
+        msg.includes("Path2D")
+      ) {
+        return;
+      }
+      originalWarn.apply(console, args as Parameters<typeof console.warn>);
+    };
     try {
-      const result = await parser.getText();
-      return result.text ?? "";
+      const { PDFParse } = await import("pdf-parse");
+      const parser = new PDFParse({ data: buffer });
+      try {
+        const result = await parser.getText();
+        return result.text ?? "";
+      } finally {
+        await parser.destroy();
+      }
     } finally {
-      await parser.destroy();
+      console.warn = originalWarn;
     }
   }
   return buffer.toString("utf8");

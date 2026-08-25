@@ -7,7 +7,7 @@ const authOnlyPaths = [
   "/suspended",
 ] as const;
 
-function isAuthOnlyRoute(pathname: string): boolean {
+export function isAuthOnlyRoute(pathname: string): boolean {
   return authOnlyPaths.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
