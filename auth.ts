@@ -1,9 +1,10 @@
 import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
 
-import { auth as betterAuth } from "@/lib/auth/better-auth";
+import { resolveSessionTokenFromHeaders } from "@/lib/auth/session-token";
 import { getAuthDb } from "@/lib/db/auth-db";
-import { baSession } from "@/lib/db/schema";
+import { getDb } from "@/lib/db";
+import { baSession, baUser } from "@/lib/db/schema";
 import type { UserRole } from "@/lib/db/schema";
 import { canAccessPlatformAdmin } from "@/lib/platform/access";
 
@@ -24,43 +25,54 @@ export type AppSession = {
 };
 
 /**
- * App-wide session reader (replaces Auth.js `auth()`).
- * Workspace fields live on ba_session (set at login).
+ * App-wide session reader.
+ *
+ * Reads the Better Auth cookie, strips the signature, then loads workspace
+ * fields from `ba_session` (same source of truth as middleware). This avoids
+ * `betterAuth.api.getSession()` failing when cookies are unsigned/mismatched
+ * while still requiring org fields set at login.
  */
 export async function auth(): Promise<AppSession | null> {
-  const session = await betterAuth.api.getSession({
-    headers: await headers(),
-  });
+  const headerStore = await headers();
+  const token = resolveSessionTokenFromHeaders(headerStore);
+  if (!token) return null;
 
-  if (!session?.user || !session.session) return null;
+  const db = getDb();
+  if (!db) return null;
 
-  const orgId = Number(
-    (session.session as { orgId?: number | null }).orgId ?? 0,
-  );
-  const orgSlug =
-    ((session.session as { orgSlug?: string | null }).orgSlug as string) ?? "";
-  const role = ((session.session as { role?: string | null }).role ??
-    "viewer") as UserRole;
-  const rawPlatform = Boolean(
-    (session.session as { isPlatformAdmin?: boolean | null }).isPlatformAdmin,
-  );
+  const [row] = await db
+    .select({
+      userId: baSession.userId,
+      expiresAt: baSession.expiresAt,
+      orgId: baSession.orgId,
+      orgSlug: baSession.orgSlug,
+      role: baSession.role,
+      isPlatformAdmin: baSession.isPlatformAdmin,
+      email: baUser.email,
+      name: baUser.name,
+    })
+    .from(baSession)
+    .innerJoin(baUser, eq(baUser.id, baSession.userId))
+    .where(eq(baSession.token, token))
+    .limit(1);
 
-  if (!orgId || !orgSlug) return null;
+  if (!row || row.expiresAt < new Date()) return null;
+  if (!row.orgId || !row.orgSlug || !row.role) return null;
 
   return {
     user: {
-      id: session.user.id,
-      email: session.user.email,
-      name: session.user.name,
-      role,
-      orgId,
-      orgSlug,
+      id: row.userId,
+      email: row.email,
+      name: row.name,
+      role: row.role as UserRole,
+      orgId: row.orgId,
+      orgSlug: row.orgSlug,
       isPlatformAdmin: canAccessPlatformAdmin({
-        isPlatformAdmin: rawPlatform,
-        orgSlug,
+        isPlatformAdmin: Boolean(row.isPlatformAdmin),
+        orgSlug: row.orgSlug,
       }),
     },
-    expires: new Date(session.session.expiresAt).toISOString(),
+    expires: row.expiresAt.toISOString(),
   };
 }
 
@@ -71,7 +83,7 @@ export async function setSessionWorkspaceFields(args: {
   role: UserRole;
   isPlatformAdmin: boolean;
 }): Promise<void> {
-  const db = getAuthDb();
+  const db = getAuthDb() ?? getDb();
   if (!db) return;
 
   await db
@@ -85,5 +97,3 @@ export async function setSessionWorkspaceFields(args: {
     })
     .where(eq(baSession.token, args.sessionToken));
 }
-
-export { betterAuth };

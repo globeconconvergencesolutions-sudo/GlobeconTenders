@@ -39,8 +39,12 @@ export async function GET() {
         manageServiceLines: canManageServiceLines,
       },
     });
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (error) {
+    if (error instanceof Error && error.message === "UNAUTHORIZED") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    console.error("[filters] GET failed", error);
+    return NextResponse.json({ error: "Failed to load filters" }, { status: 500 });
   }
 }
 

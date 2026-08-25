@@ -1,10 +1,14 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
+import {
+  parseSetCookieHeader,
+  toCookieOptions,
+} from "better-auth/cookies";
 
 import { setSessionWorkspaceFields } from "@/auth";
 import { auth as betterAuth } from "@/lib/auth/better-auth";
@@ -24,6 +28,26 @@ import { isValidOrgSlug } from "@/lib/tenant/resolution";
 export type LoginActionState = {
   error?: string;
 };
+
+async function applyAuthResponseCookies(response: Response): Promise<void> {
+  const cookieStore = await cookies();
+  const setCookies =
+    typeof response.headers.getSetCookie === "function"
+      ? response.headers.getSetCookie()
+      : [];
+
+  for (const entry of setCookies) {
+    const parsed = parseSetCookieHeader(entry);
+    parsed.forEach((value, key) => {
+      if (!key) return;
+      try {
+        cookieStore.set(key, value.value, toCookieOptions(value));
+      } catch {
+        // ignore — nextCookies plugin may already have set these
+      }
+    });
+  }
+}
 
 export async function loginWithCredentials(
   _prevState: LoginActionState,
@@ -123,15 +147,23 @@ export async function loginWithCredentials(
       passwordHash: user.passwordHash,
     });
 
-    const result = await betterAuth.api.signInEmail({
+    const response = await betterAuth.api.signInEmail({
       body: { email, password },
       headers: await headers(),
+      asResponse: true,
     });
 
-    const sessionToken =
-      typeof result === "object" && result && "token" in result
-        ? String((result as { token: string }).token)
-        : "";
+    if (!response.ok) {
+      return {
+        error:
+          "Invalid email or password. Check your workspace ID and try again.",
+      };
+    }
+
+    await applyAuthResponseCookies(response);
+
+    const payload = (await response.json()) as { token?: string };
+    const sessionToken = payload.token ? String(payload.token) : "";
     if (!sessionToken) {
       return { error: "Unable to sign in right now. Please try again." };
     }
@@ -154,7 +186,6 @@ export async function loginWithCredentials(
       throw error;
     }
 
-    // Better Auth throws UNAUTHORIZED for missing credential account shape, etc.
     const status =
       error && typeof error === "object" && "statusCode" in error
         ? Number((error as { statusCode: number }).statusCode)

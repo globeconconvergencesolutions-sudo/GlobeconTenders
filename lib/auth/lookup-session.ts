@@ -1,9 +1,9 @@
 import { eq } from "drizzle-orm";
-import { getSessionCookie } from "better-auth/cookies";
 import type { NextRequest } from "next/server";
 
+import { resolveSessionTokenFromHeaders } from "@/lib/auth/session-token";
 import { getDb } from "@/lib/db";
-import { baSession } from "@/lib/db/schema";
+import { baSession, baUser } from "@/lib/db/schema";
 import type { UserRole } from "@/lib/db/schema";
 import { canAccessPlatformAdmin } from "@/lib/platform/access";
 
@@ -24,7 +24,7 @@ export type MiddlewareSessionUser = {
 export async function lookupSessionFromRequest(
   request: NextRequest,
 ): Promise<MiddlewareSessionUser | null> {
-  const token = getSessionCookie(request);
+  const token = resolveSessionTokenFromHeaders(request.headers);
   if (!token) return null;
 
   const db = getDb();
@@ -38,8 +38,11 @@ export async function lookupSessionFromRequest(
       orgSlug: baSession.orgSlug,
       role: baSession.role,
       isPlatformAdmin: baSession.isPlatformAdmin,
+      email: baUser.email,
+      name: baUser.name,
     })
     .from(baSession)
+    .innerJoin(baUser, eq(baUser.id, baSession.userId))
     .where(eq(baSession.token, token))
     .limit(1);
 
@@ -48,6 +51,8 @@ export async function lookupSessionFromRequest(
 
   return {
     id: row.userId,
+    email: row.email,
+    name: row.name,
     role: row.role as UserRole,
     orgId: row.orgId,
     orgSlug: row.orgSlug,
