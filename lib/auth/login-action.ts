@@ -154,6 +154,18 @@ export async function loginWithCredentials(
       throw error;
     }
 
+    // Better Auth throws UNAUTHORIZED for missing credential account shape, etc.
+    const status =
+      error && typeof error === "object" && "statusCode" in error
+        ? Number((error as { statusCode: number }).statusCode)
+        : NaN;
+    if (status === 401) {
+      return {
+        error:
+          "Invalid email or password. Check your workspace ID and try again.",
+      };
+    }
+
     console.error("[login] failed", error);
     return { error: "Unable to sign in right now. Please try again." };
   }

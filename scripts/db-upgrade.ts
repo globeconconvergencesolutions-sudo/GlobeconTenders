@@ -339,6 +339,7 @@ const statements = [
   );`,
   `CREATE TABLE IF NOT EXISTS "ba_account" (
     "id" text PRIMARY KEY NOT NULL,
+    "issuer" text DEFAULT 'local:credential' NOT NULL,
     "accountId" text NOT NULL,
     "providerId" text NOT NULL,
     "userId" text NOT NULL REFERENCES "ba_user"("id") ON DELETE cascade,
@@ -361,6 +362,15 @@ const statements = [
     "updatedAt" timestamp DEFAULT now()
   );`,
 
+  // Better Auth 1.7 requires issuer + accountId === userId for credential sign-in
+  `ALTER TABLE "ba_account" ADD COLUMN IF NOT EXISTS "issuer" text DEFAULT 'local:credential' NOT NULL;`,
+  `UPDATE "ba_account"
+   SET "issuer" = 'local:credential',
+       "accountId" = "userId",
+       "updatedAt" = now()
+   WHERE "providerId" = 'credential'
+     AND ("issuer" IS DISTINCT FROM 'local:credential' OR "accountId" IS DISTINCT FROM "userId");`,
+
   // Backfill Better Auth users/accounts from app users (id = users.id::text)
   `INSERT INTO "ba_user" ("id", "name", "email", "emailVerified", "createdAt", "updatedAt")
    SELECT u."id"::text, u."name", u."email", true, u."created_at", u."updated_at"
@@ -370,10 +380,11 @@ const statements = [
      "email" = EXCLUDED."email",
      "updatedAt" = EXCLUDED."updatedAt";`,
 
-  `INSERT INTO "ba_account" ("id", "accountId", "providerId", "userId", "password", "createdAt", "updatedAt")
+  `INSERT INTO "ba_account" ("id", "issuer", "accountId", "providerId", "userId", "password", "createdAt", "updatedAt")
    SELECT
      'cred_' || u."id"::text,
-     u."email",
+     'local:credential',
+     u."id"::text,
      'credential',
      u."id"::text,
      u."password_hash",

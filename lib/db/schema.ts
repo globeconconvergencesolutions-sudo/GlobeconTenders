@@ -612,6 +612,9 @@ export const baSession = pgTable("ba_session", {
 
 export const baAccount = pgTable("ba_account", {
   id: text("id").primaryKey(),
+  /** Better Auth 1.7+: local credential issuer is `local:credential`. */
+  issuer: text("issuer").notNull().default("local:credential"),
+  /** For credential provider this must equal userId (not email). */
   accountId: text("accountId").notNull(),
   providerId: text("providerId").notNull(),
   userId: text("userId")

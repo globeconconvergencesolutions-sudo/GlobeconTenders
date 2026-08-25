@@ -4,6 +4,9 @@ import { nanoid } from "nanoid";
 import { getAuthDb } from "@/lib/db/auth-db";
 import { baAccount, baUser } from "@/lib/db/schema";
 
+/** Better Auth local credential issuer (`createLocalAccountIssuer("credential")`). */
+export const BA_CREDENTIAL_ISSUER = "local:credential";
+
 type AppUserRow = {
   id: number;
   email: string;
@@ -14,6 +17,7 @@ type AppUserRow = {
 /**
  * Keep Better Auth user/account rows in sync with app `users` (integer ids).
  * ba_user.id = String(users.id); credential password = users.password_hash.
+ * Credential accountId must equal userId (Better Auth 1.7 sign-in check).
  */
 export async function ensureBetterAuthUser(user: AppUserRow): Promise<string> {
   const db = getAuthDb();
@@ -62,7 +66,8 @@ export async function ensureBetterAuthUser(user: AppUserRow): Promise<string> {
   if (!account) {
     await db.insert(baAccount).values({
       id: nanoid(),
-      accountId: user.email,
+      issuer: BA_CREDENTIAL_ISSUER,
+      accountId: userId,
       providerId: "credential",
       userId,
       password: user.passwordHash,
@@ -73,7 +78,8 @@ export async function ensureBetterAuthUser(user: AppUserRow): Promise<string> {
     await db
       .update(baAccount)
       .set({
-        accountId: user.email,
+        issuer: BA_CREDENTIAL_ISSUER,
+        accountId: userId,
         password: user.passwordHash,
         updatedAt: now,
       })
