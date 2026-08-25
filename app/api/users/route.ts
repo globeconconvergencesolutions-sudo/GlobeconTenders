@@ -111,6 +111,16 @@ export async function POST(request: Request) {
       role: payload.role as UserRole,
     });
 
+    const { ensureBetterAuthUser } = await import(
+      "@/lib/auth/ensure-better-auth-user"
+    );
+    await ensureBetterAuthUser({
+      id: created.id,
+      email: created.email,
+      name: created.name,
+      passwordHash,
+    });
+
     const emailResult = await sendWelcomeTeamEmail({
       to: created.email,
       name: created.name,

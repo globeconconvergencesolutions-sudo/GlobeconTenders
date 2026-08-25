@@ -110,7 +110,20 @@ export async function PATCH(request: Request, context: RouteContext) {
         role: users.role,
         isActive: users.isActive,
         createdAt: users.createdAt,
+        passwordHash: users.passwordHash,
       });
+
+    if (updated) {
+      const { ensureBetterAuthUser } = await import(
+        "@/lib/auth/ensure-better-auth-user"
+      );
+      await ensureBetterAuthUser({
+        id: updated.id,
+        email: updated.email,
+        name: updated.name,
+        passwordHash: updated.passwordHash,
+      });
+    }
 
     let emailSent: boolean | undefined;
     let emailWarning: string | undefined;
@@ -126,7 +139,16 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     return NextResponse.json({
-      user: updated,
+      user: updated
+        ? {
+            id: updated.id,
+            name: updated.name,
+            email: updated.email,
+            role: updated.role,
+            isActive: updated.isActive,
+            createdAt: updated.createdAt,
+          }
+        : updated,
       ...(typeof emailSent === "boolean"
         ? {
             emailSent,

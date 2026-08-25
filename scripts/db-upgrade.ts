@@ -309,6 +309,81 @@ const statements = [
   `ALTER TABLE "workspace_settings" ADD COLUMN IF NOT EXISTS "onboarding" jsonb DEFAULT '{}'::jsonb NOT NULL;`,
 
   `ALTER TABLE "org_memberships" ADD COLUMN IF NOT EXISTS "filter_state" jsonb DEFAULT '{"sourceIds":[],"serviceLineIds":[],"regionIds":[],"countryIds":[]}'::jsonb;`,
+
+  // Logout kill-switch: bump on sign-out; JWT with stale version is rejected.
+  `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "session_version" integer DEFAULT 0 NOT NULL;`,
+
+  // Better Auth tables (DB sessions — logout deletes the row)
+  `CREATE TABLE IF NOT EXISTS "ba_user" (
+    "id" text PRIMARY KEY NOT NULL,
+    "name" text NOT NULL,
+    "email" text NOT NULL UNIQUE,
+    "emailVerified" boolean DEFAULT false NOT NULL,
+    "image" text,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS "ba_session" (
+    "id" text PRIMARY KEY NOT NULL,
+    "expiresAt" timestamp NOT NULL,
+    "token" text NOT NULL UNIQUE,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL,
+    "ipAddress" text,
+    "userAgent" text,
+    "userId" text NOT NULL REFERENCES "ba_user"("id") ON DELETE cascade,
+    "orgId" integer,
+    "orgSlug" text,
+    "role" text,
+    "isPlatformAdmin" boolean DEFAULT false NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS "ba_account" (
+    "id" text PRIMARY KEY NOT NULL,
+    "accountId" text NOT NULL,
+    "providerId" text NOT NULL,
+    "userId" text NOT NULL REFERENCES "ba_user"("id") ON DELETE cascade,
+    "accessToken" text,
+    "refreshToken" text,
+    "idToken" text,
+    "accessTokenExpiresAt" timestamp,
+    "refreshTokenExpiresAt" timestamp,
+    "scope" text,
+    "password" text,
+    "createdAt" timestamp DEFAULT now() NOT NULL,
+    "updatedAt" timestamp DEFAULT now() NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS "ba_verification" (
+    "id" text PRIMARY KEY NOT NULL,
+    "identifier" text NOT NULL,
+    "value" text NOT NULL,
+    "expiresAt" timestamp NOT NULL,
+    "createdAt" timestamp DEFAULT now(),
+    "updatedAt" timestamp DEFAULT now()
+  );`,
+
+  // Backfill Better Auth users/accounts from app users (id = users.id::text)
+  `INSERT INTO "ba_user" ("id", "name", "email", "emailVerified", "createdAt", "updatedAt")
+   SELECT u."id"::text, u."name", u."email", true, u."created_at", u."updated_at"
+   FROM "users" u
+   ON CONFLICT ("id") DO UPDATE SET
+     "name" = EXCLUDED."name",
+     "email" = EXCLUDED."email",
+     "updatedAt" = EXCLUDED."updatedAt";`,
+
+  `INSERT INTO "ba_account" ("id", "accountId", "providerId", "userId", "password", "createdAt", "updatedAt")
+   SELECT
+     'cred_' || u."id"::text,
+     u."email",
+     'credential',
+     u."id"::text,
+     u."password_hash",
+     u."created_at",
+     u."updated_at"
+   FROM "users" u
+   WHERE NOT EXISTS (
+     SELECT 1 FROM "ba_account" a
+     WHERE a."userId" = u."id"::text AND a."providerId" = 'credential'
+   );`,
 ];
 
 async function upgrade() {

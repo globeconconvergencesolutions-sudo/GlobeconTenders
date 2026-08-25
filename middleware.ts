@@ -1,8 +1,7 @@
-import NextAuth from "next-auth";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-import { authConfig } from "@/auth.config";
 import { sanitizeCallbackUrl } from "@/lib/auth/callback-url";
+import { lookupSessionFromRequest } from "@/lib/auth/lookup-session";
 import { buildLoginUrl } from "@/lib/auth/sign-out-constants";
 import { ORG_STATUS_SUSPENDED } from "@/lib/platform/org-status";
 import { getPlatformAppUrl } from "@/lib/tenant/config";
@@ -14,8 +13,6 @@ import {
   resolveOrgSlugFromHost,
   resolveWorkspaceSlugFromSearchParams,
 } from "@/lib/tenant/resolution";
-
-const { auth } = NextAuth(authConfig);
 
 const publicPaths = [
   "/login",
@@ -37,21 +34,22 @@ const cronPaths = [
   "/api/ingest",
 ];
 
-export default auth(async (request) => {
+export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const session = request.auth;
   const host = request.headers.get("host");
 
-  // Auth routes first — no tenant DB work; logout must stay fast on edge.
   if (pathname.startsWith("/api/auth")) {
     return NextResponse.next();
   }
+
+  // DB session lookup — sticky cookies without a ba_session row = logged out.
+  const sessionUser = await lookupSessionFromRequest(request);
+  const session = sessionUser ? { user: sessionUser } : null;
 
   const hostOrgSlug = resolveOrgSlugFromHost(host);
   const workspaceFromLogin = resolveWorkspaceSlugFromSearchParams(
     request.nextUrl.searchParams,
   );
-  // Authenticated requests must never fall back to the host default (globecon).
   const orgSlug = session?.user?.orgSlug
     ? session.user.orgSlug
     : (workspaceFromLogin ?? hostOrgSlug);
@@ -97,7 +95,6 @@ export default auth(async (request) => {
   const contextOrgSlug = session?.user?.orgSlug ?? orgSlug;
   const orgRecord = await lookupOrganizationStatus(contextOrgSlug);
 
-  // Session points at a deleted/missing org — force a clean logout.
   if (
     session?.user &&
     session.user.orgSlug &&
@@ -128,8 +125,6 @@ export default auth(async (request) => {
 
   if (pathname === "/login" || pathname.startsWith("/login/")) {
     const signedOut = request.nextUrl.searchParams.get("signedOut") === "1";
-    // Allow the signed-out landing page even if the cookie failed to clear,
-    // so ForceSessionClear / the login UI can finish the job.
     if (session?.user && !signedOut) {
       const callback = sanitizeCallbackUrl(
         request.nextUrl.searchParams.get("callbackUrl"),
@@ -170,7 +165,7 @@ export default auth(async (request) => {
   }
 
   return withOrgHeader();
-});
+}
 
 export const config = {
   matcher: [

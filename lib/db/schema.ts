@@ -74,6 +74,11 @@ export const users = pgTable("users", {
   role: userRoleEnum("role").notNull().default("viewer"),
   isPlatformAdmin: boolean("is_platform_admin").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
+  /**
+   * Bumped on logout. JWT carries the version from login; mismatch = session dead
+   * even if `__Secure-authjs.session-token` refuses to clear (Netlify/CDN).
+   */
+  sessionVersion: integer("session_version").notNull().default(0),
   filterState: jsonb("filter_state")
     .$type<FilterState>()
     .default({
@@ -573,3 +578,61 @@ export const EMPTY_FILTER_STATE: FilterState = {
   regionIds: [],
   countryIds: [],
 };
+
+// --- Better Auth tables (DB sessions — logout deletes the row) -------------
+// Column names are camelCase to match Better Auth / drizzle adapter defaults.
+
+export const baUser = pgTable("ba_user", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("emailVerified").notNull().default(false),
+  image: text("image"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
+
+export const baSession = pgTable("ba_session", {
+  id: text("id").primaryKey(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  token: text("token").notNull().unique(),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  ipAddress: text("ipAddress"),
+  userAgent: text("userAgent"),
+  userId: text("userId")
+    .notNull()
+    .references(() => baUser.id, { onDelete: "cascade" }),
+  /** Active workspace — set at login, not inferred from host. */
+  orgId: integer("orgId"),
+  orgSlug: text("orgSlug"),
+  role: text("role"),
+  isPlatformAdmin: boolean("isPlatformAdmin").notNull().default(false),
+});
+
+export const baAccount = pgTable("ba_account", {
+  id: text("id").primaryKey(),
+  accountId: text("accountId").notNull(),
+  providerId: text("providerId").notNull(),
+  userId: text("userId")
+    .notNull()
+    .references(() => baUser.id, { onDelete: "cascade" }),
+  accessToken: text("accessToken"),
+  refreshToken: text("refreshToken"),
+  idToken: text("idToken"),
+  accessTokenExpiresAt: timestamp("accessTokenExpiresAt"),
+  refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt"),
+  scope: text("scope"),
+  password: text("password"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
+
+export const baVerification = pgTable("ba_verification", {
+  id: text("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
+});

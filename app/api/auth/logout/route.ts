@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
 
+import { auth } from "@/auth";
 import { performLogout } from "@/lib/auth/clear-session-cookies";
+import { auth as betterAuth } from "@/lib/auth/better-auth";
+import { bumpUserSessionVersion } from "@/lib/auth/session-version";
 import { buildLoginUrl } from "@/lib/auth/sign-out-constants";
+import { getAuthDb } from "@/lib/db/auth-db";
+import { baSession } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -27,15 +33,42 @@ function escapeHtmlAttr(value: string): string {
 /**
  * Full-page sign out.
  *
- * IMPORTANT (Netlify / CDNs): Set-Cookie on 3xx redirects is often dropped.
- * We return HTTP 200 HTML with clear-cookie headers, then the browser navigates
- * to the login page via meta/script refresh. That is what actually clears
- * `__Secure-authjs.session-token`.
+ * 1) Delete Better Auth session row(s) — cookie can linger; session is dead.
+ * 2) Bump users.session_version (belt-and-braces).
+ * 3) Return HTTP 200 HTML with clear-cookie headers (CDN-safe).
  */
 async function handleLogout(request: NextRequest) {
   const redirectTo = sanitizeLogoutRedirect(
     request.nextUrl.searchParams.get("redirect"),
   );
+
+  const session = await auth();
+  const userId = session?.user?.id ? Number(session.user.id) : NaN;
+
+  try {
+    await betterAuth.api.signOut({
+      headers: request.headers,
+    });
+  } catch (error) {
+    console.error("[logout] better-auth signOut failed", error);
+  }
+
+  if (Number.isFinite(userId) && userId > 0) {
+    try {
+      await bumpUserSessionVersion(userId);
+    } catch (error) {
+      console.error("[logout] failed to bump session_version", error);
+    }
+
+    try {
+      const db = getAuthDb();
+      if (db) {
+        await db.delete(baSession).where(eq(baSession.userId, String(userId)));
+      }
+    } catch (error) {
+      console.error("[logout] failed to delete ba_session rows", error);
+    }
+  }
 
   const safePath = escapeHtmlAttr(redirectTo);
   const safeJson = JSON.stringify(redirectTo);

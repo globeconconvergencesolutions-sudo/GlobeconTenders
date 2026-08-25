@@ -1,18 +1,14 @@
 "use client";
 
-import { SessionProvider } from "next-auth/react";
-import type { Session } from "next-auth";
-
+/**
+ * Better Auth client session is read via useSession in AppShellGate.
+ * Provider is a no-op wrapper so layout stays stable without next-auth.
+ */
 export function AuthSessionProvider({
   children,
-  session,
 }: {
   children: React.ReactNode;
-  session: Session | null;
+  session?: unknown;
 }) {
-  return (
-    <SessionProvider session={session} refetchOnWindowFocus={false}>
-      {children}
-    </SessionProvider>
-  );
+  return <>{children}</>;
 }

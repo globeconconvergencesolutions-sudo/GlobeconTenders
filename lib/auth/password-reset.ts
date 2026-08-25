@@ -89,6 +89,11 @@ export async function resetPasswordWithToken(
     .set({ passwordHash, updatedAt: new Date() })
     .where(eq(users.id, tokenRow.userId));
 
+  const { syncBetterAuthPassword } = await import(
+    "@/lib/auth/ensure-better-auth-user"
+  );
+  await syncBetterAuthPassword(tokenRow.userId, passwordHash);
+
   await db
     .update(passwordResetTokens)
     .set({ usedAt: new Date() })

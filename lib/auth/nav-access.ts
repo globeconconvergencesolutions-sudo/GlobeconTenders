@@ -1,4 +1,4 @@
-import type { Session } from "next-auth";
+import type { AppSession } from "@/auth";
 
 import { hasPermission } from "@/lib/auth/permissions";
 import type { UserRole } from "@/lib/db/schema";
@@ -11,7 +11,7 @@ export type NavAccess = {
   showSettingsNav: boolean;
 };
 
-export function buildNavAccess(session: Session | null): NavAccess | null {
+export function buildNavAccess(session: AppSession | null): NavAccess | null {
   const user = session?.user;
   if (!user?.role || !user.orgSlug) return null;
 

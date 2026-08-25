@@ -154,6 +154,16 @@ export async function createOrganization(input: CreateOrganizationInput) {
     role: adminRole,
   });
 
+  const { ensureBetterAuthUser } = await import(
+    "@/lib/auth/ensure-better-auth-user"
+  );
+  await ensureBetterAuthUser({
+    id: admin.id,
+    email: admin.email,
+    name: admin.name,
+    passwordHash,
+  });
+
   return { org, admin };
 }
 
