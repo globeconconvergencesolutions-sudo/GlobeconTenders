@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { sanitizeCallbackUrl } from "@/lib/auth/callback-url";
 import { lookupSessionFromRequest } from "@/lib/auth/lookup-session";
+import {
+  canAccessSettingsPath,
+  canAccessTeamManagementPath,
+  isSettingsPath,
+  isTeamManagementPath,
+} from "@/lib/auth/page-access";
 import { buildLoginUrl } from "@/lib/auth/sign-out-constants";
+import type { UserRole } from "@/lib/db/schema";
 import { ORG_STATUS_SUSPENDED } from "@/lib/platform/org-status";
 import { getPlatformAppUrl } from "@/lib/tenant/config";
 import { lookupOrganizationStatus } from "@/lib/tenant/lookup-org";
@@ -24,8 +31,6 @@ const publicPaths = [
 ];
 
 const platformPaths = ["/platform"];
-
-const adminRoles = new Set(["super_admin", "admin"]);
 
 const cronPaths = [
   "/api/sync/cron",
@@ -157,11 +162,21 @@ export default async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (
-    pathname.startsWith("/admin") &&
-    !adminRoles.has(session.user.role ?? "")
-  ) {
+  const role = (session.user.role ?? "viewer") as UserRole;
+
+  if (isTeamManagementPath(pathname) && !canAccessTeamManagementPath(role)) {
     return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  if (isSettingsPath(pathname)) {
+    const allowed = await canAccessSettingsPath({
+      role,
+      userId: Number(session.user.id),
+      orgId: session.user.orgId,
+    });
+    if (!allowed) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
   }
 
   return withOrgHeader();

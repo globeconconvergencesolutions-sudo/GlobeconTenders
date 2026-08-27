@@ -10,7 +10,8 @@ import { AuthSessionProvider } from "@/components/providers/session-provider";
 import { NavAccessProvider } from "@/components/providers/nav-access-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { BRAND_ASSETS } from "@/lib/brand";
-import { buildNavAccess } from "@/lib/auth/nav-access";
+import { buildNavAccessFromUser } from "@/lib/auth/nav-access";
+import { getSessionUser } from "@/lib/auth/session";
 import { getOrgContext } from "@/lib/tenant/org-context";
 import { PLATFORM_PRODUCT_NAME } from "@/lib/tenant/config";
 
@@ -63,7 +64,8 @@ export default async function RootLayout({
 }>) {
   const orgContext = await getOrgContext();
   const session = await auth();
-  const navAccess = buildNavAccess(session);
+  const membership = await getSessionUser();
+  const navAccess = buildNavAccessFromUser(membership);
 
   return (
     <html lang="en" suppressHydrationWarning className="h-full">

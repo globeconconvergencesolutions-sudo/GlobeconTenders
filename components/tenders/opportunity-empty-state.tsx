@@ -17,6 +17,7 @@ type OpportunityEmptyStateProps = {
   onSync?: () => void;
   canSync: boolean;
   canAddSource: boolean;
+  listingBucket?: "live" | "stale" | "archive" | "all";
 };
 
 export function OpportunityEmptyState({
@@ -24,10 +25,35 @@ export function OpportunityEmptyState({
   onSync,
   canSync,
   canAddSource,
+  listingBucket = "live",
 }: OpportunityEmptyStateProps) {
   const { layout, template } = useOrg();
   const { t, lexicon } = useLexicon();
   const variant = layout.homeCardVariant ?? "procurement";
+
+  if (listingBucket === "stale") {
+    return (
+      <div className="rounded-2xl border border-dashed border-amber-300 bg-amber-50/50 px-6 py-12 text-center dark:border-amber-500/40 dark:bg-amber-950/20">
+        <h3 className="text-lg font-semibold">No stale listings</h3>
+        <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+          Stale means the deadline has passed while the source still reports
+          open. Nothing currently matches that pattern.
+        </p>
+      </div>
+    );
+  }
+
+  if (listingBucket === "archive") {
+    return (
+      <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center dark:border-border dark:bg-card">
+        <h3 className="text-lg font-semibold">Archive is empty</h3>
+        <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+          Expired and source-closed {lexicon.opportunityPlural.toLowerCase()}{" "}
+          will appear here. Live opportunities stay on the Live tab.
+        </p>
+      </div>
+    );
+  }
 
   const config =
     variant === "hr"

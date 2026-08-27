@@ -8,7 +8,10 @@ import type { FilterState } from "@/lib/db/schema";
 import { mergeFilterStateWithUrl } from "@/lib/filters/url-state";
 import { computeOnboardingProgress } from "@/lib/onboarding/steps";
 import { getOnboardingContext } from "@/lib/onboarding/workspace";
-import { isApexHost } from "@/lib/tenant/resolution";
+import {
+  isListingBucket,
+  type ListingBucket,
+} from "@/lib/tenders/lifecycle";
 import {
   DEFAULT_PAGE_SIZE,
   getDashboardStats,
@@ -16,6 +19,7 @@ import {
   getUserFilterState,
   type TenderSort,
 } from "@/lib/tenders/queries";
+import { isApexHost } from "@/lib/tenant/resolution";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +30,7 @@ type HomePageProps = {
     sort?: TenderSort;
     saved?: string;
     showClosed?: string;
+    listing?: string;
     sources?: string;
     lines?: string;
     regions?: string;
@@ -33,13 +38,16 @@ type HomePageProps = {
   }>;
 };
 
-function resolveHideClosed(
+function resolveListingBucket(
+  listingParam: string | undefined,
   showClosedParam: string | undefined,
   filterState?: FilterState,
-): boolean {
-  if (showClosedParam === "1") return false;
-  if (showClosedParam === "0") return true;
-  return filterState?.hideClosed ?? true;
+): ListingBucket {
+  if (isListingBucket(listingParam)) return listingParam;
+  if (showClosedParam === "1") return "all";
+  if (showClosedParam === "0") return "live";
+  if (filterState?.hideClosed === false) return "all";
+  return "live";
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
@@ -53,6 +61,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   const params = await searchParams;
   const user = await getSessionUser();
+
   const page = Math.max(1, Number(params.page) || 1);
   const savedFilterState = user
     ? await getUserFilterState(user.id, user.orgId)
@@ -75,28 +84,73 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const savedOnly =
     params.saved === "1" ||
     (params.saved === undefined && Boolean(filterState?.savedOnly));
-  const hideClosed = resolveHideClosed(params.showClosed, filterState);
+  const listingBucket = resolveListingBucket(
+    params.listing,
+    params.showClosed,
+    filterState,
+  );
 
   const queryFilters = {
     search,
     sort,
     savedOnly,
-    hideClosed,
+    listingBucket,
+    hideClosed: listingBucket === "live",
     filterState,
     page,
     pageSize: DEFAULT_PAGE_SIZE,
   };
 
   const orgId = user?.orgId;
-  const [paginated, stats] = await Promise.all([
+  const emptyPage = {
+    items: [] as Awaited<ReturnType<typeof getTendersPaginated>>["items"],
+    total: 0,
+    page,
+    pageSize: DEFAULT_PAGE_SIZE,
+    totalPages: 0,
+  };
+  const emptyStats = {
+    matchingTenders: 0,
+    closingWithin3Days: 0,
+    openInDatabase: 0,
+    staleListings: 0,
+    archivedListings: 0,
+    activeSources: 0,
+    lastSynced: null as Date | null,
+    trackingSources: 0,
+  };
+
+  let paginated = emptyPage;
+  let stats = emptyStats;
+  let onboardingProgress = null;
+
+  const [pageResult, statsResult, onboardingResult] = await Promise.allSettled([
     getTendersPaginated(queryFilters, orgId),
     getDashboardStats(queryFilters, orgId),
+    user?.role === "super_admin" && user.orgId
+      ? getOnboardingContext(user.orgId)
+      : Promise.resolve(null),
   ]);
 
-  let onboardingProgress = null;
-  if (user?.role === "super_admin" && user.orgId) {
-    const context = await getOnboardingContext(user.orgId);
-    onboardingProgress = computeOnboardingProgress(context.state, context.signals);
+  if (pageResult.status === "fulfilled") {
+    paginated = pageResult.value;
+  } else {
+    console.error("[home] tenders query failed", pageResult.reason);
+  }
+
+  if (statsResult.status === "fulfilled") {
+    stats = statsResult.value;
+  } else {
+    console.error("[home] stats query failed", statsResult.reason);
+  }
+
+  if (onboardingResult.status === "fulfilled" && onboardingResult.value) {
+    onboardingProgress = computeOnboardingProgress(
+      onboardingResult.value.state,
+      onboardingResult.value.signals,
+    );
+  } else if (onboardingResult.status === "rejected") {
+    console.error("[home] onboarding query failed", onboardingResult.reason);
   }
 
   return (
@@ -111,6 +165,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         matchingTenders: stats.matchingTenders,
         closingWithin3Days: stats.closingWithin3Days,
         openInDatabase: stats.openInDatabase,
+        staleListings: stats.staleListings,
+        archivedListings: stats.archivedListings,
         activeSources: stats.activeSources,
         trackingSources: stats.trackingSources,
         lastSynced: stats.lastSynced?.toISOString() ?? null,
@@ -124,7 +180,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       initialSearch={search ?? ""}
       initialSort={sort}
       savedOnly={savedOnly}
-      initialHideClosed={hideClosed}
+      initialListingBucket={listingBucket}
       initialCatalogFilters={{
         sourceIds: filterState?.sourceIds ?? [],
         serviceLineIds: filterState?.serviceLineIds ?? [],

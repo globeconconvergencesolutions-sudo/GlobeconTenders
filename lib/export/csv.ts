@@ -21,7 +21,8 @@ export function tendersToCsv(rows: TenderWithSource[]): string {
     "Deadline",
     "Match Score",
     "Saved",
-    "Status",
+    "Listing State",
+    "Source Status",
     "URL",
     "Project Label",
   ];
@@ -37,7 +38,8 @@ export function tendersToCsv(rows: TenderWithSource[]): string {
       formatDeadline(row.deadline),
       row.matchScore,
       row.saved ? "Yes" : "No",
-      row.isClosed ? "Closed" : "Open",
+      row.listingState ?? (row.isClosed ? "closed" : "live"),
+      row.sourceStatus ?? "",
       row.url ?? "",
       row.projectLabel,
     ]

@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  AlertTriangle,
+  Archive,
   Bookmark,
   CalendarClock,
   Database,
@@ -70,10 +72,24 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
 
   const summaryCards = [
     {
-      label: `Open ${opp}`,
+      label: `Live ${opp}`,
       value: data.openTenders,
       icon: Database,
       accent: "bg-blue-50 text-blue-600",
+      show: true,
+    },
+    {
+      label: "Stale listings",
+      value: data.staleTenders,
+      icon: AlertTriangle,
+      accent: "bg-amber-50 text-amber-700",
+      show: true,
+    },
+    {
+      label: "Archive",
+      value: data.archivedTenders,
+      icon: Archive,
+      accent: "bg-slate-100 text-slate-600",
       show: true,
     },
     {
@@ -101,7 +117,7 @@ export function AnalyticsDashboard({ data }: AnalyticsDashboardProps) {
 
   return (
     <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {summaryCards.map(({ label, value, icon: Icon, accent }) => (
           <Card key={label} className="border-slate-200 shadow-sm">
             <CardContent className="flex items-center justify-between p-5">

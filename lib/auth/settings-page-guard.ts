@@ -18,3 +18,18 @@ export async function requireSettingsManagePage() {
 
   return { user, access };
 }
+
+/** Settings hub + notifications — Super Admin or a notification delegate. */
+export async function requireSettingsAccessPage() {
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+
+  const access = await getSettingsAccessForUser({
+    userId: user.id,
+    role: user.role,
+  });
+
+  if (!access.canAccessSettings) redirect("/");
+
+  return { user, access };
+}

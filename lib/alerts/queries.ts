@@ -205,6 +205,7 @@ export async function getClosingSoonAlerts(
   const sentIds = await getSentTenderIds(user.id, "closing_soon");
   const filterWhere = buildFilterConditions({
     hideClosed: true,
+    listingBucket: "live",
     filterState: user.filterState,
   });
 
@@ -216,7 +217,7 @@ export async function getClosingSoonAlerts(
   const conditions = [
     eq(tenders.orgId, user.orgId),
     filterWhere,
-    eq(tenders.isClosed, false),
+    eq(tenders.hasHardDeadline, true),
     gte(tenders.deadline, now),
     lte(tenders.deadline, horizon),
   ];
@@ -250,13 +251,13 @@ export async function getHighMatchAlerts(
   const sentIds = await getSentTenderIds(user.id, "high_match");
   const filterWhere = buildFilterConditions({
     hideClosed: true,
+    listingBucket: "live",
     filterState: user.filterState,
   });
 
   const conditions = [
     eq(tenders.orgId, user.orgId),
     filterWhere,
-    eq(tenders.isClosed, false),
     gte(tenders.matchScore, user.notificationPrefs.highMatchThreshold),
   ];
 

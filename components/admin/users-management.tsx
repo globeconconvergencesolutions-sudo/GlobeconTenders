@@ -9,6 +9,7 @@ import {
   Users,
 } from "lucide-react";
 
+import { RoleScopePreview } from "@/components/admin/role-access-guide";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ApiErrorAlert } from "@/components/ui/api-error-alert";
 import { readApiError, type ParsedClientError } from "@/lib/api/client-error";
@@ -39,6 +40,10 @@ import {
   ROLE_LABELS,
 } from "@/lib/auth/permissions";
 import {
+  ROLE_BADGE_CLASS,
+  roleSelectHint,
+} from "@/lib/auth/role-guide";
+import {
   canActorManageTarget,
   isProtectedAccount,
   rolesActorCanAssign,
@@ -61,14 +66,7 @@ type UsersManagementProps = {
   currentUserId: number;
 };
 
-const roleBadgeClass: Record<UserRole, string> = {
-  super_admin:
-    "bg-violet-100 text-violet-800 dark:bg-violet-950/40 dark:text-violet-200",
-  admin: "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-200",
-  analyst:
-    "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
-  viewer: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
-};
+const roleBadgeClass = ROLE_BADGE_CLASS;
 
 export function UsersManagement({
   actorRole,
@@ -333,13 +331,22 @@ export function UsersManagement({
                             }
                             disabled={busy}
                           >
-                            <SelectTrigger className="w-full sm:w-[160px]">
+                            <SelectTrigger className="w-full sm:w-[200px]">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="min-w-[14rem]">
                               {assignableRoles.map((r) => (
-                                <SelectItem key={r} value={r}>
-                                  {ROLE_LABELS[r]}
+                                <SelectItem
+                                  key={r}
+                                  value={r}
+                                  className="items-start py-2"
+                                >
+                                  <span className="flex flex-col">
+                                    <span>{ROLE_LABELS[r]}</span>
+                                    <span className="text-[11px] text-muted-foreground">
+                                      {roleSelectHint(r)}
+                                    </span>
+                                  </span>
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -396,19 +403,19 @@ export function UsersManagement({
         <Shield className="mt-0.5 h-4 w-4 shrink-0" />
         <p>
           Super admins can manage everyone except other super admins. Admins can
-          manage admins, analysts, and viewers. Inactive users cannot sign in.
+          manage admins, analysts, and viewers — never super admins. Each person
+          only sees the pages for their role. Inactive users cannot sign in.
           Removing a user permanently deletes their account.
         </p>
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Add team member</DialogTitle>
             <DialogDescription>
-              Create a Globecon account with role-based dashboard access. A
-              welcome email with the login link and temporary password is sent
-              automatically.
+              Create an account with a single role. Pages and actions for that
+              role are listed below — they cannot be mixed.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -448,14 +455,26 @@ export function UsersManagement({
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="min-w-[14rem]">
                   {assignableRoles.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {ROLE_LABELS[r]}
+                    <SelectItem key={r} value={r} className="items-start py-2">
+                      <span className="flex flex-col">
+                        <span>{ROLE_LABELS[r]}</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {roleSelectHint(r)}
+                        </span>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <div className="rounded-lg border border-slate-200 bg-white px-3 py-3 dark:border-border dark:bg-card">
+                <RoleScopePreview role={role} />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                A welcome email with the login link and temporary password is
+                sent automatically.
+              </p>
             </div>
           </div>
           {formError && <ApiErrorAlert error={formError} />}

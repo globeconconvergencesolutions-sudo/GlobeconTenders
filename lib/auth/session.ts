@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { and, eq } from "drizzle-orm";
 
 import { auth } from "@/auth";
@@ -70,33 +71,18 @@ async function loadSessionUserFromDb(
   };
 }
 
-export async function getSessionUser(): Promise<SessionUser | null> {
+export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const session = await auth();
   if (!session?.user?.id || !session.user.orgId) return null;
 
   const userId = Number(session.user.id);
   const orgId = Number(session.user.orgId);
 
-  const dbUser = await loadSessionUserFromDb(userId, orgId);
-  if (dbUser) return dbUser;
-
-  if (session.user.role && session.user.email && session.user.orgSlug) {
-    return {
-      id: userId,
-      email: session.user.email,
-      name: session.user.name ?? session.user.email,
-      role: session.user.role as UserRole,
-      orgId,
-      orgSlug: session.user.orgSlug,
-      isPlatformAdmin: canAccessPlatformAdmin({
-        isPlatformAdmin: Boolean(session.user.isPlatformAdmin),
-        orgSlug: session.user.orgSlug,
-      }),
-    };
-  }
-
-  return null;
-}
+  // Membership is source of truth. Inactive / missing membership = signed out.
+  // Do not fall back to the cookie snapshot — that would keep demoted or
+  // deactivated users in the app until they log out.
+  return loadSessionUserFromDb(userId, orgId);
+});
 
 export async function requireSessionUser() {
   const user = await getSessionUser();

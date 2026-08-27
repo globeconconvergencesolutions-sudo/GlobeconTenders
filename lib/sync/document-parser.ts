@@ -92,6 +92,7 @@ function buildTenderItem(
   if (title.length < 4) return null;
 
   const fallbackDeadline = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const hasHardDeadline = Boolean(partial.deadline);
   const deadline = partial.deadline ?? fallbackDeadline;
   const refSlug = slugifyPart(partial.referenceId ?? title) || `row-${index}`;
 
@@ -101,6 +102,7 @@ function buildTenderItem(
     description: partial.description?.slice(0, 2000),
     category: partial.category ?? inferCategory(`${title} ${partial.description ?? ""}`),
     deadline,
+    hasHardDeadline,
     url: partial.url ?? ctx.documentUrl,
     projectLabel: `${ctx.sourceName} · Document`,
   };

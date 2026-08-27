@@ -8,12 +8,18 @@ import { cn } from "@/lib/utils";
 
 export function FilterResultsOverlay({
   className,
+  busy = false,
+  busyLabel,
 }: {
   className?: string;
+  /** Extra pending state — listing tab / pagination navigations. */
+  busy?: boolean;
+  busyLabel?: string;
 }) {
   const { applying, justApplied } = useFilterWorkspace();
   const { lexicon } = useLexicon();
-  const visible = applying || justApplied;
+  const loading = applying || busy;
+  const visible = loading || justApplied;
 
   return (
     <div
@@ -23,12 +29,12 @@ export function FilterResultsOverlay({
         className,
       )}
       aria-hidden={!visible}
-      aria-busy={applying}
+      aria-busy={loading}
     >
       <div
         className={cn(
           "absolute inset-0 rounded-2xl backdrop-blur-[1px] transition-colors",
-          applying
+          loading
             ? "bg-slate-50/70 dark:bg-background/70"
             : "bg-emerald-50/40 dark:bg-emerald-950/20",
         )}
@@ -36,17 +42,17 @@ export function FilterResultsOverlay({
       <div
         className={cn(
           "relative mt-10 inline-flex items-center gap-2.5 rounded-2xl border px-4 py-2.5 text-sm font-medium shadow-lg",
-          applying
+          loading
             ? "border-slate-200 bg-white text-slate-700 dark:border-border dark:bg-card dark:text-slate-100"
             : "border-emerald-200 bg-white text-emerald-800 dark:border-emerald-400/30 dark:bg-card dark:text-emerald-100",
         )}
         role="status"
         aria-live="polite"
       >
-        {applying ? (
+        {loading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-            Updating {lexicon.opportunityPlural.toLowerCase()}…
+            {busyLabel ?? `Updating ${lexicon.opportunityPlural.toLowerCase()}…`}
           </>
         ) : (
           <>

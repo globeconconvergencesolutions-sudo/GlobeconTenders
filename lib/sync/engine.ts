@@ -21,6 +21,11 @@ import { fetchKenyaPpipTenders } from "@/lib/sync/kenya-ppip";
 import { fetchTenderYetuTenders } from "@/lib/sync/tender-yetu";
 import type { SyncTenderItem } from "@/lib/sync/types";
 import { fetchWorldBankTenders } from "@/lib/sync/world-bank";
+import { normalizeCategory } from "@/lib/tenders/categories";
+import {
+  reconcileTenderListings,
+  resolveListingFields,
+} from "@/lib/tenders/lifecycle";
 
 export type SyncResult = {
   sourceId: number;
@@ -113,13 +118,22 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
 
   for (const item of items) {
     try {
+      const category = normalizeCategory(item.category, {
+        title: item.title,
+        description: item.description,
+      });
+      const listing = resolveListingFields({
+        deadline: item.deadline,
+        sourceStatus: item.status,
+        hasHardDeadline: item.hasHardDeadline,
+      });
       const geo = detectRegionAndCountry(
         `${item.title} ${item.description ?? ""}`,
         allRegions,
         allCountries,
       );
       const matches = matchServiceLines(
-        `${item.title} ${item.description ?? ""} ${item.category}`,
+        `${item.title} ${item.description ?? ""} ${category}`,
         allServiceLines,
       );
       const topScore = matches[0]?.score ?? 0;
@@ -143,7 +157,7 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
           .set({
             title: item.title,
             description: item.description,
-            category: item.category,
+            category,
             deadline: item.deadline,
             url: item.url,
             projectLabel: item.projectLabel,
@@ -152,7 +166,10 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
             regionLabel: geo.regionLabel,
             countryLabel: geo.countryLabel,
             matchScore: topScore,
-            isClosed: item.deadline < new Date(),
+            sourceStatus: listing.sourceStatus,
+            listingState: listing.listingState,
+            hasHardDeadline: listing.hasHardDeadline,
+            isClosed: listing.isClosed,
             updatedAt: new Date(),
           })
           .where(eq(tenders.id, existing.id));
@@ -167,7 +184,7 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
             referenceId: item.referenceId,
             title: item.title,
             description: item.description,
-            category: item.category,
+            category,
             deadline: item.deadline,
             url: item.url,
             projectLabel: item.projectLabel,
@@ -176,7 +193,10 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
             regionLabel: geo.regionLabel,
             countryLabel: geo.countryLabel,
             matchScore: topScore,
-            isClosed: item.deadline < new Date(),
+            sourceStatus: listing.sourceStatus,
+            listingState: listing.listingState,
+            hasHardDeadline: listing.hasHardDeadline,
+            isClosed: listing.isClosed,
           })
           .returning({ id: tenders.id });
         tenderId = created.id;
@@ -211,6 +231,8 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
       lastSyncError: errors.length ? errors.slice(0, 3).join("; ") : null,
     })
     .where(eq(sources.id, source.id));
+
+  await reconcileTenderListings(source.orgId);
 
   return {
     sourceId: source.id,

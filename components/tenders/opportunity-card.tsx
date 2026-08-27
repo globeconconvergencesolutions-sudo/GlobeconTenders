@@ -14,12 +14,14 @@ import {
 type OpportunityCardProps = {
   tender: TenderWithSource;
   canSave?: boolean;
+  canShare?: boolean;
   customFieldDefinitions?: CustomFieldDefinition[];
 };
 
 export function OpportunityCard({
   tender,
   canSave = false,
+  canShare = false,
   customFieldDefinitions,
 }: OpportunityCardProps) {
   const layout = useLayout();
@@ -32,6 +34,7 @@ export function OpportunityCard({
       <HrOpportunityCard
         tender={tender}
         canSave={canSave}
+        canShare={canShare}
         customFieldDefinitions={definitions}
         showMatchScore={features.matchScore}
       />
@@ -42,6 +45,7 @@ export function OpportunityCard({
     <ProcurementOpportunityCard
       tender={tender}
       canSave={canSave}
+      canShare={canShare}
       customFieldDefinitions={definitions}
       showMatchScore={features.matchScore}
     />

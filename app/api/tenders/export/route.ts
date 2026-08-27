@@ -5,6 +5,10 @@ import { requireSessionUser } from "@/lib/auth/session";
 import { tendersToCsv } from "@/lib/export/csv";
 import { mergeFilterStateWithUrl } from "@/lib/filters/url-state";
 import {
+  isListingBucket,
+  type ListingBucket,
+} from "@/lib/tenders/lifecycle";
+import {
   getTendersForExport,
   getUserFilterState,
   type TenderSort,
@@ -16,8 +20,20 @@ function resolveQueryFilters(
   savedFilterState: Awaited<ReturnType<typeof getUserFilterState>>,
 ) {
   const showClosed = searchParams.get("showClosed");
+  const listing = searchParams.get("listing");
   const saved = searchParams.get("saved");
   const filterState = mergeFilterStateWithUrl(savedFilterState, searchParams);
+
+  let listingBucket: ListingBucket = "live";
+  if (isListingBucket(listing)) {
+    listingBucket = listing;
+  } else if (showClosed === "1") {
+    listingBucket = "all";
+  } else if (showClosed === "0") {
+    listingBucket = "live";
+  } else if (filterState.hideClosed === false) {
+    listingBucket = "all";
+  }
 
   return {
     search: searchParams.get("q") ?? filterState.search,
@@ -27,12 +43,8 @@ function resolveQueryFilters(
       "closing_soonest",
     savedOnly:
       saved === "1" || (saved === null && Boolean(filterState.savedOnly)),
-    hideClosed:
-      showClosed === "1"
-        ? false
-        : showClosed === "0"
-          ? true
-          : (filterState.hideClosed ?? true),
+    listingBucket,
+    hideClosed: listingBucket === "live",
     filterState,
   };
 }

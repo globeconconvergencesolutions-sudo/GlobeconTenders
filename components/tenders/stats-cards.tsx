@@ -1,19 +1,22 @@
 "use client";
 
 import {
+  Archive,
   Clock,
-  Filter,
   Globe,
-  TrendingUp,
+  TriangleAlert,
 } from "lucide-react";
 
 import { useLexicon } from "@/components/providers/org-context-provider";
 import { Card, CardContent } from "@/components/ui/card";
+import type { ListingBucket } from "@/lib/tenders/lifecycle";
 
 type SerializableStats = {
   matchingTenders: number;
   closingWithin3Days: number;
   openInDatabase: number;
+  staleListings: number;
+  archivedListings: number;
   activeSources: number;
   lastSynced: string | null;
   trackingSources: number;
@@ -21,16 +24,26 @@ type SerializableStats = {
 
 type StatsCardsProps = {
   stats: SerializableStats;
+  listingBucket: ListingBucket;
 };
 
-export function StatsCards({ stats }: StatsCardsProps) {
+export function StatsCards({ stats, listingBucket }: StatsCardsProps) {
   const { lexicon } = useLexicon();
+
+  const matchingLabel =
+    listingBucket === "stale"
+      ? "Stale listings in view"
+      : listingBucket === "archive"
+        ? "Archived in view"
+        : listingBucket === "all"
+          ? `All ${lexicon.opportunityPlural.toLowerCase()}`
+          : `Live ${lexicon.opportunityPlural.toLowerCase()}`;
 
   const statConfig = [
     {
       key: "matchingTenders" as const,
-      label: `Matching ${lexicon.opportunityPlural.toLowerCase()}`,
-      icon: TrendingUp,
+      label: matchingLabel,
+      icon: Globe,
     },
     {
       key: "closingWithin3Days" as const,
@@ -38,14 +51,14 @@ export function StatsCards({ stats }: StatsCardsProps) {
       icon: Clock,
     },
     {
-      key: "openInDatabase" as const,
-      label: `Open ${lexicon.opportunityPlural.toLowerCase()}`,
-      icon: Globe,
+      key: "staleListings" as const,
+      label: "Stale (past deadline, still open)",
+      icon: TriangleAlert,
     },
     {
-      key: "activeSources" as const,
-      label: `Active ${lexicon.sourcePlural.toLowerCase()}`,
-      icon: Filter,
+      key: "archivedListings" as const,
+      label: "Expired / closed archive",
+      icon: Archive,
     },
   ];
 

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { and, eq } from "drizzle-orm";
 
 import { requireCurrentOrg } from "@/lib/tenant/context";
@@ -111,9 +112,9 @@ async function ensureDefaultAlertRecipients(
   return { ...settings, notifications };
 }
 
-export async function getWorkspaceSettings(
+export const getWorkspaceSettings = cache(async (
   orgId?: number,
-): Promise<WorkspaceSettingsPayload> {
+): Promise<WorkspaceSettingsPayload> => {
   const db = getDb();
   const resolvedOrgId = orgId ?? (await resolveOrgId());
 
@@ -150,7 +151,7 @@ export async function getWorkspaceSettings(
   };
 
   return ensureDefaultAlertRecipients(resolvedOrgId, settings);
-}
+});
 
 export async function updateWorkspaceNotifications(
   notifications: WorkspaceNotificationSettings,

@@ -28,6 +28,13 @@ import {
   EMPTY_FILTER_STATE,
 } from "@/lib/db/schema";
 import { requireCurrentOrg } from "@/lib/tenant/context";
+import {
+  listingBucketSql,
+  liveListingSql,
+  staleListingSql,
+  archiveListingSql,
+  type ListingBucket,
+} from "@/lib/tenders/lifecycle";
 
 async function resolveOrgId(orgId?: number): Promise<number> {
   if (orgId != null && orgId > 0) return orgId;
@@ -48,7 +55,9 @@ export type TenderSort = "closing_soonest" | "recently_issued";
 
 export type TenderQueryFilters = {
   search?: string;
+  /** @deprecated Prefer listingBucket. true → live, false → all. */
   hideClosed?: boolean;
+  listingBucket?: ListingBucket;
   sort?: TenderSort;
   savedOnly?: boolean;
   filterState?: FilterState;
@@ -68,6 +77,8 @@ export type DashboardStats = {
   matchingTenders: number;
   closingWithin3Days: number;
   openInDatabase: number;
+  staleListings: number;
+  archivedListings: number;
   activeSources: number;
   lastSynced: Date | null;
   trackingSources: number;
@@ -75,17 +86,26 @@ export type DashboardStats = {
 
 export const DEFAULT_PAGE_SIZE = 10;
 
+export function resolveListingBucket(
+  filters: Pick<TenderQueryFilters, "listingBucket" | "hideClosed">,
+): ListingBucket {
+  if (filters.listingBucket) return filters.listingBucket;
+  if (filters.hideClosed === false) return "all";
+  return "live";
+}
+
 export function buildFilterConditions(filters: TenderQueryFilters) {
   const {
     search,
-    hideClosed = true,
     savedOnly,
     filterState = EMPTY_FILTER_STATE,
   } = filters;
 
   const conditions = [];
-
-  if (hideClosed) conditions.push(eq(tenders.isClosed, false));
+  const bucket = resolveListingBucket(filters);
+  if (bucket !== "all") {
+    conditions.push(listingBucketSql(bucket));
+  }
   if (savedOnly) conditions.push(eq(tenders.saved, true));
 
   if (filterState.sourceIds.length > 0) {
@@ -192,45 +212,99 @@ async function sanitizeFilterStateForOrg(
   const db = getDb();
   if (!db) return EMPTY_FILTER_STATE;
 
-  const [sourceRows, serviceLineRows, regionRows, countryRows] =
-    await Promise.all([
-      db
-        .select({ id: sources.id })
-        .from(sources)
-        .where(and(eq(sources.orgId, orgId), isNull(sources.archivedAt))),
-      db
-        .select({ id: serviceLines.id })
-        .from(serviceLines)
-        .where(
-          and(eq(serviceLines.orgId, orgId), isNull(serviceLines.archivedAt)),
-        ),
-      db
-        .select({ id: regions.id })
-        .from(regions)
-        .where(eq(regions.orgId, orgId)),
-      db
-        .select({ id: countries.id })
-        .from(countries)
-        .where(eq(countries.orgId, orgId)),
-    ]);
+  const sourceIdsIn = filterState.sourceIds ?? [];
+  const serviceLineIdsIn = filterState.serviceLineIds ?? [];
+  const regionIdsIn = filterState.regionIds ?? [];
+  const countryIdsIn = filterState.countryIds ?? [];
 
-  const sourceIds = new Set(sourceRows.map((r) => r.id));
-  const serviceLineIds = new Set(serviceLineRows.map((r) => r.id));
-  const regionIds = new Set(regionRows.map((r) => r.id));
-  const countryIds = new Set(countryRows.map((r) => r.id));
+  if (
+    sourceIdsIn.length === 0 &&
+    serviceLineIdsIn.length === 0 &&
+    regionIdsIn.length === 0 &&
+    countryIdsIn.length === 0
+  ) {
+    return {
+      ...EMPTY_FILTER_STATE,
+      ...filterState,
+      sourceIds: [],
+      serviceLineIds: [],
+      regionIds: [],
+      countryIds: [],
+    };
+  }
 
-  return {
-    ...EMPTY_FILTER_STATE,
-    ...filterState,
-    sourceIds: (filterState.sourceIds ?? []).filter((id) => sourceIds.has(id)),
-    serviceLineIds: (filterState.serviceLineIds ?? []).filter((id) =>
-      serviceLineIds.has(id),
-    ),
-    regionIds: (filterState.regionIds ?? []).filter((id) => regionIds.has(id)),
-    countryIds: (filterState.countryIds ?? []).filter((id) =>
-      countryIds.has(id),
-    ),
-  };
+  try {
+    const [sourceRows, serviceLineRows, regionRows, countryRows] =
+      await Promise.all([
+        sourceIdsIn.length
+          ? db
+              .select({ id: sources.id })
+              .from(sources)
+              .where(
+                and(
+                  eq(sources.orgId, orgId),
+                  isNull(sources.archivedAt),
+                  inArray(sources.id, sourceIdsIn),
+                ),
+              )
+          : Promise.resolve([] as Array<{ id: number }>),
+        serviceLineIdsIn.length
+          ? db
+              .select({ id: serviceLines.id })
+              .from(serviceLines)
+              .where(
+                and(
+                  eq(serviceLines.orgId, orgId),
+                  isNull(serviceLines.archivedAt),
+                  inArray(serviceLines.id, serviceLineIdsIn),
+                ),
+              )
+          : Promise.resolve([] as Array<{ id: number }>),
+        regionIdsIn.length
+          ? db
+              .select({ id: regions.id })
+              .from(regions)
+              .where(
+                and(eq(regions.orgId, orgId), inArray(regions.id, regionIdsIn)),
+              )
+          : Promise.resolve([] as Array<{ id: number }>),
+        countryIdsIn.length
+          ? db
+              .select({ id: countries.id })
+              .from(countries)
+              .where(
+                and(
+                  eq(countries.orgId, orgId),
+                  inArray(countries.id, countryIdsIn),
+                ),
+              )
+          : Promise.resolve([] as Array<{ id: number }>),
+      ]);
+
+    const sourceIds = new Set(sourceRows.map((r) => r.id));
+    const serviceLineIds = new Set(serviceLineRows.map((r) => r.id));
+    const regionIds = new Set(regionRows.map((r) => r.id));
+    const countryIds = new Set(countryRows.map((r) => r.id));
+
+    return {
+      ...EMPTY_FILTER_STATE,
+      ...filterState,
+      sourceIds: sourceIdsIn.filter((id) => sourceIds.has(id)),
+      serviceLineIds: serviceLineIdsIn.filter((id) => serviceLineIds.has(id)),
+      regionIds: regionIdsIn.filter((id) => regionIds.has(id)),
+      countryIds: countryIdsIn.filter((id) => countryIds.has(id)),
+    };
+  } catch (error) {
+    console.error("[filters] sanitizeFilterStateForOrg failed", error);
+    return {
+      ...EMPTY_FILTER_STATE,
+      ...filterState,
+      sourceIds: sourceIdsIn,
+      serviceLineIds: serviceLineIdsIn,
+      regionIds: regionIdsIn,
+      countryIds: countryIdsIn,
+    };
+  }
 }
 
 export async function getTendersPaginated(
@@ -263,48 +337,52 @@ export async function getTendersPaginated(
 
   const offset = (page - 1) * pageSize;
 
-  const [totalRow] = await db
-    .select({ count: count() })
-    .from(tenders)
-    .innerJoin(sources, eq(tenders.sourceId, sources.id))
-    .where(whereClause);
-
-  const rows = await db
-    .select({
-      id: tenders.id,
-      orgId: tenders.orgId,
-      sourceId: tenders.sourceId,
-      referenceId: tenders.referenceId,
-      title: tenders.title,
-      description: tenders.description,
-      projectLabel: tenders.projectLabel,
-      category: tenders.category,
-      deadline: tenders.deadline,
-      url: tenders.url,
-      regionId: tenders.regionId,
-      countryId: tenders.countryId,
-      regionLabel: tenders.regionLabel,
-      countryLabel: tenders.countryLabel,
-      isClosed: tenders.isClosed,
-      saved: tenders.saved,
-      matchScore: tenders.matchScore,
-      customFields: tenders.customFields,
-      createdAt: tenders.createdAt,
-      updatedAt: tenders.updatedAt,
-      sourceName: sources.name,
-      sourceColor: sources.color,
-      sourceSlug: sources.slug,
-      regionName: regions.name,
-      countryName: countries.name,
-    })
-    .from(tenders)
-    .innerJoin(sources, eq(tenders.sourceId, sources.id))
-    .leftJoin(regions, eq(tenders.regionId, regions.id))
-    .leftJoin(countries, eq(tenders.countryId, countries.id))
-    .where(whereClause)
-    .orderBy(orderBy)
-    .limit(pageSize)
-    .offset(offset);
+  const [[totalRow], rows] = await Promise.all([
+    db
+      .select({ count: count() })
+      .from(tenders)
+      .innerJoin(sources, eq(tenders.sourceId, sources.id))
+      .where(whereClause),
+    db
+      .select({
+        id: tenders.id,
+        orgId: tenders.orgId,
+        sourceId: tenders.sourceId,
+        referenceId: tenders.referenceId,
+        title: tenders.title,
+        description: tenders.description,
+        projectLabel: tenders.projectLabel,
+        category: tenders.category,
+        deadline: tenders.deadline,
+        url: tenders.url,
+        regionId: tenders.regionId,
+        countryId: tenders.countryId,
+        regionLabel: tenders.regionLabel,
+        countryLabel: tenders.countryLabel,
+        sourceStatus: tenders.sourceStatus,
+        listingState: tenders.listingState,
+        hasHardDeadline: tenders.hasHardDeadline,
+        isClosed: tenders.isClosed,
+        saved: tenders.saved,
+        matchScore: tenders.matchScore,
+        customFields: tenders.customFields,
+        createdAt: tenders.createdAt,
+        updatedAt: tenders.updatedAt,
+        sourceName: sources.name,
+        sourceColor: sources.color,
+        sourceSlug: sources.slug,
+        regionName: regions.name,
+        countryName: countries.name,
+      })
+      .from(tenders)
+      .innerJoin(sources, eq(tenders.sourceId, sources.id))
+      .leftJoin(regions, eq(tenders.regionId, regions.id))
+      .leftJoin(countries, eq(tenders.countryId, countries.id))
+      .where(whereClause)
+      .orderBy(orderBy)
+      .limit(pageSize)
+      .offset(offset),
+  ]);
 
   const total = totalRow?.count ?? 0;
 
@@ -330,6 +408,8 @@ export async function getDashboardStats(
       matchingTenders: 0,
       closingWithin3Days: 0,
       openInDatabase: 0,
+      staleListings: 0,
+      archivedListings: 0,
       activeSources: 0,
       lastSynced: null,
       trackingSources: 0,
@@ -337,72 +417,62 @@ export async function getDashboardStats(
   }
 
   const resolvedOrgId = await resolveOrgId(orgId);
-  const whereClause = scopeToOrg(resolvedOrgId, buildFilterConditions(filters));
+  const catalogWhere = scopeToOrg(
+    resolvedOrgId,
+    buildFilterConditions({
+      ...filters,
+      listingBucket: "all",
+      hideClosed: false,
+    }),
+  );
+  const bucket = resolveListingBucket(filters);
 
-  const [openCount] = await db
-    .select({ count: count() })
-    .from(tenders)
-    .innerJoin(sources, eq(tenders.sourceId, sources.id))
-    .where(
-      whereClause
-        ? and(whereClause, eq(tenders.isClosed, false))
-        : eq(tenders.isClosed, false),
-    );
+  const [[tenderRow], [sourceRow]] = await Promise.all([
+    db
+      .select({
+        all: count(),
+        live: sql<number>`count(*) filter (where ${liveListingSql})`,
+        stale: sql<number>`count(*) filter (where ${staleListingSql})`,
+        archived: sql<number>`count(*) filter (where ${archiveListingSql})`,
+        closing3: sql<number>`count(*) filter (where ${liveListingSql} and ${tenders.hasHardDeadline} = true and ${tenders.deadline} <= now() + interval '3 days')`,
+      })
+      .from(tenders)
+      .innerJoin(sources, eq(tenders.sourceId, sources.id))
+      .where(catalogWhere),
+    db
+      .select({
+        tracking: sql<number>`count(*) filter (where ${sources.enabled} = true and ${sources.archivedAt} is null)`,
+        active: sql<number>`count(*) filter (where ${sources.enabled} = true and ${sources.lastSyncedAt} is not null)`,
+        lastSynced: sql<Date | null>`max(${sources.lastSyncedAt})`,
+      })
+      .from(sources)
+      .where(eq(sources.orgId, resolvedOrgId)),
+  ]);
 
-  const [closingSoonCount] = await db
-    .select({ count: count() })
-    .from(tenders)
-    .innerJoin(sources, eq(tenders.sourceId, sources.id))
-    .where(
-      and(
-        whereClause ?? sql`true`,
-        eq(tenders.isClosed, false),
-        sql`${tenders.deadline} <= now() + interval '3 days'`,
-        sql`${tenders.deadline} >= now()`,
-      ),
-    );
-
-  const [activeSourceCount] = await db
-    .select({ count: count() })
-    .from(sources)
-    .where(
-      and(
-        eq(sources.orgId, resolvedOrgId),
-        eq(sources.enabled, true),
-        sql`${sources.lastSyncedAt} IS NOT NULL`,
-      ),
-    );
-
-  const [trackingSourceCount] = await db
-    .select({ count: count() })
-    .from(sources)
-    .where(
-      and(
-        eq(sources.orgId, resolvedOrgId),
-        eq(sources.enabled, true),
-        isNull(sources.archivedAt),
-      ),
-    );
-
-  const [lastSync] = await db
-    .select({ syncedAt: sources.lastSyncedAt })
-    .from(sources)
-    .where(
-      and(
-        eq(sources.orgId, resolvedOrgId),
-        sql`${sources.lastSyncedAt} IS NOT NULL`,
-      ),
-    )
-    .orderBy(desc(sources.lastSyncedAt))
-    .limit(1);
+  const live = Number(tenderRow?.live ?? 0);
+  const stale = Number(tenderRow?.stale ?? 0);
+  const archived = Number(tenderRow?.archived ?? 0);
+  const all = tenderRow?.all ?? 0;
+  const matchingTenders =
+    bucket === "stale"
+      ? stale
+      : bucket === "archive"
+        ? archived
+        : bucket === "all"
+          ? all
+          : live;
 
   return {
-    matchingTenders: openCount?.count ?? 0,
-    closingWithin3Days: closingSoonCount?.count ?? 0,
-    openInDatabase: openCount?.count ?? 0,
-    activeSources: activeSourceCount?.count ?? 0,
-    lastSynced: lastSync?.syncedAt ?? null,
-    trackingSources: trackingSourceCount?.count ?? 0,
+    matchingTenders,
+    closingWithin3Days: Number(tenderRow?.closing3 ?? 0),
+    openInDatabase: live,
+    staleListings: stale,
+    archivedListings: archived,
+    activeSources: Number(sourceRow?.active ?? 0),
+    lastSynced: sourceRow?.lastSynced
+      ? new Date(sourceRow.lastSynced)
+      : null,
+    trackingSources: Number(sourceRow?.tracking ?? 0),
   };
 }
 
@@ -536,6 +606,9 @@ export async function getTendersForExport(
       countryId: tenders.countryId,
       regionLabel: tenders.regionLabel,
       countryLabel: tenders.countryLabel,
+      sourceStatus: tenders.sourceStatus,
+      listingState: tenders.listingState,
+      hasHardDeadline: tenders.hasHardDeadline,
       isClosed: tenders.isClosed,
       saved: tenders.saved,
       matchScore: tenders.matchScore,
@@ -565,6 +638,8 @@ export async function getTendersForExport(
 export type AnalyticsSnapshot = {
   totalTenders: number;
   openTenders: number;
+  staleTenders: number;
+  archivedTenders: number;
   savedTenders: number;
   closingWithin7Days: number;
   closingWithin30Days: number;
@@ -586,6 +661,8 @@ export async function getAnalyticsSnapshot(orgId?: number): Promise<AnalyticsSna
     return {
       totalTenders: 0,
       openTenders: 0,
+      staleTenders: 0,
+      archivedTenders: 0,
       savedTenders: 0,
       closingWithin7Days: 0,
       closingWithin30Days: 0,
@@ -603,10 +680,12 @@ export async function getAnalyticsSnapshot(orgId?: number): Promise<AnalyticsSna
   const [totals] = await db
     .select({
       total: count(),
-      open: sql<number>`count(*) filter (where ${tenders.isClosed} = false)`,
+      open: sql<number>`count(*) filter (where ${liveListingSql})`,
+      stale: sql<number>`count(*) filter (where ${staleListingSql})`,
+      archived: sql<number>`count(*) filter (where ${archiveListingSql})`,
       saved: sql<number>`count(*) filter (where ${tenders.saved} = true)`,
-      closing7: sql<number>`count(*) filter (where ${tenders.isClosed} = false and ${tenders.deadline} <= now() + interval '7 days' and ${tenders.deadline} >= now())`,
-      closing30: sql<number>`count(*) filter (where ${tenders.isClosed} = false and ${tenders.deadline} <= now() + interval '30 days' and ${tenders.deadline} >= now())`,
+      closing7: sql<number>`count(*) filter (where ${liveListingSql} and ${tenders.hasHardDeadline} = true and ${tenders.deadline} <= now() + interval '7 days')`,
+      closing30: sql<number>`count(*) filter (where ${liveListingSql} and ${tenders.hasHardDeadline} = true and ${tenders.deadline} <= now() + interval '30 days')`,
       avgScore: sql<number>`coalesce(avg(${tenders.matchScore}), 0)`,
     })
     .from(tenders)
@@ -620,7 +699,7 @@ export async function getAnalyticsSnapshot(orgId?: number): Promise<AnalyticsSna
     })
     .from(tenders)
     .innerJoin(sources, eq(tenders.sourceId, sources.id))
-    .where(and(orgFilter, eq(tenders.isClosed, false)))
+    .where(and(orgFilter, liveListingSql))
     .groupBy(sources.name, sources.color)
     .orderBy(desc(count()))
     .limit(8);
@@ -634,7 +713,7 @@ export async function getAnalyticsSnapshot(orgId?: number): Promise<AnalyticsSna
     })
     .from(tenders)
     .leftJoin(regions, eq(tenders.regionId, regions.id))
-    .where(and(orgFilter, eq(tenders.isClosed, false)))
+    .where(and(orgFilter, liveListingSql))
     .groupBy(
       sql`coalesce(${regions.name}, ${tenders.regionLabel}, 'Unassigned')`,
     )
@@ -647,7 +726,7 @@ export async function getAnalyticsSnapshot(orgId?: number): Promise<AnalyticsSna
       count: count(),
     })
     .from(tenders)
-    .where(and(orgFilter, eq(tenders.isClosed, false)))
+    .where(and(orgFilter, liveListingSql))
     .groupBy(tenders.category)
     .orderBy(desc(count()))
     .limit(8);
@@ -668,6 +747,8 @@ export async function getAnalyticsSnapshot(orgId?: number): Promise<AnalyticsSna
   return {
     totalTenders: totals?.total ?? 0,
     openTenders: Number(totals?.open ?? 0),
+    staleTenders: Number(totals?.stale ?? 0),
+    archivedTenders: Number(totals?.archived ?? 0),
     savedTenders: Number(totals?.saved ?? 0),
     closingWithin7Days: Number(totals?.closing7 ?? 0),
     closingWithin30Days: Number(totals?.closing30 ?? 0),

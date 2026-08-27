@@ -55,9 +55,9 @@ function briefingForMode(mode: SidebarMode): PageBriefing | null {
         icon: <Shield className="h-4 w-4" />,
         title: "Team management",
         description:
-          "Invite colleagues and assign roles — super admins control all access levels.",
+          "Assign one role per person. Super Admin owns settings; Admin runs Team and catalog; Analyst works the pipeline; Viewer only browses.",
         accent: "from-amber-500/20 via-transparent to-orange-500/10",
-        hint: "Analysts sync & export; viewers are read-only.",
+        hint: "You cannot mix pages across roles. Super Admin seats stay protected.",
       };
     case "settings":
       return {
@@ -122,7 +122,7 @@ export function SidebarContextPanel({
       {mode === "team" && (
         <div className="flex items-center gap-2 rounded-lg bg-white/[0.04] px-2.5 py-2 text-[10px] text-slate-400">
           <Users className="h-3.5 w-3.5 shrink-0 text-violet-300" />
-          Super admins manage all roles
+          Super Admin owns Settings. Admin cannot assign that role.
         </div>
       )}
     </div>

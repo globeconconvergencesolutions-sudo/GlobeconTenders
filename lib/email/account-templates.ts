@@ -1,4 +1,5 @@
 import { ROLE_LABELS } from "@/lib/auth/permissions";
+import { rolePagesLine, roleWelcomeLine } from "@/lib/auth/role-guide";
 import type { UserRole } from "@/lib/db/schema";
 import {
   emailShell,
@@ -24,6 +25,9 @@ export function buildWelcomeEmail(input: {
       <p style="margin:0 0 16px;font-size:14px;color:#475569;line-height:1.6;">
         Hi ${escapeHtml(input.recipientName)}, ${escapeHtml(input.invitedBy)} created a Globecon Tender Watch account for you as <strong>${escapeHtml(roleLabel)}</strong>.
       </p>
+      <p style="margin:0 0 16px;font-size:13px;color:#475569;line-height:1.6;">
+        ${escapeHtml(roleWelcomeLine(input.role))} Pages you can open: ${escapeHtml(rolePagesLine(input.role))}.
+      </p>
       ${infoBox(`
         <div style="margin-bottom:8px;"><strong>Email:</strong> ${escapeHtml(input.email)}</div>
         <div><strong>Temporary password:</strong> <code style="font-size:13px;background:#e2e8f0;padding:2px 6px;border-radius:4px;">${escapeHtml(input.temporaryPassword)}</code></div>
@@ -44,6 +48,8 @@ export function buildWelcomeEmail(input: {
     `Hi ${input.recipientName},`,
     "",
     `${input.invitedBy} created your account as ${roleLabel}.`,
+    roleWelcomeLine(input.role),
+    `Pages: ${rolePagesLine(input.role)}.`,
     "",
     `Email: ${input.email}`,
     `Temporary password: ${input.temporaryPassword}`,

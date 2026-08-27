@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Loader2, Save } from "lucide-react";
 
@@ -37,10 +37,13 @@ import {
   canSaveTenders,
   canSync,
   canCreateSources,
+  canShareTenders,
 } from "@/lib/auth/permissions";
+import { getRoleGuide } from "@/lib/auth/role-guide";
 import { EMPTY_FILTER_STATE, type TenderWithSource, type UserRole } from "@/lib/db/schema";
 import { mergeFilterStateWithUrl } from "@/lib/filters/url-state";
 import type { OnboardingProgress } from "@/lib/onboarding/steps";
+import type { ListingBucket } from "@/lib/tenders/lifecycle";
 import type { TenderSort } from "@/lib/tenders/queries";
 import { showSuccessToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -65,6 +68,8 @@ type SerializableStats = {
   matchingTenders: number;
   closingWithin3Days: number;
   openInDatabase: number;
+  staleListings: number;
+  archivedListings: number;
   activeSources: number;
   lastSynced: string | null;
   trackingSources: number;
@@ -84,7 +89,7 @@ type TendersDashboardProps = {
   initialSearch?: string;
   initialSort?: TenderSort;
   savedOnly?: boolean;
-  initialHideClosed?: boolean;
+  initialListingBucket?: ListingBucket;
   /** Effective catalog filters after URL∪DB merge (server). */
   initialCatalogFilters?: CatalogFilterIds;
   userRole: UserRole;
@@ -98,7 +103,7 @@ function TendersDashboardInner({
   initialSearch = "",
   initialSort = "closing_soonest",
   savedOnly = false,
-  initialHideClosed = true,
+  initialListingBucket = "live",
   initialCatalogFilters = {
     sourceIds: [],
     serviceLineIds: [],
@@ -110,13 +115,21 @@ function TendersDashboardInner({
 }: TendersDashboardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
   const { lexicon } = useLexicon();
   const features = useFeatures();
   const { openFilters, chips, removeChip, clearAll, applying, reloadDefaults } =
     useFilterWorkspace();
+  const roleGuide = getRoleGuide(userRole);
+  const browseOnly = userRole === "viewer";
 
   const [search, setSearch] = useState(initialSearch);
-  const [hideClosed, setHideClosed] = useState(initialHideClosed);
+  const [listingBucket, setListingBucket] =
+    useState<ListingBucket>(initialListingBucket);
+
+  useEffect(() => {
+    setListingBucket(initialListingBucket);
+  }, [initialListingBucket]);
   const [sort, setSort] = useState<TenderSort>(initialSort);
   const [savedFilter, setSavedFilter] = useState(savedOnly);
   const [syncing, setSyncing] = useState(false);
@@ -155,7 +168,9 @@ function TendersDashboardInner({
       if (!value) params.delete(key);
       else params.set(key, value);
     });
-    router.push(`/?${params.toString()}`);
+    startTransition(() => {
+      router.push(`/?${params.toString()}`);
+    });
   }
 
   function buildPageHref(page: number) {
@@ -251,7 +266,7 @@ function TendersDashboardInner({
           search: search || undefined,
           sort,
           savedOnly: savedFilter,
-          hideClosed,
+          hideClosed: listingBucket === "live",
         }),
       });
       if (response.ok) {
@@ -295,6 +310,11 @@ function TendersDashboardInner({
       <FilterDrawer />
 
       <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        {browseOnly && (
+          <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-muted-foreground shadow-sm dark:border-border dark:bg-card">
+            {roleGuide.label}: {roleGuide.summary}
+          </p>
+        )}
         {onboardingProgress && (
           <OnboardingChecklist
             initialProgress={onboardingProgress}
@@ -324,24 +344,90 @@ function TendersDashboardInner({
             />
           )}
 
-        <StatsCards stats={stats} />
+        <StatsCards stats={stats} listingBucket={listingBucket} />
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          <Button
-            size="sm"
-            variant={hideClosed ? "default" : "outline"}
-            onClick={() => {
-              const next = !hideClosed;
-              setHideClosed(next);
-              pushParams({
-                showClosed: next ? undefined : "1",
-                page: "1",
-              });
-            }}
-            className="w-full rounded-xl sm:w-auto"
+          <div
+            className="inline-flex w-full flex-wrap gap-1 rounded-xl border border-slate-200 bg-white p-1 dark:border-border dark:bg-card sm:w-auto"
+            role="tablist"
+            aria-label="Listing lifecycle"
           >
-            {hideClosed ? "✓ Hiding closed" : "Show closed"}
-          </Button>
+            {(
+              [
+                {
+                  id: "live" as const,
+                  label: "Live",
+                  count: stats.openInDatabase,
+                },
+                {
+                  id: "stale" as const,
+                  label: "Stale",
+                  count: stats.staleListings,
+                },
+                {
+                  id: "archive" as const,
+                  label: "Archive",
+                  count: stats.archivedListings,
+                },
+              ] as const
+            ).map((tab) => {
+              const active = listingBucket === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => {
+                    if (active || isPending) return;
+                    setListingBucket(tab.id);
+                    pushParams({
+                      listing: tab.id === "live" ? undefined : tab.id,
+                      showClosed: undefined,
+                      page: "1",
+                    });
+                  }}
+                  disabled={isPending && !active}
+                  className={cn(
+                    "inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition sm:flex-none",
+                    active
+                      ? "bg-slate-900 text-white dark:bg-blue-600"
+                      : "text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-white/5",
+                    isPending && !active && "opacity-60",
+                  )}
+                >
+                  {tab.label}
+                  {active && isPending ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <span
+                      className={cn(
+                        "rounded-md px-1.5 py-0.5 text-[10px] tabular-nums",
+                        active
+                          ? "bg-white/20"
+                          : "bg-slate-100 text-slate-500 dark:bg-white/10",
+                      )}
+                    >
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {listingBucket === "stale" && (
+            <p className="text-xs text-amber-700 dark:text-amber-300 sm:max-w-md">
+              Deadline has passed, but the source still reports these as open.
+              Review before bidding — they may already be closed on the portal.
+            </p>
+          )}
+          {listingBucket === "archive" && (
+            <p className="text-xs text-muted-foreground sm:max-w-md">
+              Expired by date or closed / awarded / cancelled by the source.
+              Hidden from Live so the pipeline stays actionable.
+            </p>
+          )}
 
           <Select
             value={sort}
@@ -387,11 +473,14 @@ function TendersDashboardInner({
         </div>
 
         <div className="relative">
-          <FilterResultsOverlay />
+          <FilterResultsOverlay
+            busy={isPending}
+            busyLabel={`Loading ${lexicon.opportunityPlural.toLowerCase()}…`}
+          />
           <div
             className={cn(
               "grid gap-4 transition-[filter,opacity] duration-300 sm:grid-cols-2 2xl:grid-cols-3",
-              applying && "opacity-60",
+              (applying || isPending) && "opacity-60",
             )}
           >
             {normalizedTenders.map((tender) => (
@@ -399,6 +488,7 @@ function TendersDashboardInner({
                 key={tender.id}
                 tender={tender}
                 canSave={canSaveTenders(userRole)}
+                canShare={canShareTenders(userRole)}
               />
             ))}
           </div>
@@ -407,6 +497,7 @@ function TendersDashboardInner({
             <OpportunityEmptyState
               canSync={canSync(userRole) && features.sync}
               canAddSource={canCreateSources(userRole)}
+              listingBucket={listingBucket}
               onAddSource={() => openFilters({ focusAddSource: true })}
               onSync={() => void handleSync()}
             />
@@ -419,6 +510,12 @@ function TendersDashboardInner({
           total={pagination.total}
           pageSize={pagination.pageSize}
           buildHref={buildPageHref}
+          itemLabel={lexicon.opportunityPlural.toLowerCase()}
+          onNavigate={(href) => {
+            startTransition(() => {
+              router.push(href);
+            });
+          }}
         />
       </div>
     </div>

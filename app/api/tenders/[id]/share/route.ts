@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { canShareTenders } from "@/lib/auth/permissions";
 import { requireSessionUser } from "@/lib/auth/session";
 import { getTransactionalEmailConfig } from "@/lib/email/config";
 import { getOrCreateTenderShareLink } from "@/lib/tenders/share";
@@ -12,6 +13,9 @@ type RouteContext = {
 export async function POST(_request: Request, context: RouteContext) {
   try {
     const user = await requireSessionUser();
+    if (!canShareTenders(user.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     await requireOrgFeature("publicShare");
     const { id } = await context.params;
     const tenderId = Number(id);
@@ -39,7 +43,10 @@ export async function POST(_request: Request, context: RouteContext) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     if (error instanceof Error && error.message === "FEATURE_DISABLED") {
-      return NextResponse.json({ error: "Sharing is disabled for this workspace" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Sharing is disabled for this workspace" },
+        { status: 403 },
+      );
     }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to create share link" },

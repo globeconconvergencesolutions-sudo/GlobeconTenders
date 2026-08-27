@@ -13,6 +13,7 @@ import {
 import { orgAllowsSync } from "@/lib/platform/org-status";
 import { expireTrials } from "@/lib/platform/trials";
 import { syncSource } from "@/lib/sync/engine";
+import { reconcileTenderListings } from "@/lib/tenders/lifecycle";
 import { listActiveOrganizations } from "@/lib/tenant/org";
 
 export async function POST(request: Request) {
@@ -84,6 +85,8 @@ export async function POST(request: Request) {
       }
 
       allResults.push(...orgResults);
+
+      await reconcileTenderListings(org.id);
 
       await db.insert(syncLogs).values(
         orgResults.map((result) => ({

@@ -1,8 +1,9 @@
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 
 import { getDb } from "@/lib/db";
 import {
   orgMemberships,
+  sources,
   workspaceSettings,
   type WorkspaceBrandingSettings,
 } from "@/lib/db/schema";
@@ -49,21 +50,27 @@ export async function getOnboardingSignals(orgId: number): Promise<OnboardingSig
 
   const settings = await getWorkspaceSettings(orgId);
 
-  const [[memberRow], sourceStats] = await Promise.all([
+  const [[memberRow], [sourceRow]] = await Promise.all([
     db
       .select({ value: count() })
       .from(orgMemberships)
       .where(
         and(eq(orgMemberships.orgId, orgId), eq(orgMemberships.isActive, true)),
       ),
-    import("@/lib/tenders/queries").then((m) =>
-      m.getDashboardStats({ page: 1, pageSize: 1, hideClosed: true }),
-    ),
+    db
+      .select({
+        tracking: sql<number>`count(*) filter (where ${sources.enabled} = true and ${sources.archivedAt} is null)`,
+        lastSynced: sql<Date | null>`max(${sources.lastSyncedAt})`,
+      })
+      .from(sources)
+      .where(eq(sources.orgId, orgId)),
   ]);
 
   return {
-    trackingSources: sourceStats.trackingSources,
-    lastSynced: sourceStats.lastSynced?.toISOString() ?? null,
+    trackingSources: Number(sourceRow?.tracking ?? 0),
+    lastSynced: sourceRow?.lastSynced
+      ? new Date(sourceRow.lastSynced).toISOString()
+      : null,
     teamMemberCount: Number(memberRow?.value ?? 0),
     hasCustomBranding: hasCustomBranding(settings.branding),
   };

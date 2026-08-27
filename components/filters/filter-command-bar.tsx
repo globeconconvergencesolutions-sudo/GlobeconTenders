@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   canExportTenders,
+  canSaveTenders,
   canSync,
 } from "@/lib/auth/permissions";
 import type { UserRole } from "@/lib/db/schema";
@@ -66,6 +67,9 @@ export function FilterCommandBar({
   const { t, lexicon } = useLexicon();
   const features = useFeatures();
   const [pulse, setPulse] = useState(false);
+  const showSync = features.sync && canSync(userRole);
+  const showExport = features.export && canExportTenders(userRole);
+  const showSavedTenders = canSaveTenders(userRole);
 
   useEffect(() => {
     if (!applying && !justApplied) return;
@@ -138,13 +142,13 @@ export function FilterCommandBar({
               />
             </form>
 
-            <div className="grid grid-cols-3 gap-2 sm:flex">
-              {features.sync && (
+            <div className="flex flex-wrap gap-2 sm:flex-nowrap">
+              {showSync && (
                 <Button
                   variant="outline"
                   size="sm"
                   className="h-11 rounded-xl sm:px-3"
-                  disabled={!canSync(userRole) || syncing}
+                  disabled={syncing}
                   onClick={onSync}
                   data-sync-trigger
                 >
@@ -156,6 +160,7 @@ export function FilterCommandBar({
                   <span className="hidden sm:inline">{t("sync")}</span>
                 </Button>
               )}
+              {showSavedTenders && (
               <Button
                 variant="outline"
                 size="sm"
@@ -171,12 +176,13 @@ export function FilterCommandBar({
                 />
                 <span className="hidden sm:inline">Saved</span>
               </Button>
-              {features.export && (
+              )}
+              {showExport && (
                 <Button
                   variant="outline"
                   size="sm"
                   className="h-11 rounded-xl sm:px-3"
-                  disabled={!canExportTenders(userRole) || exporting}
+                  disabled={exporting}
                   onClick={onExport}
                 >
                   {exporting ? (

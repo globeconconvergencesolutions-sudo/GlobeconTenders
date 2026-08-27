@@ -12,15 +12,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { CustomFieldDefinition, TenderWithSource } from "@/lib/db/schema";
 import { getCardCustomFields } from "@/lib/templates/custom-fields";
 import {
-  cn,
-  daysUntil,
-  formatDeadline,
-  urgencyTextColor,
-} from "@/lib/utils";
+  listingStateBadgeLabel,
+  opportunityTiming,
+  timingTextClass,
+  type ListingState,
+} from "@/lib/tenders/lifecycle";
+import { cn, formatDeadline } from "@/lib/utils";
 
 type HrOpportunityCardProps = {
   tender: TenderWithSource;
   canSave?: boolean;
+  canShare?: boolean;
   customFieldDefinitions?: CustomFieldDefinition[];
   showMatchScore?: boolean;
 };
@@ -28,6 +30,7 @@ type HrOpportunityCardProps = {
 export function HrOpportunityCard({
   tender,
   canSave = false,
+  canShare = false,
   customFieldDefinitions = [],
   showMatchScore = true,
 }: HrOpportunityCardProps) {
@@ -36,7 +39,14 @@ export function HrOpportunityCard({
   const features = useFeatures();
   const [saved, setSaved] = useState(tender.saved);
   const [saving, setSaving] = useState(false);
-  const daysLeft = daysUntil(tender.deadline);
+  const timing = opportunityTiming(tender.deadline, {
+    listingState: (tender.listingState as ListingState | null) ?? null,
+    sourceStatus: tender.sourceStatus,
+    hasHardDeadline: tender.hasHardDeadline,
+  });
+  const listingBadge = listingStateBadgeLabel(
+    (tender.listingState as ListingState | null) ?? null,
+  );
   const location = [tender.countryLabel ?? tender.countryName, tender.regionLabel ?? tender.regionName]
     .filter(Boolean)
     .join(", ");
@@ -77,9 +87,23 @@ export function HrOpportunityCard({
                 {t("matchScore")}: {tender.matchScore}
               </Badge>
             )}
+            {listingBadge && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "font-normal",
+                  timing.tone === "stale" &&
+                    "border-amber-300 text-amber-800 dark:border-amber-500/40 dark:text-amber-200",
+                  (timing.tone === "expired" || timing.tone === "closed") &&
+                    "border-red-300 text-red-700 dark:border-red-500/40 dark:text-red-300",
+                )}
+              >
+                {listingBadge}
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-1">
-            {features.publicShare && (
+            {canShare && features.publicShare && (
               <ShareTenderButton tenderId={tender.id} tenderTitle={tender.title} />
             )}
             <button
@@ -153,8 +177,8 @@ export function HrOpportunityCard({
               <Clock className="h-3.5 w-3.5" />
               {t("deadline")}: {formatDeadline(tender.deadline)}
             </span>
-            <span className={cn("font-medium", urgencyTextColor(daysLeft))}>
-              {daysLeft}d left
+            <span className={cn("font-medium", timingTextClass(timing.tone))}>
+              {timing.label}
             </span>
           </div>
           {tender.url && (

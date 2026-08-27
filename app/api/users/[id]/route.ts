@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import {
@@ -8,8 +7,11 @@ import {
   canActorManageTarget,
 } from "@/lib/auth/user-management";
 import { requirePermission } from "@/lib/auth/session";
+import {
+  getWorkspaceMember,
+  persistWorkspaceMemberAccess,
+} from "@/lib/auth/workspace-membership";
 import { getDb } from "@/lib/db";
-import { users, type UserRole } from "@/lib/db/schema";
 import { deleteUserById } from "@/lib/users/mutations";
 import {
   sendDeactivatedTeamEmail,
@@ -43,12 +45,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const payload = updateUserSchema.parse(await request.json());
 
-    const [target] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
+    const target = await getWorkspaceMember(actor.orgId, userId);
     if (!target) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
@@ -56,7 +53,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     if (
       !canActorManageTarget(
         { id: actor.id, role: actor.role },
-        { id: target.id, role: target.role as UserRole },
+        { id: target.id, role: target.role },
       )
     ) {
       return NextResponse.json(
@@ -84,45 +81,42 @@ export async function PATCH(request: Request, context: RouteContext) {
       );
     }
 
-    const updates: Partial<{
-      name: string;
-      role: UserRole;
-      isActive: boolean;
-      passwordHash: string;
-      updatedAt: Date;
-    }> = { updatedAt: new Date() };
+    const passwordHash = payload.password
+      ? await bcrypt.hash(payload.password, 12)
+      : undefined;
 
-    if (payload.name) updates.name = payload.name.trim();
-    if (payload.role) updates.role = payload.role;
-    if (typeof payload.isActive === "boolean") updates.isActive = payload.isActive;
-    if (payload.password) {
-      updates.passwordHash = await bcrypt.hash(payload.password, 12);
-    }
-
-    const [updated] = await db
-      .update(users)
-      .set(updates)
-      .where(eq(users.id, userId))
-      .returning({
-        id: users.id,
-        name: users.name,
-        email: users.email,
-        role: users.role,
-        isActive: users.isActive,
-        createdAt: users.createdAt,
-        passwordHash: users.passwordHash,
-      });
+    const updated = await persistWorkspaceMemberAccess({
+      orgId: actor.orgId,
+      userId,
+      name: payload.name?.trim(),
+      role: payload.role,
+      isActive: payload.isActive,
+      passwordHash,
+    });
 
     if (updated) {
-      const { ensureBetterAuthUser } = await import(
-        "@/lib/auth/ensure-better-auth-user"
-      );
-      await ensureBetterAuthUser({
-        id: updated.id,
-        email: updated.email,
-        name: updated.name,
-        passwordHash: updated.passwordHash,
-      });
+      const { getDb: loadDb } = await import("@/lib/db");
+      const authDb = loadDb();
+      if (authDb) {
+        const { users } = await import("@/lib/db/schema");
+        const { eq } = await import("drizzle-orm");
+        const [full] = await authDb
+          .select({
+            id: users.id,
+            email: users.email,
+            name: users.name,
+            passwordHash: users.passwordHash,
+          })
+          .from(users)
+          .where(eq(users.id, updated.id))
+          .limit(1);
+        if (full) {
+          const { ensureBetterAuthUser } = await import(
+            "@/lib/auth/ensure-better-auth-user"
+          );
+          await ensureBetterAuthUser(full);
+        }
+      }
     }
 
     let emailSent: boolean | undefined;
@@ -139,16 +133,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     return NextResponse.json({
-      user: updated
-        ? {
-            id: updated.id,
-            name: updated.name,
-            email: updated.email,
-            role: updated.role,
-            isActive: updated.isActive,
-            createdAt: updated.createdAt,
-          }
-        : updated,
+      user: updated,
       ...(typeof emailSent === "boolean"
         ? {
             emailSent,
@@ -187,12 +172,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
       return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
     }
 
-    const [target] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
+    const target = await getWorkspaceMember(actor.orgId, userId);
     if (!target) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
@@ -200,7 +180,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     if (
       !canActorManageTarget(
         { id: actor.id, role: actor.role },
-        { id: target.id, role: target.role as UserRole },
+        { id: target.id, role: target.role },
       )
     ) {
       return NextResponse.json(

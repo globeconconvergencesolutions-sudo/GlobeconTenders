@@ -1,11 +1,18 @@
 import { User } from "lucide-react";
 
 import { NotificationSettings } from "@/components/profile/notification-settings";
+import { Badge } from "@/components/ui/badge";
 import { getSessionUser } from "@/lib/auth/session";
 import { ROLE_LABELS } from "@/lib/auth/permissions";
+import {
+  ROLE_BADGE_CLASS,
+  getRoleGuide,
+} from "@/lib/auth/role-guide";
+import { cn } from "@/lib/utils";
 
 export default async function ProfilePage() {
   const user = await getSessionUser();
+  const guide = user ? getRoleGuide(user.role) : null;
 
   return (
     <div className="flex min-h-full flex-col bg-slate-50 dark:bg-background">
@@ -14,7 +21,7 @@ export default async function ProfilePage() {
           Profile
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Account settings, email alerts, and team role
+          Account, email alerts, and the pages this role can open
         </p>
       </header>
       <div className="space-y-6 p-4 sm:p-6 lg:p-8">
@@ -32,8 +39,17 @@ export default async function ProfilePage() {
             <dl className="grid gap-4 text-sm sm:grid-cols-2">
               <div className="rounded-lg border border-slate-100 px-4 py-3 dark:border-border">
                 <dt className="text-muted-foreground">Role</dt>
-                <dd className="mt-1 font-medium">
-                  {user ? ROLE_LABELS[user.role] : "—"}
+                <dd className="mt-2 flex flex-wrap items-center gap-2">
+                  {user ? (
+                    <Badge className={cn("font-normal", ROLE_BADGE_CLASS[user.role])}>
+                      {ROLE_LABELS[user.role]}
+                    </Badge>
+                  ) : (
+                    "—"
+                  )}
+                  {guide ? (
+                    <span className="text-muted-foreground">{guide.tagline}</span>
+                  ) : null}
                 </dd>
               </div>
               <div className="rounded-lg border border-slate-100 px-4 py-3 dark:border-border">
@@ -41,6 +57,39 @@ export default async function ProfilePage() {
                 <dd className="mt-1 font-medium">Gmail digest</dd>
               </div>
             </dl>
+            {guide ? (
+              <div className="mt-6 space-y-4 border-t border-slate-100 pt-6 dark:border-border">
+                <p className="text-sm text-muted-foreground">{guide.summary}</p>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Pages you can open
+                  </p>
+                  <ul className="mt-2 space-y-1 text-sm">
+                    {guide.pages.map((page) => (
+                      <li key={page.href}>
+                        {page.label}
+                        {page.note ? (
+                          <span className="text-muted-foreground">
+                            {" "}
+                            — {page.note}
+                          </span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Out of scope
+                  </p>
+                  <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                    {guide.cannot.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {user && (

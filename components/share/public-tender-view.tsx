@@ -17,15 +17,16 @@ import { AppLogo } from "@/components/brand/app-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { PublicTenderView } from "@/lib/tenders/share";
+import {
+  listingStateBadgeLabel,
+  opportunityTiming,
+  timingBarClass,
+  timingTextClass,
+  type ListingState,
+} from "@/lib/tenders/lifecycle";
 import { getCardCustomFields } from "@/lib/templates/custom-fields";
 import type { SharePresentation } from "@/lib/tenant/org-context";
-import {
-  cn,
-  daysUntil,
-  formatDeadline,
-  urgencyColor,
-  urgencyTextColor,
-} from "@/lib/utils";
+import { cn, formatDeadline } from "@/lib/utils";
 
 type PublicTenderViewProps = {
   tender: PublicTenderView;
@@ -40,8 +41,22 @@ export function PublicTenderViewPanel({
 }: PublicTenderViewProps) {
   const { branding, lexicon, layout, features } = presentation;
   const isHr = layout.homeCardVariant === "hr";
-  const daysLeft = daysUntil(tender.deadline);
-  const progress = Math.min(100, Math.max(8, (daysLeft / 30) * 100));
+  const timing = opportunityTiming(tender.deadline, {
+    listingState: (tender.listingState as ListingState | null) ?? null,
+    sourceStatus: tender.sourceStatus,
+    hasHardDeadline: tender.hasHardDeadline,
+  });
+  const listingBadge = listingStateBadgeLabel(
+    (tender.listingState as ListingState | null) ?? null,
+  );
+  const progress =
+    timing.tone === "expired" ||
+    timing.tone === "closed" ||
+    timing.tone === "stale"
+      ? 100
+      : timing.tone === "rolling"
+        ? 12
+        : Math.min(100, Math.max(8, (timing.daysLeft / 30) * 100));
   const location = [
     tender.countryLabel ?? tender.countryName,
     tender.regionLabel ?? tender.regionName,
@@ -114,9 +129,12 @@ export function PublicTenderViewPanel({
                     {lexicon.matchScore}: {tender.matchScore}
                   </Badge>
                 )}
-                {tender.isClosed && (
+                {(listingBadge ||
+                  tender.isClosed ||
+                  timing.tone === "expired") && (
                   <Badge variant="secondary" className="font-normal">
-                    Closed
+                    {listingBadge ??
+                      (timing.tone === "expired" ? "Expired" : "Closed")}
                   </Badge>
                 )}
               </div>
@@ -142,15 +160,17 @@ export function PublicTenderViewPanel({
                   <p
                     className={cn(
                       "mt-1 text-xs font-medium",
-                      urgencyTextColor(daysLeft),
+                      timingTextClass(timing.tone),
                     )}
                   >
-                    {tender.isClosed ? "No longer open" : `${daysLeft} days remaining`}
+                    {timing.label}
                   </p>
-                  {!tender.isClosed && (
+                  {timing.tone !== "expired" &&
+                    timing.tone !== "closed" &&
+                    !tender.isClosed && (
                     <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200">
                       <div
-                        className={cn("h-full rounded-full", urgencyColor(daysLeft))}
+                        className={cn("h-full rounded-full", timingBarClass(timing.tone))}
                         style={{ width: `${progress}%` }}
                       />
                     </div>

@@ -13,6 +13,11 @@ import {
 } from "@/lib/db/schema";
 import { detectRegionAndCountry, matchServiceLines } from "@/lib/matching";
 import { orgAllowsSync } from "@/lib/platform/org-status";
+import { normalizeCategory } from "@/lib/tenders/categories";
+import {
+  reconcileTenderListings,
+  resolveListingFields,
+} from "@/lib/tenders/lifecycle";
 import { DEFAULT_ORG_SLUG, getPlatformAppUrl } from "@/lib/tenant/config";
 import { getOrganizationBySlug } from "@/lib/tenant/org";
 import { isValidOrgSlug } from "@/lib/tenant/resolution";
@@ -234,34 +239,38 @@ function referenceFromItem(item: IngestItem): string {
   return `n8n-${slugify(`${item.portal ?? "job"}-${item.title}`)}`.slice(0, 180);
 }
 
-function parseDeadline(raw: string | null | undefined): Date {
+function parseDeadline(raw: string | null | undefined): {
+  deadline: Date;
+  hasHardDeadline: boolean;
+} {
   if (!raw || !raw.trim()) {
-    return new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    return {
+      deadline: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      hasHardDeadline: false,
+    };
   }
   const normalized = raw.trim().toUpperCase();
   if (
     normalized === "N/A" ||
     normalized === "NO DEADLINE" ||
     normalized === "NONE" ||
-    normalized === "OPEN"
+    normalized === "OPEN" ||
+    normalized === "OPEN-ENDED" ||
+    normalized === "ROLLING"
   ) {
-    return new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    return {
+      deadline: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      hasHardDeadline: false,
+    };
   }
   const parsed = new Date(raw);
   if (Number.isNaN(parsed.getTime())) {
-    return new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    return {
+      deadline: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      hasHardDeadline: false,
+    };
   }
-  return parsed;
-}
-
-function isClosedFromStatus(
-  status: string | undefined,
-  deadline: Date,
-): boolean {
-  const s = (status ?? "").trim().toUpperCase();
-  if (s.includes("CLOSED") || s.includes("EXPIRED")) return true;
-  if (s.includes("OPEN") || s.includes("NO DEADLINE")) return false;
-  return deadline.getTime() < Date.now();
+  return { deadline: parsed, hasHardDeadline: true };
 }
 
 export type IngestResult = {
@@ -387,7 +396,8 @@ export async function ingestOpportunities(
       }
 
       const referenceId = referenceFromItem(item);
-      const deadline = parseDeadline(item.deadline);
+      const parsedDeadline = parseDeadline(item.deadline);
+      const deadline = parsedDeadline.deadline;
       const company = item.company?.trim();
       const portal = item.portal?.trim();
       const description =
@@ -396,12 +406,17 @@ export async function ingestOpportunities(
           .filter(Boolean)
           .join("\n") ||
         undefined;
-      const category =
-        item.category?.trim() ||
-        portal ||
-        "Human Resources";
+      const category = normalizeCategory(item.category?.trim() || portal || "Job posting", {
+        title,
+        description,
+      });
       const projectLabel = company || portal || "External opportunity";
       const url = item.url?.trim() || undefined;
+      const listing = resolveListingFields({
+        deadline,
+        sourceStatus: item.status,
+        hasHardDeadline: parsedDeadline.hasHardDeadline,
+      });
 
       const haystack = `${title} ${description ?? ""} ${item.countryLabel ?? ""} ${item.regionLabel ?? ""}`;
       const geo = detectRegionAndCountry(haystack, allRegions, allCountries);
@@ -441,7 +456,10 @@ export async function ingestOpportunities(
             regionLabel,
             countryLabel,
             matchScore: topScore,
-            isClosed: isClosedFromStatus(item.status, deadline),
+            sourceStatus: listing.sourceStatus,
+            listingState: listing.listingState,
+            hasHardDeadline: listing.hasHardDeadline,
+            isClosed: listing.isClosed,
             updatedAt: new Date(),
           })
           .where(eq(tenders.id, existing.id));
@@ -465,7 +483,10 @@ export async function ingestOpportunities(
             regionLabel,
             countryLabel,
             matchScore: topScore,
-            isClosed: isClosedFromStatus(item.status, deadline),
+            sourceStatus: listing.sourceStatus,
+            listingState: listing.listingState,
+            hasHardDeadline: listing.hasHardDeadline,
+            isClosed: listing.isClosed,
           })
           .returning({ id: tenders.id });
         tenderId = created.id;
@@ -500,6 +521,8 @@ export async function ingestOpportunities(
     tenderCount: inserted + updated,
     errorMessage: errors.length ? errors.slice(0, 5).join("; ") : null,
   });
+
+  await reconcileTenderListings(org.id);
 
   return {
     ok: true,

@@ -229,6 +229,15 @@ export const tenders = pgTable(
     countryId: integer("country_id").references(() => countries.id),
     regionLabel: text("region_label"),
     countryLabel: text("country_label"),
+    /** Raw portal / feed status (OPEN, CLOSED, NO DEADLINE, …). */
+    sourceStatus: text("source_status"),
+    /**
+     * Derived lifecycle: live | rolling | stale | expired | closed.
+     * Recomputed on ingest/sync and by reconcileTenderListings.
+     */
+    listingState: text("listing_state").notNull().default("live"),
+    /** False when the feed had no real closing date (rolling / N/A). */
+    hasHardDeadline: boolean("has_hard_deadline").notNull().default(true),
     isClosed: boolean("is_closed").notNull().default(false),
     saved: boolean("saved").notNull().default(false),
     matchScore: integer("match_score").notNull().default(0),

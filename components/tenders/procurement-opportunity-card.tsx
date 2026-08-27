@@ -12,16 +12,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { CustomFieldDefinition, TenderWithSource } from "@/lib/db/schema";
 import { getCardCustomFields } from "@/lib/templates/custom-fields";
 import {
-  cn,
-  daysUntil,
-  formatDeadline,
-  urgencyColor,
-  urgencyTextColor,
-} from "@/lib/utils";
+  listingStateBadgeLabel,
+  opportunityTiming,
+  timingBarClass,
+  timingTextClass,
+  type ListingState,
+} from "@/lib/tenders/lifecycle";
+import { cn, formatDeadline } from "@/lib/utils";
 
 type ProcurementOpportunityCardProps = {
   tender: TenderWithSource;
   canSave?: boolean;
+  canShare?: boolean;
   customFieldDefinitions?: CustomFieldDefinition[];
   showMatchScore?: boolean;
 };
@@ -29,6 +31,7 @@ type ProcurementOpportunityCardProps = {
 export function ProcurementOpportunityCard({
   tender,
   canSave = false,
+  canShare = false,
   customFieldDefinitions = [],
   showMatchScore = true,
 }: ProcurementOpportunityCardProps) {
@@ -37,8 +40,22 @@ export function ProcurementOpportunityCard({
   const features = useFeatures();
   const [saved, setSaved] = useState(tender.saved);
   const [saving, setSaving] = useState(false);
-  const daysLeft = daysUntil(tender.deadline);
-  const progress = Math.min(100, Math.max(8, (daysLeft / 30) * 100));
+  const timing = opportunityTiming(tender.deadline, {
+    listingState: (tender.listingState as ListingState | null) ?? null,
+    sourceStatus: tender.sourceStatus,
+    hasHardDeadline: tender.hasHardDeadline,
+  });
+  const listingBadge = listingStateBadgeLabel(
+    (tender.listingState as ListingState | null) ?? null,
+  );
+  const progress =
+    timing.tone === "expired" || timing.tone === "closed"
+      ? 100
+      : timing.tone === "rolling"
+        ? 12
+        : timing.tone === "stale"
+          ? 100
+          : Math.min(100, Math.max(8, (timing.daysLeft / 30) * 100));
   const extraFields = getCardCustomFields(
     customFieldDefinitions,
     tender.customFields,
@@ -83,9 +100,23 @@ export function ProcurementOpportunityCard({
                 {t("matchScore")}: {tender.matchScore}
               </Badge>
             )}
+            {listingBadge && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "font-normal",
+                  timing.tone === "stale" &&
+                    "border-amber-300 text-amber-800 dark:border-amber-500/40 dark:text-amber-200",
+                  (timing.tone === "expired" || timing.tone === "closed") &&
+                    "border-red-300 text-red-700 dark:border-red-500/40 dark:text-red-300",
+                )}
+              >
+                {listingBadge}
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-1">
-            {features.publicShare && (
+            {canShare && features.publicShare && (
               <ShareTenderButton tenderId={tender.id} tenderTitle={tender.title} />
             )}
             <button
@@ -150,15 +181,15 @@ export function ProcurementOpportunityCard({
               <Clock className="h-3.5 w-3.5" />
               {t("deadline")}: {formatDeadline(tender.deadline)}
             </span>
-            <span className={cn("font-medium", urgencyTextColor(daysLeft))}>
-              {daysLeft}d left
+            <span className={cn("font-medium", timingTextClass(timing.tone))}>
+              {timing.label}
             </span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
             <div
               className={cn(
                 "h-full rounded-full transition-all",
-                urgencyColor(daysLeft),
+                timingBarClass(timing.tone),
               )}
               style={{ width: `${progress}%` }}
             />

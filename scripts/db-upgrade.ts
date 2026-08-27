@@ -303,6 +303,34 @@ const statements = [
   `ALTER TABLE "workspace_settings" ADD COLUMN IF NOT EXISTS "features" jsonb DEFAULT '{}'::jsonb NOT NULL;`,
   `ALTER TABLE "workspace_settings" ADD COLUMN IF NOT EXISTS "layout" jsonb DEFAULT '{}'::jsonb NOT NULL;`,
   `ALTER TABLE "tenders" ADD COLUMN IF NOT EXISTS "custom_fields" jsonb DEFAULT '{}'::jsonb NOT NULL;`,
+  `ALTER TABLE "tenders" ADD COLUMN IF NOT EXISTS "source_status" text;`,
+  `ALTER TABLE "tenders" ADD COLUMN IF NOT EXISTS "listing_state" text DEFAULT 'live' NOT NULL;`,
+  `ALTER TABLE "tenders" ADD COLUMN IF NOT EXISTS "has_hard_deadline" boolean DEFAULT true NOT NULL;`,
+  `CREATE INDEX IF NOT EXISTS "tenders_org_listing_state_idx" ON "tenders" ("org_id", "listing_state");`,
+  // One-shot backfill: past deadlines without an open-like status → expired
+  `UPDATE "tenders" SET
+     "listing_state" = CASE
+       WHEN coalesce("source_status", '') ~* '(CLOSED|EXPIRED|CANCEL+ED|AWARDED|WITHDRAWN|COMPLETED|ARCHIVED)' THEN 'closed'
+       WHEN coalesce("source_status", '') ~* '(N\\/?A|NONE|NO[[:space:]_-]?DEADLINE|OPEN[[:space:]_-]?ENDED|ROLLING)'
+         OR "deadline"::date > CURRENT_DATE + interval '300 days' THEN 'rolling'
+       WHEN "deadline"::date >= CURRENT_DATE THEN 'live'
+       WHEN coalesce("source_status", '') ~* '(OPEN|ACTIVE|LIVE|PUBLISHED|AVAILABLE|CURRENT|NO[[:space:]_-]?DEADLINE)' THEN 'stale'
+       ELSE 'expired'
+     END,
+     "has_hard_deadline" = CASE
+       WHEN coalesce("source_status", '') ~* '(N\\/?A|NONE|NO[[:space:]_-]?DEADLINE|OPEN[[:space:]_-]?ENDED|ROLLING)'
+         OR "deadline"::date > CURRENT_DATE + interval '300 days' THEN false
+       ELSE true
+     END,
+     "is_closed" = CASE
+       WHEN coalesce("source_status", '') ~* '(CLOSED|EXPIRED|CANCEL+ED|AWARDED|WITHDRAWN|COMPLETED|ARCHIVED)' THEN true
+       WHEN coalesce("source_status", '') ~* '(N\\/?A|NONE|NO[[:space:]_-]?DEADLINE|OPEN[[:space:]_-]?ENDED|ROLLING)'
+         OR "deadline"::date > CURRENT_DATE + interval '300 days' THEN false
+       WHEN "deadline"::date >= CURRENT_DATE THEN false
+       WHEN coalesce("source_status", '') ~* '(OPEN|ACTIVE|LIVE|PUBLISHED|AVAILABLE|CURRENT|NO[[:space:]_-]?DEADLINE)' THEN false
+       ELSE true
+     END
+   WHERE true;`,
   `ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS "sync_interval_hours" integer DEFAULT 24 NOT NULL;`,
   `ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS "stripe_customer_id" text;`,
   `ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS "stripe_subscription_id" text;`,

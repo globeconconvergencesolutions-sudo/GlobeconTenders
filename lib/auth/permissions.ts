@@ -14,6 +14,14 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   viewer: "Viewer",
 };
 
+/**
+ * Permission matrix (workspace-scoped).
+ *
+ * Super Admin — owner: settings + full team + pipeline
+ * Admin       — ops: team (not Super Admins) + catalog lifecycle + pipeline
+ * Analyst     — pipeline: create/sync/save/export/share; no archive/team/settings
+ * Viewer      — browse + personal profile prefs only
+ */
 export const PERMISSIONS = {
   "sources:read": ["super_admin", "admin", "analyst", "viewer"],
   "sources:create": ["super_admin", "admin", "analyst"],
@@ -30,12 +38,15 @@ export const PERMISSIONS = {
   "countries:delete": ["super_admin", "admin"],
   "tenders:save": ["super_admin", "admin", "analyst"],
   "tenders:export": ["super_admin", "admin", "analyst"],
+  "tenders:share": ["super_admin", "admin", "analyst"],
   "users:read": ["super_admin", "admin"],
   "users:create": ["super_admin", "admin"],
   "users:update": ["super_admin", "admin"],
   "users:delete": ["super_admin", "admin"],
+  /** Assign / manage Super Admin seats — Super Admin only */
   "users:manage": ["super_admin"],
   "settings:manage": ["super_admin"],
+  /** Base permission; may also be granted via settings delegations */
   "settings:notifications": ["super_admin"],
   "documents:upload": ["super_admin", "admin", "analyst"],
 } as const satisfies Record<string, UserRole[]>;
@@ -58,6 +69,10 @@ export function canDeleteUsers(role: UserRole): boolean {
   return hasPermission(role, "users:delete");
 }
 
+export function canAssignSuperAdmin(role: UserRole): boolean {
+  return hasPermission(role, "users:manage");
+}
+
 export function canSync(role: UserRole): boolean {
   return hasPermission(role, "sources:sync");
 }
@@ -78,6 +93,10 @@ export function canExportTenders(role: UserRole): boolean {
   return hasPermission(role, "tenders:export");
 }
 
+export function canShareTenders(role: UserRole): boolean {
+  return hasPermission(role, "tenders:share");
+}
+
 export function canManageCatalog(role: UserRole): boolean {
   return role === "super_admin" || role === "admin";
 }
@@ -86,10 +105,15 @@ export function canAccessSettingsHub(role: UserRole): boolean {
   return hasPermission(role, "settings:manage");
 }
 
+export function canAccessTeamPage(role: UserRole): boolean {
+  return hasPermission(role, "users:read");
+}
+
 export function canDeleteCatalogItems(role: UserRole): boolean {
   return hasPermission(role, "sources:delete");
 }
 
+/** Roles the actor may assign when inviting or editing a teammate. */
 export function assignableRoles(actorRole: UserRole): UserRole[] {
   if (actorRole === "super_admin") {
     return ROLES;

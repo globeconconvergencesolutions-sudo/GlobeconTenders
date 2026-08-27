@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { eq } from "drizzle-orm";
 
 import { auth } from "@/auth";
@@ -152,7 +153,7 @@ async function buildOrgContext(input: {
   };
 }
 
-export async function getOrgContext(): Promise<OrgContextValue> {
+export const getOrgContext = cache(async (): Promise<OrgContextValue> => {
   const session = await auth();
   const sessionOrgId = Number(session?.user?.orgId ?? 0);
   if (session?.user && sessionOrgId > 0) {
@@ -162,7 +163,7 @@ export async function getOrgContext(): Promise<OrgContextValue> {
   const org = await getCurrentOrg();
   if (!org) return buildFallbackContext();
   return buildOrgContext(org);
-}
+});
 
 export async function getOrgContextBySlug(
   slug: string,
@@ -173,9 +174,9 @@ export async function getOrgContextBySlug(
   return buildOrgContext(org);
 }
 
-export async function getOrgContextByOrgId(
+export const getOrgContextByOrgId = cache(async (
   orgId: number,
-): Promise<OrgContextValue> {
+): Promise<OrgContextValue> => {
   const db = getDb();
   if (!db || !Number.isFinite(orgId) || orgId <= 0) {
     return buildFallbackContext();
@@ -198,7 +199,7 @@ export async function getOrgContextByOrgId(
 
   if (!org) return buildFallbackContext();
   return buildOrgContext(org);
-}
+});
 
 export type SharePresentation = Pick<
   OrgContextValue,
