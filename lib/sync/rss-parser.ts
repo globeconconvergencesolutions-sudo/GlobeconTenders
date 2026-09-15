@@ -8,6 +8,9 @@ export type RssItem = {
 
 function decodeEntities(text: string): string {
   return text
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) =>
+      String.fromCharCode(Number.parseInt(hex, 16)),
+    )
     .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
@@ -33,7 +36,8 @@ function readTag(block: string, tag: string): string | undefined {
 
 export function parseRssFeed(xml: string): RssItem[] {
   const items: RssItem[] = [];
-  const itemBlocks = xml.match(/<item[\s\S]*?<\/item>/gi) ?? [];
+  // Require a delimiter after `item` so the RSS 1.0 `<items>` wrapper is skipped.
+  const itemBlocks = xml.match(/<item[\s>][\s\S]*?<\/item>/gi) ?? [];
 
   for (const block of itemBlocks) {
     const aboutMatch = block.match(/<item[^>]+rdf:about="([^"]+)"/i);
@@ -47,8 +51,11 @@ export function parseRssFeed(xml: string): RssItem[] {
       description: readTag(block, "description")
         ? stripTags(readTag(block, "description")!)
         : undefined,
-      pubDate: readTag(block, "pubDate"),
-      guid: readTag(block, "guid"),
+      pubDate:
+        readTag(block, "pubDate") ??
+        readTag(block, "dc:date") ??
+        readTag(block, "date"),
+      guid: readTag(block, "guid") ?? aboutMatch?.[1],
     });
   }
 

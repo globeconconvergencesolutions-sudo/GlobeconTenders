@@ -16,6 +16,12 @@ function stripHtml(html: string): string {
 }
 
 const TENDER_YETU_API = "https://www.tenderyetu.com/wp-json/wp/v2/posts";
+const TENDER_YETU_HEADERS = {
+  Accept: "application/json",
+  "User-Agent":
+    "Mozilla/5.0 (compatible; GlobeconTenderWatch/2.0; +https://globecon.com)",
+  Referer: "https://www.tenderyetu.com/",
+};
 const DEFAULT_PER_PAGE = 50;
 const MAX_PAGES = 2;
 
@@ -62,10 +68,7 @@ export async function fetchTenderYetuTenders(
     );
 
     const response = await fetch(url.toString(), {
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "GlobeconTenderWatch/2.0",
-      },
+      headers: TENDER_YETU_HEADERS,
       next: { revalidate: 0 },
     });
 

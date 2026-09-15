@@ -13,8 +13,20 @@ const MONTHS: Record<string, number> = {
   december: 11,
 };
 
+type ParseClosingDateOptions = {
+  /**
+   * Only accept dates next to closing/deadline language.
+   * Avoids treating “issued on May 27, 2026” as the bid deadline.
+   */
+  requireKeyword?: boolean;
+};
+
 /** Parse tender closing dates from free text (Kenyan + ISO formats). */
-export function parseClosingDate(text: string, fallback: Date): Date {
+export function parseClosingDate(
+  text: string,
+  fallback: Date,
+  options: ParseClosingDateOptions = {},
+): Date {
   const normalized = text.replace(/\u00a0/g, " ");
 
   const longMatch = normalized.match(
@@ -40,6 +52,8 @@ export function parseClosingDate(text: string, fallback: Date): Date {
     const parsed = new Date(year, month, day, 23, 59, 59);
     if (!Number.isNaN(parsed.getTime())) return parsed;
   }
+
+  if (options.requireKeyword) return fallback;
 
   const isoMatch = normalized.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
   if (isoMatch) {

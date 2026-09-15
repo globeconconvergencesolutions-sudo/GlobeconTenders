@@ -17,14 +17,31 @@ function inferCategory(title: string, description?: string): string {
   return "Procurement";
 }
 
-function referenceFromLink(link: string, title: string): string {
+export function referenceFromLink(
+  link: string,
+  title: string,
+  guid?: string,
+): string {
+  if (guid && !/^https?:\/\//i.test(guid)) {
+    return guid.slice(0, 120);
+  }
+
   try {
     const url = new URL(link);
-    const slug = url.pathname.split("/").filter(Boolean).pop();
-    if (slug) return slug.slice(0, 120);
+    const slug = url.pathname.split("/").filter(Boolean).pop() ?? "item";
+    const noticeId =
+      url.searchParams.get("notice_id") ??
+      url.searchParams.get("nego_id") ??
+      url.searchParams.get("id");
+    if (noticeId) return `${slug}-${noticeId}`.slice(0, 120);
+    if (url.search) {
+      return `${slug}-${url.searchParams.toString()}`.slice(0, 120);
+    }
+    if (slug && !/\.cfm$/i.test(slug)) return slug.slice(0, 120);
   } catch {
     // fall through
   }
+
   return title.slice(0, 80).replace(/\s+/g, "-").toLowerCase();
 }
 
@@ -52,10 +69,14 @@ export async function fetchGenericRssTenders(
     const deadline = parseClosingDate(
       `${item.title} ${item.description ?? ""}`,
       fallbackDeadline,
+      { requireKeyword: true },
     );
 
     return {
-      referenceId: `rss-${referenceFromLink(item.link, item.title)}`.slice(0, 120),
+      referenceId: `rss-${referenceFromLink(item.link, item.title, item.guid)}`.slice(
+        0,
+        120,
+      ),
       title: item.title,
       description: item.description,
       category: inferCategory(item.title, item.description),

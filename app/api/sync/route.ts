@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
     const results = sourceId
       ? [await syncSource(sourceId)]
-      : await syncAllEnabledSources("manual");
+      : await syncAllEnabledSources("manual", user.orgId);
 
     await db.insert(syncLogs).values(
       results.map((result) => ({

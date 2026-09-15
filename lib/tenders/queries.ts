@@ -341,7 +341,10 @@ export async function getTendersPaginated(
     db
       .select({ count: count() })
       .from(tenders)
-      .innerJoin(sources, eq(tenders.sourceId, sources.id))
+      .innerJoin(
+        sources,
+        and(eq(tenders.sourceId, sources.id), isNull(sources.archivedAt)),
+      )
       .where(whereClause),
     db
       .select({
@@ -375,7 +378,10 @@ export async function getTendersPaginated(
         countryName: countries.name,
       })
       .from(tenders)
-      .innerJoin(sources, eq(tenders.sourceId, sources.id))
+      .innerJoin(
+        sources,
+        and(eq(tenders.sourceId, sources.id), isNull(sources.archivedAt)),
+      )
       .leftJoin(regions, eq(tenders.regionId, regions.id))
       .leftJoin(countries, eq(tenders.countryId, countries.id))
       .where(whereClause)
@@ -437,7 +443,10 @@ export async function getDashboardStats(
         closing3: sql<number>`count(*) filter (where ${liveListingSql} and ${tenders.hasHardDeadline} = true and ${tenders.deadline} <= now() + interval '3 days')`,
       })
       .from(tenders)
-      .innerJoin(sources, eq(tenders.sourceId, sources.id))
+      .innerJoin(
+        sources,
+        and(eq(tenders.sourceId, sources.id), isNull(sources.archivedAt)),
+      )
       .where(catalogWhere),
     db
       .select({

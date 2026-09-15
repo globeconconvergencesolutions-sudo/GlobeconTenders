@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, isNull, like } from "drizzle-orm";
 
 import { getDb } from "@/lib/db";
 import {
@@ -111,6 +111,17 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
   ]);
 
   const items = await fetchItemsForAdapter(source.adapter, source);
+
+  if (source.adapter === "generic-rss" && items.length > 0) {
+    await db
+      .delete(tenders)
+      .where(
+        and(
+          eq(tenders.sourceId, source.id),
+          like(tenders.referenceId, "rss-view_%.cfm"),
+        ),
+      );
+  }
 
   let inserted = 0;
   let updated = 0;
@@ -266,7 +277,20 @@ export async function syncAllEnabledSources(
   const results: SyncResult[] = [];
 
   for (const source of enabledSources) {
-    if (!IMPLEMENTED_ADAPTERS.has(source.adapter)) continue;
+    if (!IMPLEMENTED_ADAPTERS.has(source.adapter)) {
+      results.push({
+        sourceId: source.id,
+        sourceName: source.name,
+        inserted: 0,
+        updated: 0,
+        errors: [
+          source.url
+            ? "Browse-only link — Sync cannot pull listings from this page"
+            : "Filled by ingest, not by Sync",
+        ],
+      });
+      continue;
+    }
 
     try {
       results.push(await syncSource(source.id));
