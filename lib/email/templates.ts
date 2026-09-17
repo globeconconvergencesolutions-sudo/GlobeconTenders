@@ -19,6 +19,17 @@ export type AlertTenderRow = {
   countryLabel: string | null;
 };
 
+export type DigestEmailInput = {
+  recipientName: string;
+  closingSoon: AlertTenderRow[];
+  highMatch: AlertTenderRow[];
+  newListings?: AlertTenderRow[];
+  closingSoonDays: number;
+  highMatchThreshold: number;
+  appUrl: string;
+  org?: EmailOrgPresentation;
+};
+
 const DEFAULT_PRESENTATION: EmailOrgPresentation = {
   displayName: "Globecon",
   productTagline: DEFAULT_PROCUREMENT_LEXICON.productTagline,
@@ -129,16 +140,6 @@ function sectionHtml(
     </div>`;
 }
 
-export type DigestEmailInput = {
-  recipientName: string;
-  closingSoon: AlertTenderRow[];
-  highMatch: AlertTenderRow[];
-  closingSoonDays: number;
-  highMatchThreshold: number;
-  appUrl: string;
-  org?: EmailOrgPresentation;
-};
-
 export function buildDigestEmail(input: DigestEmailInput): {
   subject: string;
   html: string;
@@ -147,7 +148,9 @@ export function buildDigestEmail(input: DigestEmailInput): {
   const org = input.org ?? DEFAULT_PRESENTATION;
   const { lexicon } = org;
   const opp = lexicon.opportunityPlural.toLowerCase();
-  const total = input.closingSoon.length + input.highMatch.length;
+  const newListings = input.newListings ?? [];
+  const total =
+    input.closingSoon.length + input.highMatch.length + newListings.length;
   const dateLabel = new Date().toLocaleDateString("en-GB", {
     weekday: "long",
     day: "numeric",
@@ -156,9 +159,15 @@ export function buildDigestEmail(input: DigestEmailInput): {
   });
 
   const subject =
-    total === 1
-      ? `${org.emailHeaderLabel} — 1 ${lexicon.opportunity.toLowerCase()} needs your attention`
-      : `${org.emailHeaderLabel} — ${total} ${opp} need your attention`;
+    newListings.length > 0 && input.closingSoon.length === 0 && input.highMatch.length === 0
+      ? `${org.emailHeaderLabel} — ${newListings.length} new ${
+          newListings.length === 1
+            ? lexicon.opportunity.toLowerCase()
+            : opp
+        } from sync`
+      : total === 1
+        ? `${org.emailHeaderLabel} — 1 ${lexicon.opportunity.toLowerCase()} needs your attention`
+        : `${org.emailHeaderLabel} — ${total} ${opp} need your attention`;
 
   const html = `
 <!DOCTYPE html>
@@ -177,6 +186,14 @@ export function buildDigestEmail(input: DigestEmailInput): {
           We found <strong>${total}</strong> ${escapeHtml(opp)} matching your saved filters and alert preferences.
         </p>
         <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;">
+          ${
+            newListings.length
+              ? `<div style="flex:1;min-width:140px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;padding:14px 16px;">
+            <div style="font-size:24px;font-weight:700;color:#6d28d9;">${newListings.length}</div>
+            <div style="font-size:12px;color:#475569;margin-top:4px;">New from latest sync</div>
+          </div>`
+              : ""
+          }
           <div style="flex:1;min-width:140px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:14px 16px;">
             <div style="font-size:24px;font-weight:700;color:#1d4ed8;">${input.closingSoon.length}</div>
             <div style="font-size:12px;color:#475569;margin-top:4px;">Closing within ${input.closingSoonDays} days</div>
@@ -186,6 +203,13 @@ export function buildDigestEmail(input: DigestEmailInput): {
             <div style="font-size:12px;color:#475569;margin-top:4px;">High ${escapeHtml(lexicon.matchScore.toLowerCase())} (≥ ${input.highMatchThreshold})</div>
           </div>
         </div>
+        ${sectionHtml(
+          "New from latest sync",
+          `Live ${opp} added in the last sync that match your saved filters.`,
+          newListings,
+          input.appUrl,
+          lexicon,
+        )}
         ${sectionHtml(
           "Closing soon",
           `Open ${opp} in your filter set closing within the next ${input.closingSoonDays} days.`,
@@ -219,9 +243,13 @@ export function buildDigestEmail(input: DigestEmailInput): {
     `Hi ${input.recipientName},`,
     "",
     `${total} ${opp} matching your filters:`,
+    newListings.length ? `- ${newListings.length} new from latest sync` : "",
     `- ${input.closingSoon.length} closing within ${input.closingSoonDays} days`,
     `- ${input.highMatch.length} high match (score ≥ ${input.highMatchThreshold})`,
     "",
+    newListings.length
+      ? `NEW FROM SYNC\n${tenderRowsText(newListings, input.appUrl, lexicon.deadline)}`
+      : "",
     input.closingSoon.length
       ? `CLOSING SOON\n${tenderRowsText(input.closingSoon, input.appUrl, lexicon.deadline)}`
       : "",

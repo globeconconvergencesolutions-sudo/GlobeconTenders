@@ -5,6 +5,7 @@ import {
   eq,
   gte,
   inArray,
+  isNull,
   lte,
   not,
   sql,
@@ -32,7 +33,7 @@ import {
 } from "@/lib/settings/workspace";
 import { requireCurrentOrg } from "@/lib/tenant/context";
 
-export type AlertType = "closing_soon" | "high_match";
+export type AlertType = "closing_soon" | "high_match" | "new_listing";
 
 export type AlertUser = {
   id: number;
@@ -229,7 +230,10 @@ export async function getClosingSoonAlerts(
   const rows = await db
     .select(selectAlertTenderFields())
     .from(tenders)
-    .innerJoin(sources, eq(tenders.sourceId, sources.id))
+    .innerJoin(
+      sources,
+      and(eq(tenders.sourceId, sources.id), isNull(sources.archivedAt)),
+    )
     .leftJoin(regions, eq(tenders.regionId, regions.id))
     .leftJoin(countries, eq(tenders.countryId, countries.id))
     .where(and(...conditions))
@@ -263,7 +267,7 @@ export async function getHighMatchAlerts(
 
   if (options.sinceHours) {
     conditions.push(
-      sql`${tenders.updatedAt} >= now() - (${options.sinceHours} * interval '1 hour')`,
+      sql`${tenders.createdAt} >= now() - (${options.sinceHours} * interval '1 hour')`,
     );
   }
 
@@ -274,11 +278,55 @@ export async function getHighMatchAlerts(
   const rows = await db
     .select(selectAlertTenderFields())
     .from(tenders)
-    .innerJoin(sources, eq(tenders.sourceId, sources.id))
+    .innerJoin(
+      sources,
+      and(eq(tenders.sourceId, sources.id), isNull(sources.archivedAt)),
+    )
     .leftJoin(regions, eq(tenders.regionId, regions.id))
     .leftJoin(countries, eq(tenders.countryId, countries.id))
     .where(and(...conditions))
     .orderBy(desc(tenders.matchScore), asc(tenders.deadline))
+    .limit(ALERT_LIMIT);
+
+  return rows;
+}
+
+export async function getNewListingAlerts(
+  user: AlertUser,
+  options: { sinceHours?: number } = {},
+): Promise<AlertTenderRow[]> {
+  const db = getDb();
+  if (!db) return [];
+
+  const sinceHours = options.sinceHours ?? 24;
+  const sentIds = await getSentTenderIds(user.id, "new_listing");
+  const filterWhere = buildFilterConditions({
+    hideClosed: true,
+    listingBucket: "live",
+    filterState: user.filterState,
+  });
+
+  const conditions = [
+    eq(tenders.orgId, user.orgId),
+    filterWhere,
+    sql`${tenders.createdAt} >= now() - (${sinceHours} * interval '1 hour')`,
+  ];
+
+  if (sentIds.size > 0) {
+    conditions.push(not(inArray(tenders.id, [...sentIds])));
+  }
+
+  const rows = await db
+    .select(selectAlertTenderFields())
+    .from(tenders)
+    .innerJoin(
+      sources,
+      and(eq(tenders.sourceId, sources.id), isNull(sources.archivedAt)),
+    )
+    .leftJoin(regions, eq(tenders.regionId, regions.id))
+    .leftJoin(countries, eq(tenders.countryId, countries.id))
+    .where(and(...conditions))
+    .orderBy(asc(tenders.deadline), desc(tenders.matchScore))
     .limit(ALERT_LIMIT);
 
   return rows;

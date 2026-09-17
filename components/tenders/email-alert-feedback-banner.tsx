@@ -14,6 +14,7 @@ export type EmailAlertFeedback = {
     status: "sent" | "skipped" | "failed";
     closingCount?: number;
     highMatchCount?: number;
+    newCount?: number;
     error?: string;
   }>;
 };
@@ -75,8 +76,9 @@ export function EmailAlertFeedbackBanner({
               </p>
             ) : row.status === "sent" ? (
               <p key={row.email} className="text-xs opacity-80">
-                {row.email} — {row.closingCount ?? 0} closing,{" "}
-                {row.highMatchCount ?? 0} high match
+                {row.email} — {row.newCount ?? 0} new,{" "}
+                {row.closingCount ?? 0} closing, {row.highMatchCount ?? 0}{" "}
+                high match
               </p>
             ) : null,
           )}

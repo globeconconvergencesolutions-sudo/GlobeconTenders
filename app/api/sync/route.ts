@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     let alerts: Awaited<ReturnType<typeof triggerPostSyncAlerts>> | null = null;
     if (isEmailConfigured()) {
       try {
-        alerts = await triggerPostSyncAlerts();
+        alerts = await triggerPostSyncAlerts(user.orgId);
       } catch {
         alerts = null;
       }

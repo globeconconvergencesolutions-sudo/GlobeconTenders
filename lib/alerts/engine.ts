@@ -2,6 +2,7 @@ import {
   getAlertUsers,
   getClosingSoonAlerts,
   getHighMatchAlerts,
+  getNewListingAlerts,
   logAlertDeliveries,
   logDigestResult,
   type AlertUser,
@@ -19,6 +20,7 @@ export type UserDigestResult = {
   status: "sent" | "skipped" | "failed";
   closingCount: number;
   highMatchCount: number;
+  newCount: number;
   error?: string;
 };
 
@@ -45,6 +47,7 @@ async function sendUserDigest(
       status: "skipped",
       closingCount: 0,
       highMatchCount: 0,
+      newCount: 0,
       error: "Gmail not configured",
     };
   }
@@ -65,19 +68,27 @@ async function sendUserDigest(
       status: "skipped",
       closingCount: 0,
       highMatchCount: 0,
+      newCount: 0,
     };
   }
 
   try {
-    const [closingSoon, highMatch] = await Promise.all([
+    const [closingSoon, highMatch, newListings] = await Promise.all([
       getClosingSoonAlerts(user),
       getHighMatchAlerts(
         user,
         options.afterSync ? { sinceHours: 24 } : undefined,
       ),
+      options.afterSync
+        ? getNewListingAlerts(user, { sinceHours: 24 })
+        : Promise.resolve([]),
     ]);
 
-    if (closingSoon.length === 0 && highMatch.length === 0) {
+    if (
+      closingSoon.length === 0 &&
+      highMatch.length === 0 &&
+      newListings.length === 0
+    ) {
       await logDigestResult({
         orgId: user.orgId,
         userId: user.id,
@@ -92,8 +103,15 @@ async function sendUserDigest(
         status: "skipped",
         closingCount: 0,
         highMatchCount: 0,
+        newCount: 0,
       };
     }
+
+    const coveredIds = new Set([
+      ...closingSoon.map((row) => row.id),
+      ...highMatch.map((row) => row.id),
+    ]);
+    const uniqueNew = newListings.filter((row) => !coveredIds.has(row.id));
 
     const orgPresentation =
       options.orgPresentation ?? (await getEmailOrgPresentation(user.orgId));
@@ -102,6 +120,7 @@ async function sendUserDigest(
       recipientName: user.name,
       closingSoon,
       highMatch,
+      newListings: uniqueNew,
       closingSoonDays: user.notificationPrefs.closingSoonDays,
       highMatchThreshold: user.notificationPrefs.highMatchThreshold,
       appUrl: config.appUrl,
@@ -128,12 +147,18 @@ async function sendUserDigest(
         highMatch.map((row) => row.id),
         user.orgId,
       ),
+      logAlertDeliveries(
+        user.id,
+        "new_listing",
+        uniqueNew.map((row) => row.id),
+        user.orgId,
+      ),
       logDigestResult({
         orgId: user.orgId,
         userId: user.id,
         status: "success",
         closingCount: closingSoon.length,
-        highMatchCount: highMatch.length,
+        highMatchCount: highMatch.length + uniqueNew.length,
       }),
     ]);
 
@@ -144,6 +169,7 @@ async function sendUserDigest(
       status: "sent",
       closingCount: closingSoon.length,
       highMatchCount: highMatch.length,
+      newCount: uniqueNew.length,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Digest failed";
@@ -162,6 +188,7 @@ async function sendUserDigest(
       status: "failed",
       closingCount: 0,
       highMatchCount: 0,
+      newCount: 0,
       error: message,
     };
   }

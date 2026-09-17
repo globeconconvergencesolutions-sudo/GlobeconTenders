@@ -401,7 +401,7 @@ export function NotificationSettings({
               <div>
                 <Label htmlFor="after-sync">Send after sync</Label>
                 <p className="text-xs text-muted-foreground">
-                  Immediate digest when new high-match tenders arrive from sync
+                  Immediate digest of new listings and closing-soon matches after Sync
                 </p>
               </div>
               <Switch

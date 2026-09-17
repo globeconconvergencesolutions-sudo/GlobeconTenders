@@ -74,7 +74,7 @@ export async function fetchKenyaPpipTenders(): Promise<SyncTenderItem[]> {
         description: row.description ?? undefined,
         category: row.procurement_category?.title ?? "Kenya Government",
         deadline,
-        url: `https://tenders.go.ke/tenders/detail/${row.id}`,
+        url: `https://tenders.go.ke/tenders/${row.id}`,
         projectLabel: row.pe?.name
           ? `Kenya PPIP · ${row.pe.name.trim()}`
           : "Kenya PPIP · IFMIS",

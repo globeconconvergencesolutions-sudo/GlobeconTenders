@@ -121,6 +121,9 @@ const statements = [
   `UPDATE "sources" SET "adapter" = 'tender-yetu', "type" = 'link', "is_built_in" = true,
     "url" = 'https://tenderyetu.com'
     WHERE "slug" = 'tender-yetu';`,
+  `UPDATE "tenders" SET "url" = replace("url", '/tenders/detail/', '/tenders/'), "updated_at" = now()
+    WHERE "source_id" IN (SELECT "id" FROM "sources" WHERE "slug" = 'kenya-ppip')
+      AND "url" LIKE '%tenders.go.ke/tenders/detail/%';`,
   `INSERT INTO "sources" ("name", "slug", "type", "adapter", "url", "color", "enabled", "is_built_in")
     SELECT 'Kenya PPIP (IFMIS)', 'kenya-ppip', 'link', 'kenya-ppip', 'https://tenders.go.ke', '#059669', true, true
     WHERE NOT EXISTS (SELECT 1 FROM "sources" WHERE "slug" = 'kenya-ppip');`,
