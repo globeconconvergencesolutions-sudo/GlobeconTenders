@@ -2,6 +2,6 @@ import { NotificationsSettings } from "@/components/settings/notifications-setti
 import { requireSettingsAccessPage } from "@/lib/auth/settings-page-guard";
 
 export default async function SettingsNotificationsPage() {
-  await requireSettingsAccessPage();
-  return <NotificationsSettings />;
+  const { user } = await requireSettingsAccessPage();
+  return <NotificationsSettings canSendNow={user.role === "super_admin"} />;
 }

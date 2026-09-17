@@ -36,7 +36,11 @@ export type BulkDigestResult = {
 
 async function sendUserDigest(
   user: AlertUser,
-  options: { afterSync?: boolean; orgPresentation?: Awaited<ReturnType<typeof getEmailOrgPresentation>> } = {},
+  options: {
+    afterSync?: boolean;
+    manual?: boolean;
+    orgPresentation?: Awaited<ReturnType<typeof getEmailOrgPresentation>>;
+  } = {},
 ): Promise<UserDigestResult> {
   const config = getEmailConfig();
   if (!config) {
@@ -81,6 +85,8 @@ async function sendUserDigest(
       ),
       options.afterSync
         ? getNewListingAlerts(user, { sinceHours: 24 })
+        : options.manual
+          ? getNewListingAlerts(user, { sinceHours: 24 })
         : Promise.resolve([]),
     ]);
 
@@ -195,7 +201,7 @@ async function sendUserDigest(
 }
 
 export async function processAllAlertDigests(
-  options: { afterSync?: boolean; orgId?: number } = {},
+  options: { afterSync?: boolean; manual?: boolean; orgId?: number } = {},
 ): Promise<BulkDigestResult> {
   const config = getEmailConfig();
   if (!config) {
@@ -272,4 +278,10 @@ export async function triggerPostSyncAlerts(
   orgId?: number,
 ): Promise<BulkDigestResult> {
   return processAllAlertDigests({ afterSync: true, orgId });
+}
+
+export async function triggerManualAlertSend(
+  orgId: number,
+): Promise<BulkDigestResult> {
+  return processAllAlertDigests({ manual: true, orgId });
 }

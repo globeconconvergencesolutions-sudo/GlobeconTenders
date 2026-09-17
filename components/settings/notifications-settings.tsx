@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Loader2,
   Mail,
+  Send,
   Search,
   Shield,
   UserCheck,
@@ -42,7 +43,11 @@ type NotificationsPayload = {
   includedCount: number;
 };
 
-export function NotificationsSettings() {
+export function NotificationsSettings({
+  canSendNow,
+}: {
+  canSendNow: boolean;
+}) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +56,8 @@ export function NotificationsSettings() {
   const [data, setData] = useState<NotificationsPayload | null>(null);
   const [includedIds, setIncludedIds] = useState<number[]>([]);
   const [workspaceEnabled, setWorkspaceEnabled] = useState(true);
+  const [sendingNow, setSendingNow] = useState(false);
+  const [sendNowMessage, setSendNowMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -128,6 +135,36 @@ export function NotificationsSettings() {
     void savePatch({ includedUserIds: next });
   }
 
+  async function sendAlertsNow() {
+    if (!canSendNow || sendingNow) return;
+    if (
+      !window.confirm(
+        "Send all currently eligible tender alerts to the configured recipients now? Previously delivered alerts will not be resent.",
+      )
+    ) {
+      return;
+    }
+
+    setSendingNow(true);
+    setSendNowMessage(null);
+    setError(null);
+    try {
+      const response = await fetch("/api/alerts/send-now", { method: "POST" });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Could not send tender alerts");
+      }
+      setSendNowMessage(
+        `${payload.sent} sent · ${payload.skipped} skipped · ${payload.failed} failed`,
+      );
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send tender alerts");
+    } finally {
+      setSendingNow(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -152,23 +189,55 @@ export function NotificationsSettings() {
         description="Choose who receives tender digests. Personal opt-out on Profile still applies."
         tone="blue"
         actions={
-          (saving || saved) && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              {saving ? (
-                <>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            {canSendNow && (
+              <button
+                type="button"
+                onClick={() => void sendAlertsNow()}
+                disabled={sendingNow || saving || !workspaceEnabled}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {sendingNow ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Saving…
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                  Saved
-                </>
-              )}
-            </span>
-          )
+                ) : (
+                  <Send className="h-3.5 w-3.5" />
+                )}
+                Send alerts now
+              </button>
+            )}
+            {(saving || saved) && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                {saving ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                    Saved
+                  </>
+                )}
+              </span>
+            )}
+          </div>
         }
       />
+
+      {canSendNow && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100">
+          <p className="font-medium">Manual delivery</p>
+          <p className="mt-1 opacity-90">
+            Sends pending tender alerts to the configured recipients. Previously
+            delivered alerts are excluded, and personal opt-outs still apply.
+          </p>
+          {sendNowMessage && (
+            <p className="mt-2 font-medium text-blue-700 dark:text-blue-200">
+              {sendNowMessage}
+            </p>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
