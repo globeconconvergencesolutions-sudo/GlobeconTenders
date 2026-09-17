@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { SettingsPageHeader } from "@/components/settings/settings-page-header";
@@ -57,6 +58,8 @@ export function NotificationsSettings({
   const [includedIds, setIncludedIds] = useState<number[]>([]);
   const [workspaceEnabled, setWorkspaceEnabled] = useState(true);
   const [sendingNow, setSendingNow] = useState(false);
+  const [sendNowOpen, setSendNowOpen] = useState(false);
+  const [sendNowError, setSendNowError] = useState<string | null>(null);
   const [sendNowMessage, setSendNowMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -137,15 +140,9 @@ export function NotificationsSettings({
 
   async function sendAlertsNow() {
     if (!canSendNow || sendingNow) return;
-    if (
-      !window.confirm(
-        "Send all currently eligible tender alerts to the configured recipients now? Previously delivered alerts will not be resent.",
-      )
-    ) {
-      return;
-    }
 
     setSendingNow(true);
+    setSendNowError(null);
     setSendNowMessage(null);
     setError(null);
     try {
@@ -157,9 +154,12 @@ export function NotificationsSettings({
       setSendNowMessage(
         `${payload.sent} sent · ${payload.skipped} skipped · ${payload.failed} failed`,
       );
+      setSendNowOpen(false);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send tender alerts");
+      setSendNowError(
+        err instanceof Error ? err.message : "Could not send tender alerts",
+      );
     } finally {
       setSendingNow(false);
     }
@@ -193,7 +193,10 @@ export function NotificationsSettings({
             {canSendNow && (
               <button
                 type="button"
-                onClick={() => void sendAlertsNow()}
+                onClick={() => {
+                  setSendNowError(null);
+                  setSendNowOpen(true);
+                }}
                 disabled={sendingNow || saving || !workspaceEnabled}
                 className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -237,6 +240,20 @@ export function NotificationsSettings({
             </p>
           )}
         </div>
+      )}
+
+      {canSendNow && (
+        <ConfirmDialog
+          open={sendNowOpen}
+          onOpenChange={setSendNowOpen}
+          title="Send tender alerts now?"
+          description="This will email all currently eligible, pending tender alerts to the configured recipients. Previously delivered alerts will not be resent, and personal opt-outs still apply."
+          confirmLabel="Send alerts"
+          cancelLabel="Cancel"
+          loading={sendingNow}
+          error={sendNowError}
+          onConfirm={sendAlertsNow}
+        />
       )}
 
       {error && (
