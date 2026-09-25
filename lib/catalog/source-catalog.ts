@@ -144,20 +144,6 @@ export const SOURCE_CATALOG: CatalogSource[] = [
     status: "live",
     syncSupported: true,
   },
-  {
-    id: "ungm",
-    name: "UNGM (UN Global Marketplace)",
-    description:
-      "United Nations procurement portal — browse opportunities; programmatic sync requires UNGM API registration.",
-    region: "Global",
-    category: "International",
-    adapter: "generic-link",
-    url: "https://www.ungm.org/Public/Notice",
-    color: "#0ea5e9",
-    featured: false,
-    status: "browse",
-    syncSupported: false,
-  },
 ];
 
 export function getCatalogSource(id: string): CatalogSource | undefined {

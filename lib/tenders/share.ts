@@ -138,6 +138,8 @@ export async function getPublicTenderByShareToken(
       hasHardDeadline: tenders.hasHardDeadline,
       saved: tenders.saved,
       matchScore: tenders.matchScore,
+      relevanceOverride: tenders.relevanceOverride,
+      relevanceReason: tenders.relevanceReason,
       customFields: tenders.customFields,
       createdAt: tenders.createdAt,
       updatedAt: tenders.updatedAt,

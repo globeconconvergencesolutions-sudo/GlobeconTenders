@@ -37,6 +37,7 @@ export const PERMISSIONS = {
   "countries:create": ["super_admin", "admin", "analyst"],
   "countries:delete": ["super_admin", "admin"],
   "tenders:save": ["super_admin", "admin", "analyst"],
+  "tenders:review": ["super_admin", "admin"],
   "tenders:export": ["super_admin", "admin", "analyst"],
   "tenders:share": ["super_admin", "admin", "analyst"],
   "users:read": ["super_admin", "admin"],
@@ -87,6 +88,10 @@ export function canUploadDocuments(role: UserRole): boolean {
 
 export function canSaveTenders(role: UserRole): boolean {
   return hasPermission(role, "tenders:save");
+}
+
+export function canReviewTenders(role: UserRole): boolean {
+  return hasPermission(role, "tenders:review");
 }
 
 export function canExportTenders(role: UserRole): boolean {

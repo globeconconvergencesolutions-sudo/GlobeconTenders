@@ -241,6 +241,15 @@ export const tenders = pgTable(
     isClosed: boolean("is_closed").notNull().default(false),
     saved: boolean("saved").notNull().default(false),
     matchScore: integer("match_score").notNull().default(0),
+    /**
+     * Human override for the relevance gate.
+     * include = stay on Live despite score; exclude = keep out; null = automatic.
+     */
+    relevanceOverride: text("relevance_override").$type<
+      "include" | "exclude" | null
+    >(),
+    /** Short reason from the last gate decision (for Needs review UI). */
+    relevanceReason: text("relevance_reason"),
     customFields: jsonb("custom_fields")
       .$type<Record<string, string | number | boolean | null>>()
       .notNull()

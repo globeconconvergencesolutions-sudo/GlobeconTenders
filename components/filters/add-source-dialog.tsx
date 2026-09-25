@@ -69,7 +69,7 @@ export function AddSourceDialog({
           type: "link",
           name,
           url,
-          adapter: url.includes("/feed") ? "generic-rss" : "generic-link",
+          adapter: "generic-rss",
         }),
       });
       if (!response.ok) {
@@ -150,7 +150,7 @@ export function AddSourceDialog({
         <Tabs defaultValue="catalog" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="catalog">Catalog</TabsTrigger>
-            <TabsTrigger value="link">Custom link</TabsTrigger>
+            <TabsTrigger value="link">RSS feed</TabsTrigger>
             <TabsTrigger value="document">Document</TabsTrigger>
           </TabsList>
 
@@ -164,11 +164,16 @@ export function AddSourceDialog({
 
           <TabsContent value="link" className="mt-4 space-y-4">
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-muted-foreground dark:border-border dark:bg-muted/40">
-              Paste any public RSS/Atom feed URL. URLs containing{" "}
+              Only syncable RSS/Atom feed URLs are accepted (path contains{" "}
               <code className="rounded bg-white px-1 dark:bg-background">
-                /feed
+                feed
               </code>{" "}
-              are auto-detected as RSS.
+              or{" "}
+              <code className="rounded bg-white px-1 dark:bg-background">
+                .xml
+              </code>
+              ). Browse-only website bookmarks are not sources — use the
+              catalog.
             </div>
             <div className="space-y-2">
               <Label htmlFor="source-name">Source name</Label>
@@ -180,7 +185,7 @@ export function AddSourceDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="source-url">Feed or portal URL</Label>
+              <Label htmlFor="source-url">RSS / Atom feed URL</Label>
               <Input
                 id="source-url"
                 value={url}
@@ -196,7 +201,7 @@ export function AddSourceDialog({
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  "Add custom source"
+                  "Add RSS source"
                 )}
               </Button>
             </DialogFooter>

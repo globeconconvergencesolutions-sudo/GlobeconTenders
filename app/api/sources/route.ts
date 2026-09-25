@@ -28,9 +28,8 @@ const createSourceSchema = z.discriminatedUnion("type", [
         "kenya-ppip",
         "afdb-procurement",
         "generic-rss",
-        "generic-link",
       ])
-      .default("generic-link"),
+      .default("generic-rss"),
     color: z.string().optional(),
   }),
   z.object({
@@ -120,6 +119,18 @@ export async function POST(request: Request) {
     }
 
     const payload = createSourceSchema.parse(await request.json());
+    if (payload.type === "link" && payload.adapter === "generic-rss") {
+      const feedLike = /\/feed|rss|\.xml/i.test(payload.url);
+      if (!feedLike) {
+        return NextResponse.json(
+          {
+            error:
+              "Custom links must be a syncable RSS/Atom feed URL (…/feed or .xml). Browse-only bookmarks are not supported — install a catalog source instead.",
+          },
+          { status: 400 },
+        );
+      }
+    }
     const slug = slugify(payload.name);
 
     const [created] = await db

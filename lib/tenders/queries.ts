@@ -33,6 +33,8 @@ import {
   liveListingSql,
   staleListingSql,
   archiveListingSql,
+  reviewListingSql,
+  filteredListingSql,
   type ListingBucket,
 } from "@/lib/tenders/lifecycle";
 
@@ -77,6 +79,8 @@ export type DashboardStats = {
   matchingTenders: number;
   closingWithin3Days: number;
   openInDatabase: number;
+  reviewListings: number;
+  filteredListings: number;
   staleListings: number;
   archivedListings: number;
   activeSources: number;
@@ -330,10 +334,13 @@ export async function getTendersPaginated(
 
   const resolvedOrgId = await resolveOrgId(orgId);
   const whereClause = scopeToOrg(resolvedOrgId, buildFilterConditions(filters));
+  const bucket = resolveListingBucket(filters);
   const orderBy =
-    sort === "closing_soonest"
-      ? asc(tenders.deadline)
-      : desc(tenders.createdAt);
+    bucket === "review" || bucket === "filtered"
+      ? desc(tenders.matchScore)
+      : sort === "closing_soonest"
+        ? asc(tenders.deadline)
+        : desc(tenders.createdAt);
 
   const offset = (page - 1) * pageSize;
 
@@ -368,6 +375,8 @@ export async function getTendersPaginated(
         isClosed: tenders.isClosed,
         saved: tenders.saved,
         matchScore: tenders.matchScore,
+        relevanceOverride: tenders.relevanceOverride,
+        relevanceReason: tenders.relevanceReason,
         customFields: tenders.customFields,
         createdAt: tenders.createdAt,
         updatedAt: tenders.updatedAt,
@@ -414,6 +423,8 @@ export async function getDashboardStats(
       matchingTenders: 0,
       closingWithin3Days: 0,
       openInDatabase: 0,
+      reviewListings: 0,
+      filteredListings: 0,
       staleListings: 0,
       archivedListings: 0,
       activeSources: 0,
@@ -438,6 +449,8 @@ export async function getDashboardStats(
       .select({
         all: count(),
         live: sql<number>`count(*) filter (where ${liveListingSql})`,
+        review: sql<number>`count(*) filter (where ${reviewListingSql})`,
+        filtered: sql<number>`count(*) filter (where ${filteredListingSql})`,
         stale: sql<number>`count(*) filter (where ${staleListingSql})`,
         archived: sql<number>`count(*) filter (where ${archiveListingSql})`,
         closing3: sql<number>`count(*) filter (where ${liveListingSql} and ${tenders.hasHardDeadline} = true and ${tenders.deadline} <= now() + interval '3 days')`,
@@ -459,6 +472,8 @@ export async function getDashboardStats(
   ]);
 
   const live = Number(tenderRow?.live ?? 0);
+  const review = Number(tenderRow?.review ?? 0);
+  const filtered = Number(tenderRow?.filtered ?? 0);
   const stale = Number(tenderRow?.stale ?? 0);
   const archived = Number(tenderRow?.archived ?? 0);
   const all = tenderRow?.all ?? 0;
@@ -467,14 +482,20 @@ export async function getDashboardStats(
       ? stale
       : bucket === "archive"
         ? archived
-        : bucket === "all"
-          ? all
-          : live;
+        : bucket === "review"
+          ? review
+          : bucket === "filtered"
+            ? filtered
+            : bucket === "all"
+              ? all
+              : live;
 
   return {
     matchingTenders,
     closingWithin3Days: Number(tenderRow?.closing3 ?? 0),
     openInDatabase: live,
+    reviewListings: review,
+    filteredListings: filtered,
     staleListings: stale,
     archivedListings: archived,
     activeSources: Number(sourceRow?.active ?? 0),
@@ -621,6 +642,8 @@ export async function getTendersForExport(
       isClosed: tenders.isClosed,
       saved: tenders.saved,
       matchScore: tenders.matchScore,
+      relevanceOverride: tenders.relevanceOverride,
+      relevanceReason: tenders.relevanceReason,
       customFields: tenders.customFields,
       createdAt: tenders.createdAt,
       updatedAt: tenders.updatedAt,

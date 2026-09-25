@@ -38,6 +38,7 @@ import {
   canSync,
   canCreateSources,
   canShareTenders,
+  canReviewTenders,
 } from "@/lib/auth/permissions";
 import { getRoleGuide } from "@/lib/auth/role-guide";
 import { EMPTY_FILTER_STATE, type TenderWithSource, type UserRole } from "@/lib/db/schema";
@@ -68,6 +69,8 @@ type SerializableStats = {
   matchingTenders: number;
   closingWithin3Days: number;
   openInDatabase: number;
+  reviewListings: number;
+  filteredListings: number;
   staleListings: number;
   archivedListings: number;
   activeSources: number;
@@ -385,6 +388,20 @@ function TendersDashboardInner({
                   label: "Live",
                   count: stats.openInDatabase,
                 },
+                ...(canReviewTenders(userRole)
+                  ? [
+                      {
+                        id: "review" as const,
+                        label: "Needs review",
+                        count: stats.reviewListings,
+                      },
+                      {
+                        id: "filtered" as const,
+                        label: "Filtered out",
+                        count: stats.filteredListings,
+                      },
+                    ]
+                  : []),
                 {
                   id: "stale" as const,
                   label: "Stale",
@@ -446,6 +463,18 @@ function TendersDashboardInner({
             <p className="text-xs text-amber-700 dark:text-amber-300 sm:max-w-md">
               Deadline has passed, but the source still reports these as open.
               Review before bidding — they may already be closed on the portal.
+            </p>
+          )}
+          {listingBucket === "review" && (
+            <p className="text-xs text-amber-800 dark:text-amber-200 sm:max-w-md">
+              Near-misses: some keyword signal, but not enough for Live. Sorted by
+              match score — promote ones that fit Globecon, or keep them out.
+            </p>
+          )}
+          {listingBucket === "filtered" && (
+            <p className="text-xs text-muted-foreground sm:max-w-md">
+              Hard rejects (no meaningful match). Searchable for audits; promote
+              only if you are sure they belong on Live.
             </p>
           )}
           {listingBucket === "archive" && (
@@ -515,6 +544,8 @@ function TendersDashboardInner({
                 tender={tender}
                 canSave={canSaveTenders(userRole)}
                 canShare={canShareTenders(userRole)}
+                canReview={canReviewTenders(userRole)}
+                listingBucket={listingBucket}
                 hideWhenDeadlineReached={listingBucket === "live"}
                 onDeadlineReached={handleDeadlineReached}
               />

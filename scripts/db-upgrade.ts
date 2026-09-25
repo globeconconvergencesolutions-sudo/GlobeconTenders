@@ -339,6 +339,10 @@ const statements = [
   `ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS "stripe_subscription_id" text;`,
   `ALTER TABLE "workspace_settings" ADD COLUMN IF NOT EXISTS "onboarding" jsonb DEFAULT '{}'::jsonb NOT NULL;`,
   `ALTER TABLE "workspace_settings" ADD COLUMN IF NOT EXISTS "relevance" jsonb DEFAULT '{"minMatchScore":10}'::jsonb NOT NULL;`,
+  `ALTER TABLE "tenders" ADD COLUMN IF NOT EXISTS "relevance_override" text;`,
+  `ALTER TABLE "tenders" ADD COLUMN IF NOT EXISTS "relevance_reason" text;`,
+  `UPDATE "tenders" SET "listing_state" = 'review'
+     WHERE "listing_state" = 'irrelevant' AND coalesce("match_score", 0) > 0;`,
 
   `ALTER TABLE "org_memberships" ADD COLUMN IF NOT EXISTS "filter_state" jsonb DEFAULT '{"sourceIds":[],"serviceLineIds":[],"regionIds":[],"countryIds":[]}'::jsonb;`,
 

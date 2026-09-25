@@ -24,6 +24,8 @@ type HrOpportunityCardProps = {
   tender: TenderWithSource;
   canSave?: boolean;
   canShare?: boolean;
+  canReview?: boolean;
+  listingBucket?: import("@/lib/tenders/lifecycle").ListingBucket;
   customFieldDefinitions?: CustomFieldDefinition[];
   showMatchScore?: boolean;
   hideWhenDeadlineReached?: boolean;

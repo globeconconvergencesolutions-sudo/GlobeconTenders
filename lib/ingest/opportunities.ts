@@ -11,7 +11,7 @@ import {
   tenderServiceLineMatches,
   tenders,
 } from "@/lib/db/schema";
-import { detectRegionAndCountry, matchServiceLines } from "@/lib/matching";
+import { detectRegionAndCountry, scoreOpportunity } from "@/lib/matching";
 import { orgAllowsSync } from "@/lib/platform/org-status";
 import { getWorkspaceSettings } from "@/lib/settings/workspace";
 import { normalizeCategory } from "@/lib/tenders/categories";
@@ -19,6 +19,7 @@ import {
   applyRelevanceGate,
   reconcileTenderListings,
   resolveListingFields,
+  type RelevanceOverride,
 } from "@/lib/tenders/lifecycle";
 import { DEFAULT_ORG_SLUG, getPlatformAppUrl } from "@/lib/tenant/config";
 import { getOrganizationBySlug } from "@/lib/tenant/org";
@@ -427,21 +428,19 @@ export async function ingestOpportunities(
 
       const haystack = `${title} ${description ?? ""} ${item.countryLabel ?? ""} ${item.regionLabel ?? ""}`;
       const geo = detectRegionAndCountry(haystack, allRegions, allCountries);
-      const matches = matchServiceLines(
+      const scored = scoreOpportunity(
         `${title} ${description ?? ""} ${category}`,
         allServiceLines,
       );
-      const topScore = matches[0]?.score ?? 0;
-      const listing = applyRelevanceGate(baseListing, topScore, minMatchScore);
-      if (listing.listingState === "irrelevant") {
-        irrelevant += 1;
-      }
 
       const regionLabel = item.regionLabel?.trim() || geo.regionLabel;
       const countryLabel = item.countryLabel?.trim() || geo.countryLabel;
 
       const [existing] = await db
-        .select({ id: tenders.id })
+        .select({
+          id: tenders.id,
+          relevanceOverride: tenders.relevanceOverride,
+        })
         .from(tenders)
         .where(
           and(
@@ -450,6 +449,23 @@ export async function ingestOpportunities(
           ),
         )
         .limit(1);
+
+      const listing = applyRelevanceGate(
+        baseListing,
+        scored.topScore,
+        minMatchScore,
+        {
+          rawScore: scored.rawTopScore,
+          reason: scored.reason,
+          override: (existing?.relevanceOverride as RelevanceOverride) ?? null,
+        },
+      );
+      if (
+        listing.listingState === "irrelevant" ||
+        listing.listingState === "review"
+      ) {
+        irrelevant += 1;
+      }
 
       let tenderId: number;
       if (existing) {
@@ -466,11 +482,12 @@ export async function ingestOpportunities(
             countryId: geo.countryId,
             regionLabel,
             countryLabel,
-            matchScore: topScore,
+            matchScore: scored.rawTopScore,
             sourceStatus: listing.sourceStatus,
             listingState: listing.listingState,
             hasHardDeadline: listing.hasHardDeadline,
             isClosed: listing.isClosed,
+            relevanceReason: listing.relevanceReason ?? null,
             updatedAt: new Date(),
           })
           .where(eq(tenders.id, existing.id));
@@ -493,11 +510,12 @@ export async function ingestOpportunities(
             countryId: geo.countryId,
             regionLabel,
             countryLabel,
-            matchScore: topScore,
+            matchScore: scored.rawTopScore,
             sourceStatus: listing.sourceStatus,
             listingState: listing.listingState,
             hasHardDeadline: listing.hasHardDeadline,
             isClosed: listing.isClosed,
+            relevanceReason: listing.relevanceReason ?? null,
           })
           .returning({ id: tenders.id });
         tenderId = created.id;
@@ -508,9 +526,9 @@ export async function ingestOpportunities(
         .delete(tenderServiceLineMatches)
         .where(eq(tenderServiceLineMatches.tenderId, tenderId));
 
-      if (matches.length > 0) {
+      if (scored.matches.length > 0) {
         await db.insert(tenderServiceLineMatches).values(
-          matches.map((m) => ({
+          scored.matches.map((m) => ({
             tenderId,
             serviceLineId: m.serviceLineId,
             score: m.score,

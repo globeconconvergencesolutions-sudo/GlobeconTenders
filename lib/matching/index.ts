@@ -1,5 +1,5 @@
 import type { Country, Region, ServiceLine } from "@/lib/db/schema";
-import { refineMatchScore } from "@/lib/matching/relevance";
+import { refineMatchScore, type RefineResult } from "@/lib/matching/relevance";
 
 export function detectRegionAndCountry(
   text: string,
@@ -54,11 +54,28 @@ export function keywordOccurs(haystack: string, keyword: string): boolean {
   return re.test(haystack);
 }
 
-export function matchServiceLines(
+export type ServiceLineMatch = {
+  serviceLineId: number;
+  score: number;
+  name: string;
+};
+
+export type OpportunityScore = {
+  matches: ServiceLineMatch[];
+  /** Refined score used for the Live gate. */
+  topScore: number;
+  /** Raw keyword score before demotion (for Needs review). */
+  rawTopScore: number;
+  reason: string | null;
+  refine: RefineResult;
+};
+
+/** Score text against service lines (raw + refined). */
+export function scoreOpportunity(
   text: string,
   serviceLines: ServiceLine[],
-): { serviceLineId: number; score: number; name: string }[] {
-  const matches: { serviceLineId: number; score: number; name: string }[] = [];
+): OpportunityScore {
+  const matches: ServiceLineMatch[] = [];
 
   for (const line of serviceLines) {
     let score = 0;
@@ -73,14 +90,27 @@ export function matchServiceLines(
   }
 
   const ranked = matches.sort((a, b) => b.score - a.score);
-  if (ranked.length === 0) return ranked;
+  const rawTopScore = ranked[0]?.score ?? 0;
+  const refine = refineMatchScore(rawTopScore, text);
 
-  const top = ranked[0];
-  const refined = refineMatchScore(top.score, text);
-  if (refined <= 0) return [];
+  return {
+    matches: ranked,
+    topScore: refine.score,
+    rawTopScore,
+    reason: refine.reason,
+    refine,
+  };
+}
 
-  return ranked.map((row, index) =>
-    index === 0 ? { ...row, score: refined } : row,
+/** @deprecated Prefer scoreOpportunity — kept for transitional callers. */
+export function matchServiceLines(
+  text: string,
+  serviceLines: ServiceLine[],
+): ServiceLineMatch[] {
+  const scored = scoreOpportunity(text, serviceLines);
+  if (scored.topScore <= 0) return [];
+  return scored.matches.map((row, index) =>
+    index === 0 ? { ...row, score: scored.topScore } : row,
   );
 }
 

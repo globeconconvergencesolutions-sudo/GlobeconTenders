@@ -8,7 +8,7 @@ import {
   tenders,
   workspaceSettings,
 } from "@/lib/db/schema";
-import { matchServiceLines } from "@/lib/matching";
+import { scoreOpportunity } from "@/lib/matching";
 import { daysUntil } from "@/lib/utils";
 
 export const LISTING_STATES = [
@@ -17,24 +17,39 @@ export const LISTING_STATES = [
   "stale",
   "expired",
   "closed",
+  "review",
   "irrelevant",
 ] as const;
 
 export type ListingState = (typeof LISTING_STATES)[number];
 
+export type RelevanceOverride = "include" | "exclude" | null;
+
 /** Pipeline buckets shown in the UI. */
-export type ListingBucket = "live" | "stale" | "archive" | "all";
+export type ListingBucket =
+  | "live"
+  | "review"
+  | "filtered"
+  | "stale"
+  | "archive"
+  | "all";
 
 export const LISTING_BUCKETS: ListingBucket[] = [
   "live",
+  "review",
+  "filtered",
   "stale",
   "archive",
   "all",
 ];
 
-export function isListingBucket(value: string | null | undefined): value is ListingBucket {
+export function isListingBucket(
+  value: string | null | undefined,
+): value is ListingBucket {
   return (
     value === "live" ||
+    value === "review" ||
+    value === "filtered" ||
     value === "stale" ||
     value === "archive" ||
     value === "all"
@@ -56,6 +71,7 @@ export type ListingResolution = {
   isClosed: boolean;
   hasHardDeadline: boolean;
   sourceStatus: string | null;
+  relevanceReason?: string | null;
 };
 
 function startOfUtcDay(date: Date): Date {
@@ -159,24 +175,71 @@ export function resolveListingFields(input: {
   };
 }
 
-/** Apply org relevance gate after deadline/status resolution. */
+/**
+ * Apply org relevance gate after deadline/status resolution.
+ *
+ * - override include → keep calendar listing (Live path)
+ * - override exclude → filtered out
+ * - refined score ≥ threshold → Live path
+ * - raw score > 0 but not passing → Needs review
+ * - raw score 0 → Filtered out
+ */
 export function applyRelevanceGate(
   listing: ListingResolution,
-  matchScore: number,
+  refinedScore: number,
   minMatchScore: number,
+  options?: {
+    rawScore?: number;
+    reason?: string | null;
+    override?: RelevanceOverride;
+  },
 ): ListingResolution {
-  if (matchScore < minMatchScore) {
+  const rawScore = options?.rawScore ?? refinedScore;
+  const override = options?.override ?? null;
+
+  if (override === "include") {
+    return {
+      ...listing,
+      relevanceReason: "Manually allowed on Live",
+    };
+  }
+  if (override === "exclude") {
     return {
       ...listing,
       listingState: "irrelevant",
       isClosed: true,
+      relevanceReason: "Manually kept out of Live",
     };
   }
-  return listing;
+  if (refinedScore >= minMatchScore) {
+    return {
+      ...listing,
+      relevanceReason: null,
+    };
+  }
+  if (rawScore > 0) {
+    return {
+      ...listing,
+      listingState: "review",
+      isClosed: false,
+      relevanceReason:
+        options?.reason ??
+        `Score ${rawScore} is below the Live threshold (${minMatchScore})`,
+    };
+  }
+  return {
+    ...listing,
+    listingState: "irrelevant",
+    isClosed: true,
+    relevanceReason: options?.reason ?? "No service-line keyword match",
+  };
 }
 
-/** Hidden from Live / Stale / Archive / All pipeline views. */
-export const pipelineVisibleSql = sql`${tenders.listingState} is distinct from 'irrelevant'`;
+/** Hidden from the default Live/Stale/Archive operator tabs. */
+export const pipelineVisibleSql = sql`(
+  ${tenders.listingState} is distinct from 'irrelevant'
+  and ${tenders.listingState} is distinct from 'review'
+)`;
 
 /** Default pipeline: live + rolling (actionable). */
 export const liveListingSql = sql`(
@@ -187,6 +250,10 @@ export const liveListingSql = sql`(
     and ${tenders.deadline}::date >= CURRENT_DATE
   )
 )`;
+
+export const reviewListingSql = sql`${tenders.listingState} = 'review'`;
+
+export const filteredListingSql = sql`${tenders.listingState} = 'irrelevant'`;
 
 export const staleListingSql = sql`${tenders.listingState} = 'stale'`;
 
@@ -206,15 +273,19 @@ export const deadlineNotPassedSql = sql`${tenders.deadline}::date >= CURRENT_DAT
 
 export function listingBucketSql(bucket: ListingBucket) {
   switch (bucket) {
+    case "review":
+      return reviewListingSql;
+    case "filtered":
+      return filteredListingSql;
     case "stale":
-      return sql`(${staleListingSql} and ${pipelineVisibleSql})`;
+      return staleListingSql;
     case "archive":
-      return sql`(${archiveListingSql} and ${pipelineVisibleSql})`;
+      return archiveListingSql;
     case "all":
-      return pipelineVisibleSql;
+      return sql`true`;
     case "live":
     default:
-      return sql`(${liveListingSql} and ${pipelineVisibleSql})`;
+      return liveListingSql;
   }
 }
 
@@ -237,6 +308,9 @@ export function opportunityTiming(
 
   if (state === "irrelevant" || state === "closed") {
     return { daysLeft, label: "Closed by source", tone: "closed" };
+  }
+  if (state === "review") {
+    return { daysLeft, label: "Needs review", tone: "soon" };
   }
   if (state === "stale") {
     return {
@@ -334,8 +408,10 @@ export function listingStateBadgeLabel(state: ListingState | null | undefined): 
       return "Closed";
     case "rolling":
       return "Open-ended";
+    case "review":
+      return "Needs review";
     case "irrelevant":
-      return null;
+      return "Filtered out";
     default:
       return null;
   }
@@ -396,6 +472,8 @@ export async function reconcileTenderListings(orgId?: number): Promise<{
     WHERE true
     ${orgClause}
       AND "listing_state" IS DISTINCT FROM 'irrelevant'
+      AND "listing_state" IS DISTINCT FROM 'review'
+      AND coalesce("relevance_override", '') = ''
       AND (
         "listing_state" IS DISTINCT FROM (
           CASE
@@ -452,8 +530,7 @@ export async function reconcileTenderListings(orgId?: number): Promise<{
 
 /**
  * Re-score tenders against active service lines.
- * Below-threshold → irrelevant; previously irrelevant that now pass are restored
- * from deadline/status via resolveListingFields.
+ * Respects relevanceOverride; near-misses → review; hard rejects → irrelevant.
  */
 export async function reconcileTenderRelevance(orgId?: number): Promise<{
   marked: number;
@@ -504,6 +581,7 @@ export async function reconcileTenderRelevance(orgId?: number): Promise<{
         hasHardDeadline: tenders.hasHardDeadline,
         listingState: tenders.listingState,
         matchScore: tenders.matchScore,
+        relevanceOverride: tenders.relevanceOverride,
       })
       .from(tenders)
       .where(
@@ -515,64 +593,70 @@ export async function reconcileTenderRelevance(orgId?: number): Promise<{
             "stale",
             "expired",
             "closed",
+            "review",
             "irrelevant",
           ]),
         ),
       );
 
     for (const row of rows) {
-      const matches = matchServiceLines(
+      const scored = scoreOpportunity(
         `${row.title} ${row.description ?? ""} ${row.category}`,
         activeLines,
       );
-      const topScore = matches[0]?.score ?? 0;
+      const baseListing = resolveListingFields({
+        deadline: row.deadline,
+        sourceStatus: row.sourceStatus,
+        hasHardDeadline: row.hasHardDeadline,
+      });
+      const listing = applyRelevanceGate(
+        baseListing,
+        scored.topScore,
+        minMatchScore,
+        {
+          rawScore: scored.rawTopScore,
+          reason: scored.reason,
+          override: (row.relevanceOverride as RelevanceOverride) ?? null,
+        },
+      );
 
-      if (topScore < minMatchScore) {
-        if (row.listingState === "irrelevant" && topScore === row.matchScore) {
-          continue;
-        }
-        await db
-          .update(tenders)
-          .set({
-            matchScore: topScore,
-            listingState: "irrelevant",
-            isClosed: true,
-            updatedAt: new Date(),
-          })
-          .where(eq(tenders.id, row.id));
-        if (row.listingState !== "irrelevant") {
-          marked += 1;
-        }
+      const unchanged =
+        listing.listingState === row.listingState &&
+        scored.rawTopScore === row.matchScore;
+
+      if (unchanged && !listing.relevanceReason) {
         continue;
       }
 
-      if (row.listingState === "irrelevant") {
-        const listing = resolveListingFields({
-          deadline: row.deadline,
-          sourceStatus: row.sourceStatus,
-          hasHardDeadline: row.hasHardDeadline,
-        });
-        await db
-          .update(tenders)
-          .set({
-            matchScore: topScore,
-            listingState: listing.listingState,
-            isClosed: listing.isClosed,
-            hasHardDeadline: listing.hasHardDeadline,
-            sourceStatus: listing.sourceStatus,
-            updatedAt: new Date(),
-          })
-          .where(eq(tenders.id, row.id));
-        restored += 1;
-        continue;
-      }
+      const wasPipeline =
+        row.listingState === "live" ||
+        row.listingState === "rolling" ||
+        row.listingState === "stale";
+      const nowHidden =
+        listing.listingState === "review" ||
+        listing.listingState === "irrelevant";
+      const wasHidden =
+        row.listingState === "review" || row.listingState === "irrelevant";
+      const nowPipeline =
+        listing.listingState === "live" ||
+        listing.listingState === "rolling" ||
+        listing.listingState === "stale";
 
-      if (topScore !== row.matchScore) {
-        await db
-          .update(tenders)
-          .set({ matchScore: topScore, updatedAt: new Date() })
-          .where(eq(tenders.id, row.id));
-      }
+      await db
+        .update(tenders)
+        .set({
+          matchScore: scored.rawTopScore,
+          listingState: listing.listingState,
+          isClosed: listing.isClosed,
+          hasHardDeadline: listing.hasHardDeadline,
+          sourceStatus: listing.sourceStatus,
+          relevanceReason: listing.relevanceReason ?? null,
+          updatedAt: new Date(),
+        })
+        .where(eq(tenders.id, row.id));
+
+      if (wasPipeline && nowHidden) marked += 1;
+      if (wasHidden && nowPipeline) restored += 1;
     }
   }
 

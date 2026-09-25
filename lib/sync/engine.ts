@@ -12,7 +12,7 @@ import {
 } from "@/lib/db/schema";
 import {
   detectRegionAndCountry,
-  matchServiceLines,
+  scoreOpportunity,
 } from "@/lib/matching";
 import { getWorkspaceSettings } from "@/lib/settings/workspace";
 import { fetchAfdbProcurementTenders } from "@/lib/sync/afdb-procurement";
@@ -27,6 +27,7 @@ import {
   applyRelevanceGate,
   reconcileTenderListings,
   resolveListingFields,
+  type RelevanceOverride,
 } from "@/lib/tenders/lifecycle";
 
 export type SyncResult = {
@@ -156,18 +157,16 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
         allRegions,
         allCountries,
       );
-      const matches = matchServiceLines(
+      const scored = scoreOpportunity(
         `${item.title} ${item.description ?? ""} ${category}`,
         allServiceLines,
       );
-      const topScore = matches[0]?.score ?? 0;
-      const listing = applyRelevanceGate(baseListing, topScore, minMatchScore);
-      if (listing.listingState === "irrelevant") {
-        irrelevant += 1;
-      }
 
       const [existing] = await db
-        .select({ id: tenders.id })
+        .select({
+          id: tenders.id,
+          relevanceOverride: tenders.relevanceOverride,
+        })
         .from(tenders)
         .where(
           and(
@@ -176,6 +175,23 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
           ),
         )
         .limit(1);
+
+      const listing = applyRelevanceGate(
+        baseListing,
+        scored.topScore,
+        minMatchScore,
+        {
+          rawScore: scored.rawTopScore,
+          reason: scored.reason,
+          override: (existing?.relevanceOverride as RelevanceOverride) ?? null,
+        },
+      );
+      if (
+        listing.listingState === "irrelevant" ||
+        listing.listingState === "review"
+      ) {
+        irrelevant += 1;
+      }
 
       let tenderId: number;
 
@@ -193,11 +209,12 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
             countryId: geo.countryId,
             regionLabel: geo.regionLabel,
             countryLabel: geo.countryLabel,
-            matchScore: topScore,
+            matchScore: scored.rawTopScore,
             sourceStatus: listing.sourceStatus,
             listingState: listing.listingState,
             hasHardDeadline: listing.hasHardDeadline,
             isClosed: listing.isClosed,
+            relevanceReason: listing.relevanceReason ?? null,
             updatedAt: new Date(),
           })
           .where(eq(tenders.id, existing.id));
@@ -220,11 +237,12 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
             countryId: geo.countryId,
             regionLabel: geo.regionLabel,
             countryLabel: geo.countryLabel,
-            matchScore: topScore,
+            matchScore: scored.rawTopScore,
             sourceStatus: listing.sourceStatus,
             listingState: listing.listingState,
             hasHardDeadline: listing.hasHardDeadline,
             isClosed: listing.isClosed,
+            relevanceReason: listing.relevanceReason ?? null,
           })
           .returning({ id: tenders.id });
         tenderId = created.id;
@@ -235,9 +253,9 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
         .delete(tenderServiceLineMatches)
         .where(eq(tenderServiceLineMatches.tenderId, tenderId));
 
-      if (matches.length > 0) {
+      if (scored.matches.length > 0) {
         await db.insert(tenderServiceLineMatches).values(
-          matches.map((m) => ({
+          scored.matches.map((m) => ({
             tenderId,
             serviceLineId: m.serviceLineId,
             score: m.score,

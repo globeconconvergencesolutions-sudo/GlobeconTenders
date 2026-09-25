@@ -8,6 +8,7 @@ import { useFeatures, useLexicon } from "@/components/providers/org-context-prov
 import { ShareTenderButton } from "@/components/share/public-tender-view";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useDeadlineCountdown } from "@/hooks/use-deadline-countdown";
 import type { CustomFieldDefinition, TenderWithSource } from "@/lib/db/schema";
@@ -17,6 +18,7 @@ import {
   opportunityTiming,
   timingBarClass,
   timingTextClass,
+  type ListingBucket,
   type ListingState,
 } from "@/lib/tenders/lifecycle";
 import { cn, formatDeadline } from "@/lib/utils";
@@ -25,6 +27,8 @@ type ProcurementOpportunityCardProps = {
   tender: TenderWithSource;
   canSave?: boolean;
   canShare?: boolean;
+  canReview?: boolean;
+  listingBucket?: ListingBucket;
   customFieldDefinitions?: CustomFieldDefinition[];
   showMatchScore?: boolean;
   /** When true (Live tab), hide this card once the hard deadline hits 0. */
@@ -36,6 +40,8 @@ export function ProcurementOpportunityCard({
   tender,
   canSave = false,
   canShare = false,
+  canReview = false,
+  listingBucket = "live",
   customFieldDefinitions = [],
   showMatchScore = true,
   hideWhenDeadlineReached = false,
@@ -46,6 +52,7 @@ export function ProcurementOpportunityCard({
   const features = useFeatures();
   const [saved, setSaved] = useState(tender.saved);
   const [saving, setSaving] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
   const timing = opportunityTiming(tender.deadline, {
     listingState: (tender.listingState as ListingState | null) ?? null,
     sourceStatus: tender.sourceStatus,
@@ -103,6 +110,23 @@ export function ProcurementOpportunityCard({
       }
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function setRelevanceOverride(relevanceOverride: "include" | "exclude") {
+    if (!canReview || reviewing) return;
+    setReviewing(true);
+    try {
+      const response = await fetch(`/api/tenders/${tender.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ relevanceOverride }),
+      });
+      if (response.ok) {
+        router.refresh();
+      }
+    } finally {
+      setReviewing(false);
     }
   }
 
@@ -240,6 +264,42 @@ export function ProcurementOpportunityCard({
               <ExternalLink className="h-3 w-3" />
             </a>
           )}
+          {canReview &&
+            (listingBucket === "review" || listingBucket === "filtered") && (
+              <div className="space-y-2 rounded-lg border border-amber-200/80 bg-amber-50/70 p-3 dark:border-amber-900/40 dark:bg-amber-950/20">
+                {tender.relevanceReason && (
+                  <p className="text-[11px] leading-snug text-amber-900 dark:text-amber-100">
+                    {tender.relevanceReason}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-8"
+                    disabled={reviewing}
+                    onClick={() => void setRelevanceOverride("include")}
+                  >
+                    {reviewing ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : null}
+                    Allow on Live
+                  </Button>
+                  {listingBucket === "review" && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8"
+                      disabled={reviewing}
+                      onClick={() => void setRelevanceOverride("exclude")}
+                    >
+                      Keep out
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
         </div>
       </CardContent>
     </Card>

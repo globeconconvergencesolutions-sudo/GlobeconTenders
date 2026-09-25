@@ -2,6 +2,7 @@
 
 import type { CustomFieldDefinition } from "@/lib/db/schema";
 import type { TenderWithSource } from "@/lib/db/schema";
+import type { ListingBucket } from "@/lib/tenders/lifecycle";
 
 import { HrOpportunityCard } from "@/components/tenders/hr-opportunity-card";
 import { ProcurementOpportunityCard } from "@/components/tenders/procurement-opportunity-card";
@@ -15,6 +16,8 @@ type OpportunityCardProps = {
   tender: TenderWithSource;
   canSave?: boolean;
   canShare?: boolean;
+  canReview?: boolean;
+  listingBucket?: ListingBucket;
   customFieldDefinitions?: CustomFieldDefinition[];
   hideWhenDeadlineReached?: boolean;
   onDeadlineReached?: (tenderId: number) => void;
@@ -24,6 +27,8 @@ export function OpportunityCard({
   tender,
   canSave = false,
   canShare = false,
+  canReview = false,
+  listingBucket = "live",
   customFieldDefinitions,
   hideWhenDeadlineReached = false,
   onDeadlineReached,
@@ -39,6 +44,8 @@ export function OpportunityCard({
         tender={tender}
         canSave={canSave}
         canShare={canShare}
+        canReview={canReview}
+        listingBucket={listingBucket}
         customFieldDefinitions={definitions}
         showMatchScore={features.matchScore}
         hideWhenDeadlineReached={hideWhenDeadlineReached}
@@ -52,6 +59,8 @@ export function OpportunityCard({
       tender={tender}
       canSave={canSave}
       canShare={canShare}
+      canReview={canReview}
+      listingBucket={listingBucket}
       customFieldDefinitions={definitions}
       showMatchScore={features.matchScore}
       hideWhenDeadlineReached={hideWhenDeadlineReached}

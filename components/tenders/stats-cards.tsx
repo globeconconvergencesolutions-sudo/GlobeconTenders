@@ -15,6 +15,8 @@ type SerializableStats = {
   matchingTenders: number;
   closingWithin3Days: number;
   openInDatabase: number;
+  reviewListings: number;
+  filteredListings: number;
   staleListings: number;
   archivedListings: number;
   activeSources: number;
@@ -35,9 +37,13 @@ export function StatsCards({ stats, listingBucket }: StatsCardsProps) {
       ? "Stale listings in view"
       : listingBucket === "archive"
         ? "Archived in view"
-        : listingBucket === "all"
-          ? `All ${lexicon.opportunityPlural.toLowerCase()}`
-          : `Live ${lexicon.opportunityPlural.toLowerCase()}`;
+        : listingBucket === "review"
+          ? "Needs review in view"
+          : listingBucket === "filtered"
+            ? "Filtered out in view"
+            : listingBucket === "all"
+              ? `All ${lexicon.opportunityPlural.toLowerCase()}`
+              : `Live ${lexicon.opportunityPlural.toLowerCase()}`;
 
   const statConfig = [
     {

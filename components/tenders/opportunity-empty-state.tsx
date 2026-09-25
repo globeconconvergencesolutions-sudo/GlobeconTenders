@@ -17,7 +17,7 @@ type OpportunityEmptyStateProps = {
   onSync?: () => void;
   canSync: boolean;
   canAddSource: boolean;
-  listingBucket?: "live" | "stale" | "archive" | "all";
+  listingBucket?: "live" | "review" | "filtered" | "stale" | "archive" | "all";
 };
 
 export function OpportunityEmptyState({
@@ -38,6 +38,29 @@ export function OpportunityEmptyState({
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
           Stale means the deadline has passed while the source still reports
           open. Nothing currently matches that pattern.
+        </p>
+      </div>
+    );
+  }
+
+  if (listingBucket === "review") {
+    return (
+      <div className="rounded-2xl border border-dashed border-amber-300 bg-amber-50/50 px-6 py-12 text-center dark:border-amber-500/40 dark:bg-amber-950/20">
+        <h3 className="text-lg font-semibold">Nothing needs review</h3>
+        <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+          Near-miss notices (some keyword signal, but not enough for Live) will
+          appear here after Sync for a human check.
+        </p>
+      </div>
+    );
+  }
+
+  if (listingBucket === "filtered") {
+    return (
+      <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center dark:border-border dark:bg-card">
+        <h3 className="text-lg font-semibold">No filtered notices</h3>
+        <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+          Hard rejects with no meaningful match will show here after Sync.
         </p>
       </div>
     );

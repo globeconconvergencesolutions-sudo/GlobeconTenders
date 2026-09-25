@@ -9,21 +9,42 @@ const CIVIL_OR_GOODS_NOISE =
 const STRONG_TECH =
   /\b(software|digital(?:isation|ization)?|digitisation|digitization|ICT|information system|management information|e-?procurement|cloud (?:hosting|computing|migration|services)|cyber(?:\s|-)?secur(?:ity|e)|database|data migration|ERP|MIS|web application|mobile (?:app|application)|API\b|system (?:development|integration|implementation)|electronic document|GED\b|SD-?WAN|local area network|wide area network|IT infrastructure|business intelligence|Power BI|ISO 27001|penetration test)\b/i;
 
+export type RefineResult = {
+  /** Score used for the Live pass gate (may be 0 after demotion). */
+  score: number;
+  /** Pre-demotion keyword score (kept for Needs review ranking). */
+  rawScore: number;
+  /** Why it did not auto-pass Live, when applicable. */
+  reason: string | null;
+};
+
 /**
  * Adjust match score after keyword scoring.
- * - Civil/goods noise without a strong tech signal → 0
- * - Single soft keyword hit without a strong tech phrase → 0
+ * - Civil/goods noise without a strong tech signal → demote (review)
+ * - Single soft keyword hit without a strong tech phrase → demote (review)
  */
 export function refineMatchScore(
   rawScore: number,
   text: string,
-): number {
-  if (rawScore <= 0) return 0;
-  const hay = text;
-  const noisy = CIVIL_OR_GOODS_NOISE.test(hay);
-  const tech = STRONG_TECH.test(hay);
-  if (noisy && !tech) return 0;
-  // One keyword hit is only trusted when the notice also reads as tech work.
-  if (rawScore < 20 && !tech) return 0;
-  return rawScore;
+): RefineResult {
+  if (rawScore <= 0) {
+    return { score: 0, rawScore: 0, reason: "No service-line keyword match" };
+  }
+  const noisy = CIVIL_OR_GOODS_NOISE.test(text);
+  const tech = STRONG_TECH.test(text);
+  if (noisy && !tech) {
+    return {
+      score: 0,
+      rawScore,
+      reason: "Looks like civil/goods work without a clear tech signal",
+    };
+  }
+  if (rawScore < 20 && !tech) {
+    return {
+      score: 0,
+      rawScore,
+      reason: "Only a weak keyword hit — needs a stronger tech signal",
+    };
+  }
+  return { score: rawScore, rawScore, reason: null };
 }
