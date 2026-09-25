@@ -13,7 +13,9 @@ import {
   type WorkspaceLayoutSettings,
   type WorkspaceLexiconSettings,
   type WorkspaceNotificationSettings,
+  type WorkspaceRelevanceSettings,
   type WorkspaceSettingsPayload,
+  DEFAULT_WORKSPACE_RELEVANCE,
   organizations,
   orgMemberships,
   userPermissionGrants,
@@ -37,6 +39,16 @@ function normalizeNotifications(
       ...value.defaultPrefs,
     },
   };
+}
+
+function normalizeRelevance(
+  value: WorkspaceRelevanceSettings | null | undefined,
+): WorkspaceRelevanceSettings {
+  const raw = Number(value?.minMatchScore);
+  const minMatchScore = Number.isFinite(raw)
+    ? Math.min(100, Math.max(0, Math.round(raw)))
+    : DEFAULT_WORKSPACE_RELEVANCE.minMatchScore;
+  return { minMatchScore };
 }
 
 async function resolveOrgId(orgId?: number): Promise<number> {
@@ -148,6 +160,7 @@ export const getWorkspaceSettings = cache(async (
     features: resolveFeatures(row.features, templateId),
     layout: resolveLayout(row.layout, templateId),
     catalog: row.catalog ?? DEFAULT_WORKSPACE_SETTINGS.catalog,
+    relevance: normalizeRelevance(row.relevance),
   };
 
   return ensureDefaultAlertRecipients(resolvedOrgId, settings);

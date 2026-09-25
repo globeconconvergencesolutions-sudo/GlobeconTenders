@@ -9,6 +9,7 @@ import { ShareTenderButton } from "@/components/share/public-tender-view";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { useDeadlineCountdown } from "@/hooks/use-deadline-countdown";
 import type { CustomFieldDefinition, TenderWithSource } from "@/lib/db/schema";
 import { getCardCustomFields } from "@/lib/templates/custom-fields";
 import {
@@ -26,6 +27,9 @@ type ProcurementOpportunityCardProps = {
   canShare?: boolean;
   customFieldDefinitions?: CustomFieldDefinition[];
   showMatchScore?: boolean;
+  /** When true (Live tab), hide this card once the hard deadline hits 0. */
+  hideWhenDeadlineReached?: boolean;
+  onDeadlineReached?: (tenderId: number) => void;
 };
 
 export function ProcurementOpportunityCard({
@@ -34,6 +38,8 @@ export function ProcurementOpportunityCard({
   canShare = false,
   customFieldDefinitions = [],
   showMatchScore = true,
+  hideWhenDeadlineReached = false,
+  onDeadlineReached,
 }: ProcurementOpportunityCardProps) {
   const router = useRouter();
   const { t } = useLexicon();
@@ -45,17 +51,37 @@ export function ProcurementOpportunityCard({
     sourceStatus: tender.sourceStatus,
     hasHardDeadline: tender.hasHardDeadline,
   });
+  const countdownEnabled =
+    hideWhenDeadlineReached &&
+    tender.hasHardDeadline !== false &&
+    timing.tone !== "rolling" &&
+    timing.tone !== "stale" &&
+    timing.tone !== "expired" &&
+    timing.tone !== "closed";
+  const countdown = useDeadlineCountdown(tender.deadline, {
+    enabled: countdownEnabled,
+    onExpired: () => onDeadlineReached?.(tender.id),
+  });
   const listingBadge = listingStateBadgeLabel(
     (tender.listingState as ListingState | null) ?? null,
   );
+  const timingLabel = countdown.showCountdown
+    ? countdown.label
+    : timing.label;
+  const timingTone = countdown.showCountdown ? "urgent" : timing.tone;
   const progress =
-    timing.tone === "expired" || timing.tone === "closed"
+    timingTone === "expired" || timingTone === "closed"
       ? 100
-      : timing.tone === "rolling"
+      : timingTone === "rolling"
         ? 12
-        : timing.tone === "stale"
+        : timingTone === "stale"
           ? 100
-          : Math.min(100, Math.max(8, (timing.daysLeft / 30) * 100));
+          : countdown.showCountdown && countdown.msLeft > 0
+            ? Math.min(
+                100,
+                Math.max(8, (countdown.msLeft / (24 * 60 * 60 * 1000)) * 100),
+              )
+            : Math.min(100, Math.max(8, (timing.daysLeft / 30) * 100));
   const extraFields = getCardCustomFields(
     customFieldDefinitions,
     tender.customFields,
@@ -78,6 +104,10 @@ export function ProcurementOpportunityCard({
     } finally {
       setSaving(false);
     }
+  }
+
+  if (countdown.expired) {
+    return null;
   }
 
   return (
@@ -105,9 +135,9 @@ export function ProcurementOpportunityCard({
                 variant="outline"
                 className={cn(
                   "font-normal",
-                  timing.tone === "stale" &&
+                  timingTone === "stale" &&
                     "border-amber-300 text-amber-800 dark:border-amber-500/40 dark:text-amber-200",
-                  (timing.tone === "expired" || timing.tone === "closed") &&
+                  (timingTone === "expired" || timingTone === "closed") &&
                     "border-red-300 text-red-700 dark:border-red-500/40 dark:text-red-300",
                 )}
               >
@@ -181,15 +211,20 @@ export function ProcurementOpportunityCard({
               <Clock className="h-3.5 w-3.5" />
               {t("deadline")}: {formatDeadline(tender.deadline)}
             </span>
-            <span className={cn("font-medium", timingTextClass(timing.tone))}>
-              {timing.label}
+            <span
+              className={cn(
+                "font-medium tabular-nums",
+                timingTextClass(timingTone),
+              )}
+            >
+              {timingLabel}
             </span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
             <div
               className={cn(
                 "h-full rounded-full transition-all",
-                timingBarClass(timing.tone),
+                timingBarClass(timingTone),
               )}
               style={{ width: `${progress}%` }}
             />

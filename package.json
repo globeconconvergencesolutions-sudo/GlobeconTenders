@@ -14,6 +14,10 @@
     "db:upgrade": "tsx scripts/db-upgrade.ts",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx scripts/seed.ts",
+    "relevance:reconcile": "tsx scripts/reconcile-relevance.ts",
+    "service-lines:sync": "tsx scripts/sync-service-line-keywords.ts",
+    "urls:fix-wb": "tsx scripts/fix-world-bank-urls.ts",
+    "sync:clean": "tsx scripts/clean-sync-org.ts",
     "brand:generate": "tsx scripts/generate-brand-assets.ts",
     "brand:restore": "tsx scripts/restore-brand-source.ts",
     "email:test": "tsx scripts/test-email.ts"

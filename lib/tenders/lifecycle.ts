@@ -1,7 +1,14 @@
-import { sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { getDb } from "@/lib/db";
-import { tenders } from "@/lib/db/schema";
+import {
+  DEFAULT_WORKSPACE_RELEVANCE,
+  organizations,
+  serviceLines,
+  tenders,
+  workspaceSettings,
+} from "@/lib/db/schema";
+import { matchServiceLines } from "@/lib/matching";
 import { daysUntil } from "@/lib/utils";
 
 export const LISTING_STATES = [
@@ -10,6 +17,7 @@ export const LISTING_STATES = [
   "stale",
   "expired",
   "closed",
+  "irrelevant",
 ] as const;
 
 export type ListingState = (typeof LISTING_STATES)[number];
@@ -90,6 +98,7 @@ export function isRollingSourceStatus(status: string | null | undefined): boolea
  * - stale: deadline past but portal still claims open
  * - expired: deadline past, portal not claiming open
  * - closed: portal terminal (awarded / cancelled / closed)
+ * - irrelevant: below org match threshold (hidden from pipeline tabs)
  */
 export function resolveListingFields(input: {
   deadline: Date;
@@ -150,6 +159,25 @@ export function resolveListingFields(input: {
   };
 }
 
+/** Apply org relevance gate after deadline/status resolution. */
+export function applyRelevanceGate(
+  listing: ListingResolution,
+  matchScore: number,
+  minMatchScore: number,
+): ListingResolution {
+  if (matchScore < minMatchScore) {
+    return {
+      ...listing,
+      listingState: "irrelevant",
+      isClosed: true,
+    };
+  }
+  return listing;
+}
+
+/** Hidden from Live / Stale / Archive / All pipeline views. */
+export const pipelineVisibleSql = sql`${tenders.listingState} is distinct from 'irrelevant'`;
+
 /** Default pipeline: live + rolling (actionable). */
 export const liveListingSql = sql`(
   ${tenders.listingState} in ('live', 'rolling')
@@ -179,14 +207,14 @@ export const deadlineNotPassedSql = sql`${tenders.deadline}::date >= CURRENT_DAT
 export function listingBucketSql(bucket: ListingBucket) {
   switch (bucket) {
     case "stale":
-      return staleListingSql;
+      return sql`(${staleListingSql} and ${pipelineVisibleSql})`;
     case "archive":
-      return archiveListingSql;
+      return sql`(${archiveListingSql} and ${pipelineVisibleSql})`;
     case "all":
-      return sql`true`;
+      return pipelineVisibleSql;
     case "live":
     default:
-      return liveListingSql;
+      return sql`(${liveListingSql} and ${pipelineVisibleSql})`;
   }
 }
 
@@ -207,7 +235,7 @@ export function opportunityTiming(
   const daysLeft = daysUntil(deadline);
   const state = options?.listingState;
 
-  if (state === "closed") {
+  if (state === "irrelevant" || state === "closed") {
     return { daysLeft, label: "Closed by source", tone: "closed" };
   }
   if (state === "stale") {
@@ -241,6 +269,25 @@ export function opportunityTiming(
     return { daysLeft, label: `${daysLeft}d left`, tone: "soon" };
   }
   return { daysLeft, label: `${daysLeft}d left`, tone: "ok" };
+}
+
+/** Milliseconds until an exact deadline timestamp. */
+export function msUntilDeadline(deadline: Date | string, now = Date.now()): number {
+  const target =
+    deadline instanceof Date ? deadline.getTime() : new Date(deadline).getTime();
+  return target - now;
+}
+
+/** Format remaining time for under-24h countdown (e.g. "4h 12m left"). */
+export function formatCountdownLabel(msLeft: number): string {
+  if (msLeft <= 0) return "Closed";
+  const totalSec = Math.floor(msLeft / 1000);
+  const hours = Math.floor(totalSec / 3600);
+  const minutes = Math.floor((totalSec % 3600) / 60);
+  const seconds = totalSec % 60;
+  if (hours > 0) return `${hours}h ${minutes}m left`;
+  if (minutes > 0) return `${minutes}m ${seconds}s left`;
+  return `${seconds}s left`;
 }
 
 export function timingTextClass(tone: OpportunityTiming["tone"]): string {
@@ -287,6 +334,8 @@ export function listingStateBadgeLabel(state: ListingState | null | undefined): 
       return "Closed";
     case "rolling":
       return "Open-ended";
+    case "irrelevant":
+      return null;
     default:
       return null;
   }
@@ -295,6 +344,7 @@ export function listingStateBadgeLabel(state: ListingState | null | undefined): 
 /**
  * Recompute listing_state / is_closed / has_hard_deadline for an org (or all).
  * Safe to run on every sync/cron — calendar drift is the main reason rows go stale.
+ * Rows already marked irrelevant are left alone (relevance backfill / sync owns them).
  */
 export async function reconcileTenderListings(orgId?: number): Promise<{
   updated: number;
@@ -345,6 +395,7 @@ export async function reconcileTenderListings(orgId?: number): Promise<{
       END
     WHERE true
     ${orgClause}
+      AND "listing_state" IS DISTINCT FROM 'irrelevant'
       AND (
         "listing_state" IS DISTINCT FROM (
           CASE
@@ -397,4 +448,133 @@ export async function reconcileTenderListings(orgId?: number): Promise<{
       : 0;
 
   return { updated: rowCount };
+}
+
+/**
+ * Re-score tenders against active service lines.
+ * Below-threshold → irrelevant; previously irrelevant that now pass are restored
+ * from deadline/status via resolveListingFields.
+ */
+export async function reconcileTenderRelevance(orgId?: number): Promise<{
+  marked: number;
+  restored: number;
+  orgs: number;
+}> {
+  const db = getDb();
+  if (!db) return { marked: 0, restored: 0, orgs: 0 };
+
+  const orgRows =
+    orgId != null && orgId > 0
+      ? await db
+          .select({ id: organizations.id })
+          .from(organizations)
+          .where(eq(organizations.id, orgId))
+      : await db.select({ id: organizations.id }).from(organizations);
+
+  let marked = 0;
+  let restored = 0;
+
+  for (const org of orgRows) {
+    const [settingsRow] = await db
+      .select({ relevance: workspaceSettings.relevance })
+      .from(workspaceSettings)
+      .where(eq(workspaceSettings.orgId, org.id))
+      .limit(1);
+
+    const raw = Number(settingsRow?.relevance?.minMatchScore);
+    const minMatchScore = Number.isFinite(raw)
+      ? Math.min(100, Math.max(0, Math.round(raw)))
+      : DEFAULT_WORKSPACE_RELEVANCE.minMatchScore;
+
+    const activeLines = await db
+      .select()
+      .from(serviceLines)
+      .where(
+        and(eq(serviceLines.orgId, org.id), isNull(serviceLines.archivedAt)),
+      );
+
+    const rows = await db
+      .select({
+        id: tenders.id,
+        title: tenders.title,
+        description: tenders.description,
+        category: tenders.category,
+        deadline: tenders.deadline,
+        sourceStatus: tenders.sourceStatus,
+        hasHardDeadline: tenders.hasHardDeadline,
+        listingState: tenders.listingState,
+        matchScore: tenders.matchScore,
+      })
+      .from(tenders)
+      .where(
+        and(
+          eq(tenders.orgId, org.id),
+          inArray(tenders.listingState, [
+            "live",
+            "rolling",
+            "stale",
+            "expired",
+            "closed",
+            "irrelevant",
+          ]),
+        ),
+      );
+
+    for (const row of rows) {
+      const matches = matchServiceLines(
+        `${row.title} ${row.description ?? ""} ${row.category}`,
+        activeLines,
+      );
+      const topScore = matches[0]?.score ?? 0;
+
+      if (topScore < minMatchScore) {
+        if (row.listingState === "irrelevant" && topScore === row.matchScore) {
+          continue;
+        }
+        await db
+          .update(tenders)
+          .set({
+            matchScore: topScore,
+            listingState: "irrelevant",
+            isClosed: true,
+            updatedAt: new Date(),
+          })
+          .where(eq(tenders.id, row.id));
+        if (row.listingState !== "irrelevant") {
+          marked += 1;
+        }
+        continue;
+      }
+
+      if (row.listingState === "irrelevant") {
+        const listing = resolveListingFields({
+          deadline: row.deadline,
+          sourceStatus: row.sourceStatus,
+          hasHardDeadline: row.hasHardDeadline,
+        });
+        await db
+          .update(tenders)
+          .set({
+            matchScore: topScore,
+            listingState: listing.listingState,
+            isClosed: listing.isClosed,
+            hasHardDeadline: listing.hasHardDeadline,
+            sourceStatus: listing.sourceStatus,
+            updatedAt: new Date(),
+          })
+          .where(eq(tenders.id, row.id));
+        restored += 1;
+        continue;
+      }
+
+      if (topScore !== row.matchScore) {
+        await db
+          .update(tenders)
+          .set({ matchScore: topScore, updatedAt: new Date() })
+          .where(eq(tenders.id, row.id));
+      }
+    }
+  }
+
+  return { marked, restored, orgs: orgRows.length };
 }

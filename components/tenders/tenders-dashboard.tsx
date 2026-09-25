@@ -142,6 +142,9 @@ function TendersDashboardInner({
   const [syncError, setSyncError] = useState<ParsedClientError | null>(null);
   const [emailAlertFeedback, setEmailAlertFeedback] =
     useState<EmailAlertFeedback | null>(null);
+  const [expiredLiveIds, setExpiredLiveIds] = useState<Set<number>>(
+    () => new Set(),
+  );
 
   const normalizedTenders = useMemo<TenderWithSource[]>(
     () =>
@@ -153,6 +156,28 @@ function TendersDashboardInner({
       })),
     [tenders],
   );
+
+  const visibleTenders = useMemo(
+    () =>
+      listingBucket === "live"
+        ? normalizedTenders.filter((t) => !expiredLiveIds.has(t.id))
+        : normalizedTenders,
+    [normalizedTenders, expiredLiveIds, listingBucket],
+  );
+
+  useEffect(() => {
+    setExpiredLiveIds(new Set());
+  }, [tenders]);
+
+  function handleDeadlineReached(tenderId: number) {
+    if (listingBucket !== "live") return;
+    setExpiredLiveIds((prev) => {
+      if (prev.has(tenderId)) return prev;
+      const next = new Set(prev);
+      next.add(tenderId);
+      return next;
+    });
+  }
 
   const lastSynced = stats.lastSynced
     ? new Date(stats.lastSynced).toLocaleDateString("en-GB", {
@@ -222,6 +247,7 @@ function TendersDashboardInner({
           sourceName: "Sync",
           inserted: 0,
           updated: 0,
+          irrelevant: 0,
           errors: ["Network error — check your connection and try again"],
         },
       ]);
@@ -483,17 +509,19 @@ function TendersDashboardInner({
               (applying || isPending) && "opacity-60",
             )}
           >
-            {normalizedTenders.map((tender) => (
+            {visibleTenders.map((tender) => (
               <OpportunityCard
                 key={tender.id}
                 tender={tender}
                 canSave={canSaveTenders(userRole)}
                 canShare={canShareTenders(userRole)}
+                hideWhenDeadlineReached={listingBucket === "live"}
+                onDeadlineReached={handleDeadlineReached}
               />
             ))}
           </div>
 
-          {normalizedTenders.length === 0 && (
+          {visibleTenders.length === 0 && (
             <OpportunityEmptyState
               canSync={canSync(userRole) && features.sync}
               canAddSource={canCreateSources(userRole)}

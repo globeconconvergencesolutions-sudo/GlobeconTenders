@@ -77,6 +77,7 @@ export async function POST(request: Request) {
             sourceName: source.name,
             inserted: 0,
             updated: 0,
+            irrelevant: 0,
             errors: [
               error instanceof Error ? error.message : "Cron sync failed",
             ],

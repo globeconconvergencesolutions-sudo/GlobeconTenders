@@ -9,6 +9,7 @@ import { ShareTenderButton } from "@/components/share/public-tender-view";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { useDeadlineCountdown } from "@/hooks/use-deadline-countdown";
 import type { CustomFieldDefinition, TenderWithSource } from "@/lib/db/schema";
 import { getCardCustomFields } from "@/lib/templates/custom-fields";
 import {
@@ -25,6 +26,8 @@ type HrOpportunityCardProps = {
   canShare?: boolean;
   customFieldDefinitions?: CustomFieldDefinition[];
   showMatchScore?: boolean;
+  hideWhenDeadlineReached?: boolean;
+  onDeadlineReached?: (tenderId: number) => void;
 };
 
 export function HrOpportunityCard({
@@ -33,6 +36,8 @@ export function HrOpportunityCard({
   canShare = false,
   customFieldDefinitions = [],
   showMatchScore = true,
+  hideWhenDeadlineReached = false,
+  onDeadlineReached,
 }: HrOpportunityCardProps) {
   const router = useRouter();
   const { t, lexicon } = useLexicon();
@@ -44,9 +49,24 @@ export function HrOpportunityCard({
     sourceStatus: tender.sourceStatus,
     hasHardDeadline: tender.hasHardDeadline,
   });
+  const countdownEnabled =
+    hideWhenDeadlineReached &&
+    tender.hasHardDeadline !== false &&
+    timing.tone !== "rolling" &&
+    timing.tone !== "stale" &&
+    timing.tone !== "expired" &&
+    timing.tone !== "closed";
+  const countdown = useDeadlineCountdown(tender.deadline, {
+    enabled: countdownEnabled,
+    onExpired: () => onDeadlineReached?.(tender.id),
+  });
   const listingBadge = listingStateBadgeLabel(
     (tender.listingState as ListingState | null) ?? null,
   );
+  const timingLabel = countdown.showCountdown
+    ? countdown.label
+    : timing.label;
+  const timingTone = countdown.showCountdown ? "urgent" : timing.tone;
   const location = [tender.countryLabel ?? tender.countryName, tender.regionLabel ?? tender.regionName]
     .filter(Boolean)
     .join(", ");
@@ -74,6 +94,10 @@ export function HrOpportunityCard({
     }
   }
 
+  if (countdown.expired) {
+    return null;
+  }
+
   return (
     <Card className="flex flex-col border-violet-200/80 shadow-sm transition-shadow hover:shadow-md dark:border-violet-900/40">
       <CardContent className="flex flex-1 flex-col p-5">
@@ -92,9 +116,9 @@ export function HrOpportunityCard({
                 variant="outline"
                 className={cn(
                   "font-normal",
-                  timing.tone === "stale" &&
+                  timingTone === "stale" &&
                     "border-amber-300 text-amber-800 dark:border-amber-500/40 dark:text-amber-200",
-                  (timing.tone === "expired" || timing.tone === "closed") &&
+                  (timingTone === "expired" || timingTone === "closed") &&
                     "border-red-300 text-red-700 dark:border-red-500/40 dark:text-red-300",
                 )}
               >
@@ -177,8 +201,8 @@ export function HrOpportunityCard({
               <Clock className="h-3.5 w-3.5" />
               {t("deadline")}: {formatDeadline(tender.deadline)}
             </span>
-            <span className={cn("font-medium", timingTextClass(timing.tone))}>
-              {timing.label}
+            <span className={cn("font-medium tabular-nums", timingTextClass(timingTone))}>
+              {timingLabel}
             </span>
           </div>
           {tender.url && (

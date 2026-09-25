@@ -112,6 +112,7 @@ export async function installCatalogSource(
           sourceName: created.name,
           inserted: 0,
           updated: 0,
+          irrelevant: 0,
           errors: [
             error instanceof Error ? error.message : "Initial sync failed",
           ],

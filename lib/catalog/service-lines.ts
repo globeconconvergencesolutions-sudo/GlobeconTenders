@@ -4,6 +4,11 @@ export type CatalogServiceLine = {
   keywords: string[];
 };
 
+/**
+ * Globecon tech / consulting service lines.
+ * Prefer multi-word phrases; avoid short tokens that false-match (LAN, API, SAP as substrings).
+ * Word-boundary matching still applies in lib/matching.
+ */
 export const GLOBECON_SERVICE_LINES: CatalogServiceLine[] = [
   {
     name: "Business Process Mapping",
@@ -12,8 +17,9 @@ export const GLOBECON_SERVICE_LINES: CatalogServiceLine[] = [
       "business process",
       "process mapping",
       "process reengineering",
-      "BPM",
-      "workflow",
+      "process redesign",
+      "workflow automation",
+      "BPMN",
     ],
   },
   {
@@ -21,10 +27,13 @@ export const GLOBECON_SERVICE_LINES: CatalogServiceLine[] = [
     slug: "system-integration",
     keywords: [
       "system integration",
-      "integration",
+      "systems integration",
       "middleware",
-      "API",
+      "REST API",
+      "API integration",
+      "API gateway",
       "interoperability",
+      "enterprise integration",
     ],
   },
   {
@@ -32,27 +41,36 @@ export const GLOBECON_SERVICE_LINES: CatalogServiceLine[] = [
     slug: "data-migration",
     keywords: [
       "data migration",
-      "migration",
       "ETL",
       "legacy system",
       "data transfer",
+      "data conversion",
     ],
   },
   {
     name: "Training & Capacity Building",
     slug: "training-capacity-building",
     keywords: [
-      "training",
       "capacity building",
-      "workshop",
-      "learning",
       "technical training",
+      "IT training",
+      "systems training",
+      "end-user training",
+      "digital skills training",
+      "training workshop",
     ],
   },
   {
     name: "ERP Implementation",
     slug: "erp-implementation",
-    keywords: ["ERP", "enterprise resource planning", "SAP", "Odoo", "Dynamics"],
+    keywords: [
+      "ERP",
+      "enterprise resource planning",
+      "SAP",
+      "Odoo",
+      "Microsoft Dynamics",
+      "Dynamics 365",
+    ],
   },
   {
     name: "Digital Transformation",
@@ -61,20 +79,24 @@ export const GLOBECON_SERVICE_LINES: CatalogServiceLine[] = [
       "digital transformation",
       "digitization",
       "digitalization",
-      "modernization",
+      "digital modernisation",
+      "digital modernization",
     ],
   },
   {
     name: "IT Infrastructure & Cloud",
     slug: "it-infrastructure-cloud",
     keywords: [
-      "infrastructure",
-      "cloud",
-      "hosting",
+      "IT infrastructure",
+      "cloud computing",
+      "cloud hosting",
+      "cloud migration",
       "data center",
-      "server",
+      "data centre",
+      "server infrastructure",
       "AWS",
       "Azure",
+      "Google Cloud",
     ],
   },
   {
@@ -85,16 +107,20 @@ export const GLOBECON_SERVICE_LINES: CatalogServiceLine[] = [
       "application development",
       "custom software",
       "web application",
+      "software engineering",
+      "mobile application",
     ],
   },
   {
     name: "Project Management Office (PMO)",
     slug: "project-management-office",
     keywords: [
-      "project management",
+      "project management office",
       "PMO",
       "programme management",
+      "program management",
       "portfolio management",
+      "project management consultancy",
     ],
   },
   {
@@ -103,6 +129,7 @@ export const GLOBECON_SERVICE_LINES: CatalogServiceLine[] = [
     keywords: [
       "change management",
       "organizational change",
+      "organisational change",
       "stakeholder engagement",
     ],
   },
@@ -111,10 +138,11 @@ export const GLOBECON_SERVICE_LINES: CatalogServiceLine[] = [
     slug: "business-intelligence-analytics",
     keywords: [
       "business intelligence",
-      "analytics",
-      "dashboard",
-      "reporting",
+      "data analytics",
       "Power BI",
+      "data dashboard",
+      "BI reporting",
+      "management information system",
     ],
   },
   {
@@ -122,25 +150,38 @@ export const GLOBECON_SERVICE_LINES: CatalogServiceLine[] = [
     slug: "cybersecurity-information-security",
     keywords: [
       "cybersecurity",
+      "cyber security",
       "information security",
       "security audit",
       "ISO 27001",
+      "penetration testing",
     ],
   },
   {
     name: "Network Infrastructure Design",
     slug: "network-infrastructure-design",
-    keywords: ["network", "LAN", "WAN", "connectivity", "fiber", "routing"],
+    keywords: [
+      "network design",
+      "network infrastructure",
+      "local area network",
+      "wide area network",
+      "SD-WAN",
+      "SD WAN",
+      "fiber optic",
+      "fibre optic",
+      "network routing",
+    ],
   },
   {
     name: "Database Design & Administration",
     slug: "database-design-administration",
     keywords: [
-      "database",
+      "database administration",
+      "database design",
       "DBA",
       "PostgreSQL",
       "SQL Server",
-      "Oracle",
+      "Oracle database",
       "data warehouse",
     ],
   },
@@ -148,32 +189,47 @@ export const GLOBECON_SERVICE_LINES: CatalogServiceLine[] = [
     name: "Technical Support & Maintenance",
     slug: "technical-support-maintenance",
     keywords: [
-      "support",
-      "maintenance",
+      "IT support",
+      "technical support",
       "helpdesk",
+      "help desk",
       "service desk",
+      "system maintenance",
+      "application support",
       "SLA",
     ],
   },
   {
-    name: "Procurement & Contract Advisory",
+    name: "Procurement Systems & Advisory",
     slug: "procurement-contract-advisory",
     keywords: [
-      "procurement",
-      "contract management",
-      "vendor management",
-      "supply chain",
+      "procurement advisory",
+      "procurement consulting",
+      "e-procurement system",
+      "eprocurement system",
+      "procurement information system",
+      "contract management system",
+      "vendor management system",
     ],
   },
   {
     name: "Monitoring, Evaluation & Learning (MEL)",
     slug: "monitoring-evaluation-learning",
     keywords: [
-      "monitoring",
-      "evaluation",
-      "MEL",
+      "monitoring and evaluation",
+      "M&E",
+      "MEL framework",
       "impact assessment",
-      "learning",
+      "results framework",
     ],
   },
 ];
+
+/** HR template department slugs — must not be active on procurement orgs. */
+export const HR_DEPARTMENT_SLUGS = [
+  "engineering",
+  "operations",
+  "finance",
+  "human-resources",
+  "sales-marketing",
+] as const;

@@ -14,6 +14,7 @@ import {
   detectRegionAndCountry,
   matchServiceLines,
 } from "@/lib/matching";
+import { getWorkspaceSettings } from "@/lib/settings/workspace";
 import { fetchAfdbProcurementTenders } from "@/lib/sync/afdb-procurement";
 import { fetchDocumentSourceTenders } from "@/lib/sync/document";
 import { fetchGenericRssTenders } from "@/lib/sync/generic-rss";
@@ -23,6 +24,7 @@ import type { SyncTenderItem } from "@/lib/sync/types";
 import { fetchWorldBankTenders } from "@/lib/sync/world-bank";
 import { normalizeCategory } from "@/lib/tenders/categories";
 import {
+  applyRelevanceGate,
   reconcileTenderListings,
   resolveListingFields,
 } from "@/lib/tenders/lifecycle";
@@ -32,6 +34,8 @@ export type SyncResult = {
   sourceName: string;
   inserted: number;
   updated: number;
+  /** Rows kept in DB but gated out of Live (below match threshold). */
+  irrelevant: number;
   errors: string[];
 };
 
@@ -86,6 +90,9 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
     throw new Error(`Adapter "${source.adapter}" is not implemented yet`);
   }
 
+  const workspace = await getWorkspaceSettings(source.orgId);
+  const minMatchScore = workspace.relevance.minMatchScore;
+
   const [allRegions, allCountries, allServiceLines] = await Promise.all([
     db.select().from(regions).where(eq(regions.orgId, source.orgId)),
     db
@@ -107,7 +114,12 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
     db
       .select()
       .from(serviceLines)
-      .where(eq(serviceLines.orgId, source.orgId)),
+      .where(
+        and(
+          eq(serviceLines.orgId, source.orgId),
+          isNull(serviceLines.archivedAt),
+        ),
+      ),
   ]);
 
   const items = await fetchItemsForAdapter(source.adapter, source);
@@ -125,6 +137,7 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
 
   let inserted = 0;
   let updated = 0;
+  let irrelevant = 0;
   const errors: string[] = [];
 
   for (const item of items) {
@@ -133,7 +146,7 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
         title: item.title,
         description: item.description,
       });
-      const listing = resolveListingFields({
+      const baseListing = resolveListingFields({
         deadline: item.deadline,
         sourceStatus: item.status,
         hasHardDeadline: item.hasHardDeadline,
@@ -148,6 +161,10 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
         allServiceLines,
       );
       const topScore = matches[0]?.score ?? 0;
+      const listing = applyRelevanceGate(baseListing, topScore, minMatchScore);
+      if (listing.listingState === "irrelevant") {
+        irrelevant += 1;
+      }
 
       const [existing] = await db
         .select({ id: tenders.id })
@@ -250,6 +267,7 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
     sourceName: source.name,
     inserted,
     updated,
+    irrelevant,
     errors,
   };
 }
@@ -283,6 +301,7 @@ export async function syncAllEnabledSources(
         sourceName: source.name,
         inserted: 0,
         updated: 0,
+        irrelevant: 0,
         errors: [
           source.url
             ? "Browse-only link — Sync cannot pull listings from this page"
@@ -300,6 +319,7 @@ export async function syncAllEnabledSources(
         sourceName: source.name,
         inserted: 0,
         updated: 0,
+        irrelevant: 0,
         errors: [
           error instanceof Error ? error.message : "Sync failed unexpectedly",
         ],

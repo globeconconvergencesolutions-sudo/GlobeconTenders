@@ -13,8 +13,10 @@ import {
 } from "@/lib/db/schema";
 import { detectRegionAndCountry, matchServiceLines } from "@/lib/matching";
 import { orgAllowsSync } from "@/lib/platform/org-status";
+import { getWorkspaceSettings } from "@/lib/settings/workspace";
 import { normalizeCategory } from "@/lib/tenders/categories";
 import {
+  applyRelevanceGate,
   reconcileTenderListings,
   resolveListingFields,
 } from "@/lib/tenders/lifecycle";
@@ -283,6 +285,7 @@ export type IngestResult = {
   inserted: number;
   updated: number;
   skipped: number;
+  irrelevant: number;
   errors: string[];
   ingestUrl: string;
 };
@@ -356,6 +359,9 @@ export async function ingestOpportunities(
     sourceId = created.id;
   }
 
+  const workspace = await getWorkspaceSettings(org.id);
+  const minMatchScore = workspace.relevance.minMatchScore;
+
   const [allRegions, allCountries, allServiceLines] = await Promise.all([
     db.select().from(regions).where(eq(regions.orgId, org.id)),
     db
@@ -385,6 +391,7 @@ export async function ingestOpportunities(
   let inserted = 0;
   let updated = 0;
   let skipped = 0;
+  let irrelevant = 0;
   const errors: string[] = [];
 
   for (const item of payload.items) {
@@ -412,7 +419,7 @@ export async function ingestOpportunities(
       });
       const projectLabel = company || portal || "External opportunity";
       const url = item.url?.trim() || undefined;
-      const listing = resolveListingFields({
+      const baseListing = resolveListingFields({
         deadline,
         sourceStatus: item.status,
         hasHardDeadline: parsedDeadline.hasHardDeadline,
@@ -425,6 +432,10 @@ export async function ingestOpportunities(
         allServiceLines,
       );
       const topScore = matches[0]?.score ?? 0;
+      const listing = applyRelevanceGate(baseListing, topScore, minMatchScore);
+      if (listing.listingState === "irrelevant") {
+        irrelevant += 1;
+      }
 
       const regionLabel = item.regionLabel?.trim() || geo.regionLabel;
       const countryLabel = item.countryLabel?.trim() || geo.countryLabel;
@@ -534,6 +545,7 @@ export async function ingestOpportunities(
     inserted,
     updated,
     skipped,
+    irrelevant,
     errors,
     ingestUrl: getIngestOpportunitiesUrl(),
   };

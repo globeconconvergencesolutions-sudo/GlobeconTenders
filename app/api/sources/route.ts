@@ -104,6 +104,7 @@ export async function POST(request: Request) {
           sourceName: created.name,
           inserted: 0,
           updated: 0,
+          irrelevant: 0,
           errors: [
             error instanceof Error
               ? error.message

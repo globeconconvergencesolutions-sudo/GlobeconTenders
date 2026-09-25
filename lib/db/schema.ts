@@ -401,6 +401,16 @@ export type WorkspaceCatalogSettings = {
   allowDeleteBuiltIn: boolean;
 };
 
+/** Org-level relevance gate for synced / ingested opportunities. */
+export type WorkspaceRelevanceSettings = {
+  /** Minimum matchScore to appear on Live / Stale / Archive. Default 10. */
+  minMatchScore: number;
+};
+
+export const DEFAULT_WORKSPACE_RELEVANCE: WorkspaceRelevanceSettings = {
+  minMatchScore: 10,
+};
+
 export type WorkspaceFeaturesSettings = {
   analytics: boolean;
   publicShare: boolean;
@@ -441,6 +451,7 @@ export type WorkspaceSettingsPayload = {
   features: WorkspaceFeaturesSettings;
   layout: WorkspaceLayoutSettings;
   catalog: WorkspaceCatalogSettings;
+  relevance: WorkspaceRelevanceSettings;
 };
 
 export const DEFAULT_WORKSPACE_NOTIFICATIONS: WorkspaceNotificationSettings = {
@@ -468,6 +479,7 @@ export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettingsPayload = {
     sidebarSections: ["sources", "serviceLines", "regions", "countries"],
   },
   catalog: { allowDeleteBuiltIn: true },
+  relevance: DEFAULT_WORKSPACE_RELEVANCE,
 };
 
 export type WorkspaceOnboardingState = {
@@ -506,6 +518,10 @@ export const workspaceSettings = pgTable("workspace_settings", {
     .$type<WorkspaceCatalogSettings>()
     .notNull()
     .default({ allowDeleteBuiltIn: true }),
+  relevance: jsonb("relevance")
+    .$type<WorkspaceRelevanceSettings>()
+    .notNull()
+    .default(DEFAULT_WORKSPACE_RELEVANCE),
   onboarding: jsonb("onboarding")
     .$type<WorkspaceOnboardingState>()
     .notNull()

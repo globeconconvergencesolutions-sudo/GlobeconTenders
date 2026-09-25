@@ -1,7 +1,8 @@
-import { and, eq } from "drizzle-orm";
-
 import { GLOBECON_REGIONS } from "@/lib/catalog/regions";
-import { GLOBECON_SERVICE_LINES } from "@/lib/catalog/service-lines";
+import {
+  GLOBECON_SERVICE_LINES,
+  HR_DEPARTMENT_SLUGS,
+} from "@/lib/catalog/service-lines";
 import { getDb } from "@/lib/db";
 import {
   countries,
@@ -12,6 +13,7 @@ import {
   workspaceSettings,
 } from "@/lib/db/schema";
 import { resolveLexicon } from "@/lib/lexicon";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import { isKnownTemplateId, loadTemplate } from "./load";
 import type { TemplateCatalogSeed, TemplateRegionSeed } from "./types";
@@ -87,13 +89,31 @@ async function seedCatalogPack(orgId: number, catalogPack: string) {
   const pack = CATALOG_PACKS[catalogPack];
   if (!pack) return;
 
+  // Procurement orgs must not keep HR department lines (they pollute matching).
+  if (catalogPack === "globecon-procurement") {
+    await db
+      .update(serviceLines)
+      .set({ archivedAt: new Date() })
+      .where(
+        and(
+          eq(serviceLines.orgId, orgId),
+          inArray(serviceLines.slug, [...HR_DEPARTMENT_SLUGS]),
+          isNull(serviceLines.archivedAt),
+        ),
+      );
+  }
+
   const existingLines = await db
-    .select({ slug: serviceLines.slug })
+    .select({
+      id: serviceLines.id,
+      slug: serviceLines.slug,
+      keywords: serviceLines.keywords,
+    })
     .from(serviceLines)
     .where(eq(serviceLines.orgId, orgId));
-  const existingLineSlugs = new Set(existingLines.map((row) => row.slug));
+  const existingBySlug = new Map(existingLines.map((row) => [row.slug, row]));
   const missingLines = pack.serviceLines.filter(
-    (line) => !existingLineSlugs.has(line.slug),
+    (line) => !existingBySlug.has(line.slug),
   );
   if (missingLines.length > 0) {
     await db.insert(serviceLines).values(
@@ -105,6 +125,24 @@ async function seedCatalogPack(orgId: number, catalogPack: string) {
         isBuiltIn: true,
       })),
     );
+  }
+
+  // Keep built-in pack keywords in sync (tightens false positives after catalog updates).
+  for (const line of pack.serviceLines) {
+    const existing = existingBySlug.get(line.slug);
+    if (!existing) continue;
+    const same =
+      existing.keywords.length === line.keywords.length &&
+      existing.keywords.every((kw, i) => kw === line.keywords[i]);
+    if (same) continue;
+    await db
+      .update(serviceLines)
+      .set({
+        name: line.name,
+        keywords: line.keywords,
+        archivedAt: null,
+      })
+      .where(eq(serviceLines.id, existing.id));
   }
 
   const existingRegions = await db
@@ -197,6 +235,7 @@ export async function reapplyTemplateSections(input: {
       layout: template.layout,
       notifications,
       catalog: DEFAULT_WORKSPACE_SETTINGS.catalog,
+      relevance: DEFAULT_WORKSPACE_SETTINGS.relevance,
       updatedById: input.updatedById,
       updatedAt: new Date(),
     })

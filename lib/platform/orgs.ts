@@ -111,6 +111,7 @@ export async function createOrganization(input: CreateOrganizationInput) {
     notifications: DEFAULT_WORKSPACE_SETTINGS.notifications,
     branding: {},
     catalog: DEFAULT_WORKSPACE_SETTINGS.catalog,
+    relevance: DEFAULT_WORKSPACE_SETTINGS.relevance,
   });
 
   await applyTemplateToOrg({

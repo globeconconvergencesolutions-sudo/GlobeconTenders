@@ -16,6 +16,8 @@ type OpportunityCardProps = {
   canSave?: boolean;
   canShare?: boolean;
   customFieldDefinitions?: CustomFieldDefinition[];
+  hideWhenDeadlineReached?: boolean;
+  onDeadlineReached?: (tenderId: number) => void;
 };
 
 export function OpportunityCard({
@@ -23,6 +25,8 @@ export function OpportunityCard({
   canSave = false,
   canShare = false,
   customFieldDefinitions,
+  hideWhenDeadlineReached = false,
+  onDeadlineReached,
 }: OpportunityCardProps) {
   const layout = useLayout();
   const features = useFeatures();
@@ -37,6 +41,8 @@ export function OpportunityCard({
         canShare={canShare}
         customFieldDefinitions={definitions}
         showMatchScore={features.matchScore}
+        hideWhenDeadlineReached={hideWhenDeadlineReached}
+        onDeadlineReached={onDeadlineReached}
       />
     );
   }
@@ -48,6 +54,8 @@ export function OpportunityCard({
       canShare={canShare}
       customFieldDefinitions={definitions}
       showMatchScore={features.matchScore}
+      hideWhenDeadlineReached={hideWhenDeadlineReached}
+      onDeadlineReached={onDeadlineReached}
     />
   );
 }

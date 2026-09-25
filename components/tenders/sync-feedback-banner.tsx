@@ -8,6 +8,7 @@ export type SyncFeedbackResult = {
   sourceName: string;
   inserted: number;
   updated: number;
+  irrelevant?: number;
   errors: string[];
 };
 
@@ -22,6 +23,10 @@ export function SyncFeedbackBanner({
 }: SyncFeedbackBannerProps) {
   const totalInserted = results.reduce((sum, r) => sum + r.inserted, 0);
   const totalUpdated = results.reduce((sum, r) => sum + r.updated, 0);
+  const totalIrrelevant = results.reduce(
+    (sum, r) => sum + (r.irrelevant ?? 0),
+    0,
+  );
   const hasErrors = results.some((r) => r.errors.length > 0);
   const allFailed = results.every(
     (r) => r.errors.length > 0 && r.inserted === 0 && r.updated === 0,
@@ -70,8 +75,12 @@ export function SyncFeedbackBanner({
 
           {!allFailed && (
             <p className="text-sm opacity-90">
-              {totalInserted} new · {totalUpdated} updated across{" "}
-              {results.length} source{results.length === 1 ? "" : "s"}
+              {totalInserted} new · {totalUpdated} updated
+              {totalIrrelevant > 0
+                ? ` · ${totalIrrelevant} below match threshold`
+                : ""}{" "}
+              across {results.length} source
+              {results.length === 1 ? "" : "s"}
             </p>
           )}
 
@@ -90,6 +99,9 @@ export function SyncFeedbackBanner({
                     <>
                       {" "}
                       — {result.inserted} new, {result.updated} updated
+                      {(result.irrelevant ?? 0) > 0
+                        ? `, ${result.irrelevant} filtered`
+                        : ""}
                     </>
                   )}
                 </span>

@@ -1,4 +1,5 @@
 import { parseClosingDate } from "@/lib/sync/date-parser";
+import { worldBankNoticeUrl } from "@/lib/sync/notice-urls";
 import type { SyncTenderItem } from "@/lib/sync/types";
 
 const WORLD_BANK_PROCUREMENT_URL =
@@ -51,6 +52,7 @@ function toSyncItem(notice: WorldBankNotice): SyncTenderItem | null {
 
   const published = publishedAt(notice);
   const isAward = AWARD_TYPE.test(notice.notice_type ?? "");
+  const noticeUrl = worldBankNoticeUrl(String(notice.id), notice.url);
 
   if (isAward) {
     return {
@@ -59,9 +61,7 @@ function toSyncItem(notice: WorldBankNotice): SyncTenderItem | null {
       description: notice.project_name,
       category: notice.notice_type ?? "Development",
       deadline: published,
-      url:
-        notice.url ??
-        `https://projects.worldbank.org/en/projects-operations/procurement/${notice.id}`,
+      url: noticeUrl,
       projectLabel: notice.project_ctry_name
         ? `World Bank · ${notice.project_ctry_name}`
         : "World Bank Project",
@@ -86,9 +86,7 @@ function toSyncItem(notice: WorldBankNotice): SyncTenderItem | null {
     description: notice.project_name,
     category: notice.notice_type ?? "Development",
     deadline: parsedDeadline,
-    url:
-      notice.url ??
-      `https://projects.worldbank.org/en/projects-operations/procurement/${notice.id}`,
+    url: noticeUrl,
     projectLabel: notice.project_ctry_name
       ? `World Bank · ${notice.project_ctry_name}`
       : "World Bank Project",
