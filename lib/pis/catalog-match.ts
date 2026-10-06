@@ -43,6 +43,18 @@ export type CatalogHit = {
   hits: string[];
 };
 
+/** The number on the card is the stronger of the older org score and the catalog phrase score. */
+export function mergeMatchScores(
+  orgTopScore: number,
+  orgRawScore: number,
+  catalogScore: number,
+): { gateScore: number; matchScore: number } {
+  return {
+    gateScore: Math.max(orgTopScore, catalogScore),
+    matchScore: Math.max(orgRawScore, catalogScore),
+  };
+}
+
 /** Whole-word keyword score. 10 points per hit, same unit as the org matcher. */
 export async function scoreCatalogText(db: Db, text: string): Promise<CatalogHit[]> {
   const lines = await keywordLines(db);

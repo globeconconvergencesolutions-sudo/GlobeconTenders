@@ -15,8 +15,10 @@ import {
   scoreOpportunity,
 } from "@/lib/matching";
 import {
+  mergeMatchScores,
   recordDeadlineChange,
   replaceTenderCatalogMatches,
+  scoreCatalogText,
 } from "@/lib/pis/catalog-match";
 import { getWorkspaceSettings } from "@/lib/settings/workspace";
 import { fetchAfdbProcurementTenders } from "@/lib/sync/afdb-procurement";
@@ -161,9 +163,13 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
         allRegions,
         allCountries,
       );
-      const scored = scoreOpportunity(
-        `${item.title} ${item.description ?? ""} ${category}`,
-        allServiceLines,
+      const noticeText = `${item.title} ${item.description ?? ""} ${category}`;
+      const scored = scoreOpportunity(noticeText, allServiceLines);
+      const catalogHits = await scoreCatalogText(db, noticeText);
+      const merged = mergeMatchScores(
+        scored.topScore,
+        scored.rawTopScore,
+        catalogHits[0]?.score ?? 0,
       );
 
       const [existing] = await db
@@ -183,10 +189,10 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
 
       const listing = applyRelevanceGate(
         baseListing,
-        scored.topScore,
+        merged.gateScore,
         minMatchScore,
         {
-          rawScore: scored.rawTopScore,
+          rawScore: merged.matchScore,
           reason: scored.reason,
           override: (existing?.relevanceOverride as RelevanceOverride) ?? null,
         },
@@ -214,7 +220,7 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
             countryId: geo.countryId,
             regionLabel: geo.regionLabel,
             countryLabel: geo.countryLabel,
-            matchScore: scored.rawTopScore,
+            matchScore: merged.matchScore,
             sourceStatus: listing.sourceStatus,
             listingState: listing.listingState,
             hasHardDeadline: listing.hasHardDeadline,
@@ -250,7 +256,7 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
             countryId: geo.countryId,
             regionLabel: geo.regionLabel,
             countryLabel: geo.countryLabel,
-            matchScore: scored.rawTopScore,
+            matchScore: merged.matchScore,
             sourceStatus: listing.sourceStatus,
             listingState: listing.listingState,
             hasHardDeadline: listing.hasHardDeadline,

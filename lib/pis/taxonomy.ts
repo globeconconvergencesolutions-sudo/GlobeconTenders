@@ -12,6 +12,8 @@ import {
   type TaxonomySeed,
 } from "@/lib/db/schema";
 
+import { clearCatalogKeywordCache } from "@/lib/pis/catalog-match";
+import { keywordsForLine } from "@/lib/pis/line-phrases";
 import taxonomySeed from "@/lib/pis/taxonomy-seed.json";
 
 const seed = taxonomySeed as TaxonomySeed;
@@ -58,7 +60,7 @@ export async function seedProcurementTaxonomy(db: Db): Promise<{
         name: line.name,
         slug: line.slug,
         globeconRelevance: line.globeconRelevance,
-        keywords: line.keywords,
+        keywords: keywordsForLine(line),
         legacySlug: line.legacySlug,
       };
     }),
@@ -78,6 +80,41 @@ export async function seedProcurementTaxonomy(db: Db): Promise<{
     types: seed.procurementTypes.length,
     skipped: false,
   };
+}
+
+/** Write buyer phrases onto catalog rows that were stored with an empty keyword list. */
+export async function syncCatalogKeywords(db: Db): Promise<number> {
+  const seedBySlug = new Map(seed.serviceLines.map((line) => [line.slug, line]));
+  const rows = await db
+    .select({
+      id: catalogServiceLines.id,
+      slug: catalogServiceLines.slug,
+      name: catalogServiceLines.name,
+      keywords: catalogServiceLines.keywords,
+    })
+    .from(catalogServiceLines);
+
+  let updated = 0;
+  for (const row of rows) {
+    const seedLine = seedBySlug.get(row.slug);
+    const next = keywordsForLine({
+      slug: row.slug,
+      name: seedLine?.name ?? row.name,
+      keywords: seedLine?.keywords ?? row.keywords,
+    });
+    const same =
+      next.length === row.keywords.length &&
+      next.every((keyword, index) => keyword === row.keywords[index]);
+    if (same) continue;
+    await db
+      .update(catalogServiceLines)
+      .set({ keywords: next })
+      .where(eq(catalogServiceLines.id, row.id));
+    updated += 1;
+  }
+
+  clearCatalogKeywordCache();
+  return updated;
 }
 
 /** Globecon's default watchlist is the Core lines, not the full catalog. */

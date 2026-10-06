@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { getDb } from "@/lib/db";
 import {
@@ -15,10 +15,14 @@ import {
   tenders,
 } from "@/lib/db/schema";
 import { readinessSections } from "@/lib/pis/qualify";
+import { getActiveWatchlist, watchlistMatchSql } from "@/lib/pis/watchlist-feed";
 
 type Db = NonNullable<ReturnType<typeof getDb>>;
 
 export async function loadMarketSummary(db: Db, orgId: number) {
+  const watchlist = await getActiveWatchlist(db, orgId);
+  const lineIds = watchlist?.lineIds ?? [];
+  const inMarkets = lineIds.length > 0 ? watchlistMatchSql(lineIds) : sql`false`;
   const [sourceRows, demandRows, countryRows, coverageRows, profileRows, evidence, capabilityCount, projectCount, personnelCount, certificationCount] =
     await Promise.all([
     db
@@ -42,14 +46,19 @@ export async function loadMarketSummary(db: Db, orgId: number) {
         eq(catalogServiceLines.id, tenderCatalogMatches.catalogServiceLineId),
       )
       .innerJoin(marketFields, eq(marketFields.id, catalogServiceLines.marketFieldId))
-      .where(eq(tenders.orgId, orgId)),
+      .where(
+        and(
+          eq(tenders.orgId, orgId),
+          lineIds.length > 0 ? inArray(catalogServiceLines.id, lineIds) : sql`false`,
+        ),
+      ),
     db
       .select({
         country: tenders.countryLabel,
         count: sql<number>`count(*)::int`,
       })
       .from(tenders)
-      .where(eq(tenders.orgId, orgId))
+      .where(and(eq(tenders.orgId, orgId), inMarkets))
       .groupBy(tenders.countryLabel),
     db
       .select({
@@ -114,7 +123,12 @@ export async function loadMarketSummary(db: Db, orgId: number) {
       eq(catalogServiceLines.id, tenderCatalogMatches.catalogServiceLineId),
     )
     .innerJoin(marketFields, eq(marketFields.id, catalogServiceLines.marketFieldId))
-    .where(eq(tenders.orgId, orgId));
+    .where(
+      and(
+        eq(tenders.orgId, orgId),
+        lineIds.length > 0 ? inArray(catalogServiceLines.id, lineIds) : sql`false`,
+      ),
+    );
 
   const patterns = new Map<string, { buyer: string; field: string; ids: Set<number> }>();
   for (const row of buyerField) {

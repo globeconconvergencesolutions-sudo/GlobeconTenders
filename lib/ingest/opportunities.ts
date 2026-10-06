@@ -12,6 +12,11 @@ import {
   tenders,
 } from "@/lib/db/schema";
 import { detectRegionAndCountry, scoreOpportunity } from "@/lib/matching";
+import {
+  mergeMatchScores,
+  replaceTenderCatalogMatches,
+  scoreCatalogText,
+} from "@/lib/pis/catalog-match";
 import { orgAllowsSync } from "@/lib/platform/org-status";
 import { getWorkspaceSettings } from "@/lib/settings/workspace";
 import { normalizeCategory } from "@/lib/tenders/categories";
@@ -428,9 +433,13 @@ export async function ingestOpportunities(
 
       const haystack = `${title} ${description ?? ""} ${item.countryLabel ?? ""} ${item.regionLabel ?? ""}`;
       const geo = detectRegionAndCountry(haystack, allRegions, allCountries);
-      const scored = scoreOpportunity(
-        `${title} ${description ?? ""} ${category}`,
-        allServiceLines,
+      const noticeText = `${title} ${description ?? ""} ${category}`;
+      const scored = scoreOpportunity(noticeText, allServiceLines);
+      const catalogHits = await scoreCatalogText(db, noticeText);
+      const merged = mergeMatchScores(
+        scored.topScore,
+        scored.rawTopScore,
+        catalogHits[0]?.score ?? 0,
       );
 
       const regionLabel = item.regionLabel?.trim() || geo.regionLabel;
@@ -452,10 +461,10 @@ export async function ingestOpportunities(
 
       const listing = applyRelevanceGate(
         baseListing,
-        scored.topScore,
+        merged.gateScore,
         minMatchScore,
         {
-          rawScore: scored.rawTopScore,
+          rawScore: merged.matchScore,
           reason: scored.reason,
           override: (existing?.relevanceOverride as RelevanceOverride) ?? null,
         },
@@ -482,7 +491,7 @@ export async function ingestOpportunities(
             countryId: geo.countryId,
             regionLabel,
             countryLabel,
-            matchScore: scored.rawTopScore,
+            matchScore: merged.matchScore,
             sourceStatus: listing.sourceStatus,
             listingState: listing.listingState,
             hasHardDeadline: listing.hasHardDeadline,
@@ -510,7 +519,7 @@ export async function ingestOpportunities(
             countryId: geo.countryId,
             regionLabel,
             countryLabel,
-            matchScore: scored.rawTopScore,
+            matchScore: merged.matchScore,
             sourceStatus: listing.sourceStatus,
             listingState: listing.listingState,
             hasHardDeadline: listing.hasHardDeadline,
@@ -535,6 +544,8 @@ export async function ingestOpportunities(
           })),
         );
       }
+
+      await replaceTenderCatalogMatches(db, tenderId, noticeText);
     } catch (error) {
       errors.push(
         `${item.title}: ${error instanceof Error ? error.message : "ingest failed"}`,

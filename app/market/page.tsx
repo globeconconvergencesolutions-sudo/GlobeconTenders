@@ -32,7 +32,7 @@ export default async function MarketPage() {
       </SectionCard>
       <SectionCard title="Demand by field">
         {summary.byField.length === 0 ? (
-          <EmptyState>No catalog matches are stored yet.</EmptyState>
+          <EmptyState>No notices in your markets have been tagged yet.</EmptyState>
         ) : (
           <ul className="space-y-3">
             {summary.byField.map((row) => (

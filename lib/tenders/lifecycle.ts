@@ -9,6 +9,7 @@ import {
   workspaceSettings,
 } from "@/lib/db/schema";
 import { scoreOpportunity } from "@/lib/matching";
+import { mergeMatchScores, scoreCatalogText } from "@/lib/pis/catalog-match";
 import { daysUntil } from "@/lib/utils";
 
 export const LISTING_STATES = [
@@ -600,9 +601,13 @@ export async function reconcileTenderRelevance(orgId?: number): Promise<{
       );
 
     for (const row of rows) {
-      const scored = scoreOpportunity(
-        `${row.title} ${row.description ?? ""} ${row.category}`,
-        activeLines,
+      const noticeText = `${row.title} ${row.description ?? ""} ${row.category}`;
+      const scored = scoreOpportunity(noticeText, activeLines);
+      const catalogHits = await scoreCatalogText(db, noticeText);
+      const merged = mergeMatchScores(
+        scored.topScore,
+        scored.rawTopScore,
+        catalogHits[0]?.score ?? 0,
       );
       const baseListing = resolveListingFields({
         deadline: row.deadline,
@@ -611,10 +616,10 @@ export async function reconcileTenderRelevance(orgId?: number): Promise<{
       });
       const listing = applyRelevanceGate(
         baseListing,
-        scored.topScore,
+        merged.gateScore,
         minMatchScore,
         {
-          rawScore: scored.rawTopScore,
+          rawScore: merged.matchScore,
           reason: scored.reason,
           override: (row.relevanceOverride as RelevanceOverride) ?? null,
         },
@@ -622,7 +627,7 @@ export async function reconcileTenderRelevance(orgId?: number): Promise<{
 
       const unchanged =
         listing.listingState === row.listingState &&
-        scored.rawTopScore === row.matchScore;
+        merged.matchScore === row.matchScore;
 
       if (unchanged && !listing.relevanceReason) {
         continue;
@@ -645,7 +650,7 @@ export async function reconcileTenderRelevance(orgId?: number): Promise<{
       await db
         .update(tenders)
         .set({
-          matchScore: scored.rawTopScore,
+          matchScore: merged.matchScore,
           listingState: listing.listingState,
           isClosed: listing.isClosed,
           hasHardDeadline: listing.hasHardDeadline,
