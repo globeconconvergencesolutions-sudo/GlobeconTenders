@@ -5,16 +5,27 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   BarChart3,
+  Bell,
+  Bookmark,
+  Building2,
+  CircleAlert,
+  ClipboardCheck,
   Cloud,
   FileText,
+  FolderLock,
+  GitCompare,
+  Kanban,
+  LayoutGrid,
+  LineChart,
+  Radio,
   Settings,
   User,
   Users,
   X,
+  ChevronDown,
 } from "lucide-react";
 
 import { AppLogo } from "@/components/brand/app-logo";
-import { SidebarContextPanel } from "@/components/layout/sidebar-context-panel";
 import { SidebarFooter } from "@/components/layout/sidebar-footer";
 import { useNavAccess } from "@/components/providers/nav-access-provider";
 import {
@@ -22,18 +33,28 @@ import {
   useLexicon,
   useOrg,
 } from "@/components/providers/org-context-provider";
-import { getSidebarMode } from "@/lib/navigation/sidebar-routes";
 import { cn } from "@/lib/utils";
 
-const navItemDefs = [
-  { href: "/", icon: FileText, key: "navHome" as const, feature: null },
+const moreGroups = [
   {
-    href: "/analytics",
-    icon: BarChart3,
-    key: "navAnalytics" as const,
-    feature: "analytics" as const,
+    label: "Discover",
+    items: [
+      { href: "/fields", label: "Fields", icon: LayoutGrid },
+      { href: "/sources/health", label: "Sources", icon: Radio },
+      { href: "/market", label: "Market", icon: LineChart },
+    ],
   },
-  { href: "/profile", icon: User, key: "navProfile" as const, feature: null },
+  {
+    label: "Qualify",
+    items: [
+      { href: "/evidence", label: "Evidence", icon: FolderLock },
+      { href: "/gaps", label: "Gaps", icon: CircleAlert },
+    ],
+  },
+  {
+    label: "Bid",
+    items: [{ href: "/review", label: "Review", icon: GitCompare }],
+  },
 ];
 
 const sidebarScrollClass =
@@ -94,9 +115,11 @@ export function SidebarPanel({
   const showSettingsNav =
     Boolean(navAccess?.showSettingsNav) || showSettingsFromGrants;
 
-  const mode = getSidebarMode(pathname);
-
-  const extraNavItems = [
+  const workspaceItems = [
+    ...(features.analytics
+      ? [{ href: "/analytics", label: t("navAnalytics"), icon: BarChart3 }]
+      : []),
+    { href: "/profile", label: t("navProfile"), icon: User },
     ...(navAccess?.isPlatformAdmin
       ? [{ href: "/platform/orgs", label: "Platform", icon: Cloud }]
       : []),
@@ -108,21 +131,75 @@ export function SidebarPanel({
       : []),
   ];
 
-  const allNavItems = [
-    ...navItemDefs
-      .filter((item) => !item.feature || features[item.feature])
-      .map((item) => ({
-        ...item,
-        label: t(item.key),
-      })),
-    ...extraNavItems,
-  ];
+  const deskItemsResolved = features.pis
+    ? [
+        { href: "/", label: t("navHome"), icon: FileText },
+        { href: "/watchlists", label: "Watchlists", icon: Bookmark },
+        { href: "/company", label: "Company", icon: Building2 },
+        { href: "/qualification", label: "Qualification", icon: ClipboardCheck },
+        { href: "/pipeline", label: "Pipeline", icon: Kanban },
+        { href: "/alerts", label: "Alerts", icon: Bell },
+      ]
+    : [
+        { href: "/", label: t("navHome"), icon: FileText },
+        ...workspaceItems,
+      ];
+
+  const moreSections = features.pis
+    ? [...moreGroups, { label: "Workspace", items: workspaceItems }].filter(
+        (group) => group.items.length > 0,
+      )
+    : [];
+
+  const moreHrefs = moreSections.flatMap((group) => group.items.map((item) => item.href));
+  const moreHasActive = moreHrefs.some((href) =>
+    href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`),
+  );
+  const [moreOpen, setMoreOpen] = useState(moreHasActive);
+
+  useEffect(() => {
+    if (moreHasActive) setMoreOpen(true);
+  }, [moreHasActive]);
+
+  function itemActive(href: string) {
+    return href === "/"
+      ? pathname === "/"
+      : pathname === href || pathname.startsWith(`${href}/`);
+  }
+
+  function renderItems(
+    items: Array<{ href: string; label: string; icon: typeof FileText }>,
+  ) {
+    return items.map(({ href, label, icon: Icon }) => {
+      const active = itemActive(href);
+      return (
+        <li key={href}>
+          <Link
+            href={href}
+            prefetch={false}
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all",
+              active
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-900/30"
+                : "text-slate-400 hover:bg-white/[0.06] hover:text-white",
+            )}
+          >
+            <Icon className="h-4 w-4 shrink-0" />
+            <span className="truncate">{label}</span>
+          </Link>
+        </li>
+      );
+    });
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-gradient-to-b from-[hsl(var(--sidebar))] via-[hsl(222_47%_9%)] to-[hsl(222_47%_7%)]">
       <div className="shrink-0 border-b border-white/[0.06] px-5 py-4">
         <div className="flex items-center justify-between gap-3">
-          <SidebarBrand />
+          <div className="min-w-0 flex-1">
+            <SidebarBrand />
+          </div>
           {showClose && (
             <button
               type="button"
@@ -141,47 +218,35 @@ export function SidebarPanel({
         )}
       </div>
 
-      <div className="shrink-0 px-4 pt-3 pb-2">
+      <div className={cn("min-h-0 flex-1 px-4 pt-3 pb-4", sidebarScrollClass)}>
         <nav aria-label="Primary">
-          <ul className="flex flex-col gap-0.5">
-            {allNavItems.map(({ href, label, icon: Icon }) => {
-              const active =
-                href === "/"
-                  ? pathname === "/"
-                  : pathname === href || pathname.startsWith(`${href}/`);
-              return (
-                <li key={href}>
-                  <Link
-                    href={href}
-                    prefetch={false}
-                    onClick={onNavigate}
-                    className={cn(
-                      "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
-                      active
-                        ? "bg-blue-600 text-white shadow-lg shadow-blue-900/30"
-                        : "text-slate-400 hover:bg-white/[0.06] hover:text-white",
-                    )}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{label}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <p className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">
+            {features.pis ? "Desk" : "Workspace"}
+          </p>
+          <ul className="flex flex-col gap-0.5">{renderItems(deskItemsResolved)}</ul>
+          {moreSections.length > 0 && (
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => setMoreOpen((open) => !open)}
+                className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/[0.06] hover:text-white"
+                aria-expanded={moreOpen}
+              >
+                <span>More</span>
+                <ChevronDown className={cn("h-4 w-4 transition-transform", moreOpen && "rotate-180")} />
+              </button>
+              {moreOpen &&
+                moreSections.map((group) => (
+                  <div key={group.label} className="pt-3">
+                    <p className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                      {group.label}
+                    </p>
+                    <ul className="flex flex-col gap-0.5">{renderItems(group.items)}</ul>
+                  </div>
+                ))}
+            </div>
+          )}
         </nav>
-      </div>
-
-      <div className="relative min-h-0 flex-1">
-        <div className={cn("h-full px-4", sidebarScrollClass)}>
-          <div className="py-2 pb-4">
-            <SidebarContextPanel mode={mode} onNavigate={onNavigate} />
-          </div>
-        </div>
-        <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[hsl(222_47%_7%)] via-[hsl(222_47%_7%)]/60 to-transparent"
-          aria-hidden
-        />
       </div>
 
       <SidebarFooter />

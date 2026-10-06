@@ -18,6 +18,8 @@ type OpportunityEmptyStateProps = {
   canSync: boolean;
   canAddSource: boolean;
   listingBucket?: "live" | "review" | "filtered" | "stale" | "archive" | "all";
+  title?: string;
+  hint?: string;
 };
 
 export function OpportunityEmptyState({
@@ -26,6 +28,8 @@ export function OpportunityEmptyState({
   canSync,
   canAddSource,
   listingBucket = "live",
+  title,
+  hint,
 }: OpportunityEmptyStateProps) {
   const { layout, template } = useOrg();
   const { t, lexicon } = useLexicon();
@@ -94,12 +98,12 @@ export function OpportunityEmptyState({
         }
       : {
           icon: Building2,
-          title: t("emptyOpportunities"),
-          hint: t("emptyOpportunitiesHint"),
+          title: "No invitations in this list",
+          hint: "This list follows the markets you chose. Connect a source if none is on, then sync. A keyword match is not a decision to bid.",
           steps: [
-            "Add World Bank, AfDB, or a custom RSS source",
-            "Configure service lines and regions",
-            "Sync to fetch matching tenders",
+            "Confirm the markets on your watchlist",
+            "Sync a connected source",
+            "Open one invitation and compare it with your company",
           ],
           gradient: "from-blue-500/15 to-indigo-500/10",
           iconClass: "text-blue-600",
@@ -115,8 +119,12 @@ export function OpportunityEmptyState({
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-lg dark:bg-slate-900">
           <Icon className={`h-8 w-8 ${config.iconClass}`} />
         </div>
-        <h3 className="mt-5 text-xl font-semibold tracking-tight">{config.title}</h3>
-        <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">{config.hint}</p>
+        <h3 className="mt-5 text-xl font-semibold tracking-tight">
+          {title ?? config.title}
+        </h3>
+        <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
+          {hint ?? config.hint}
+        </p>
         <p className="mt-2 text-xs text-muted-foreground">
           Template: {template.name}
         </p>

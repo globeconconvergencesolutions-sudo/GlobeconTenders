@@ -27,13 +27,22 @@ import {
 } from "@/lib/db/schema";
 import type { AlertTenderRow } from "@/lib/email/templates";
 import { buildFilterConditions } from "@/lib/tenders/queries";
+import { getActiveWatchlist, pisFeedSql } from "@/lib/pis/watchlist-feed";
 import {
   getWorkspaceSettings,
   isUserIncludedInAlerts,
 } from "@/lib/settings/workspace";
 import { requireCurrentOrg } from "@/lib/tenant/context";
 
-export type AlertType = "closing_soon" | "high_match" | "new_listing";
+export type AlertType = "closing_soon" | "high_match" | "new_listing" | "deadline_change" | "evidence_expiring";
+
+async function activeWatchlistSql(orgId: number) {
+  const db = getDb();
+  if (!db) return undefined;
+  const list = await getActiveWatchlist(db, orgId);
+  if (!list) return undefined;
+  return pisFeedSql("watchlist", list);
+}
 
 export type AlertUser = {
   id: number;
@@ -208,6 +217,7 @@ export async function getClosingSoonAlerts(
     hideClosed: true,
     listingBucket: "live",
     filterState: user.filterState,
+    pisFeedSql: await activeWatchlistSql(user.orgId),
   });
 
   const now = new Date();
@@ -257,6 +267,7 @@ export async function getHighMatchAlerts(
     hideClosed: true,
     listingBucket: "live",
     filterState: user.filterState,
+    pisFeedSql: await activeWatchlistSql(user.orgId),
   });
 
   const conditions = [
@@ -304,6 +315,7 @@ export async function getNewListingAlerts(
     hideClosed: true,
     listingBucket: "live",
     filterState: user.filterState,
+    pisFeedSql: await activeWatchlistSql(user.orgId),
   });
 
   const conditions = [

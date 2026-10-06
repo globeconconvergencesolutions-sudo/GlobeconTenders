@@ -9,6 +9,16 @@ export const DEFAULT_PROCUREMENT_FEATURES: WorkspaceFeaturesSettings = {
   sync: true,
   matchScore: true,
   export: true,
+  pis: true,
+};
+
+export const DEFAULT_HR_FEATURES: WorkspaceFeaturesSettings = {
+  analytics: true,
+  publicShare: true,
+  sync: true,
+  matchScore: true,
+  export: true,
+  pis: false,
 };
 
 export const DEFAULT_PROCUREMENT_LAYOUT: WorkspaceLayoutSettings = {

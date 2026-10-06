@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 
+import { HelpMark } from "@/components/pis/help-mark";
 import { useFilterWorkspace } from "@/components/filters/filter-workspace-context";
 import {
   useFeatures,
@@ -86,14 +87,18 @@ export function FilterCommandBar({
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-600/80 dark:text-blue-300/80">
-              Workspace pipeline
+              {features.pis ? "Tenders" : "Workspace pipeline"}
             </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 dark:text-white sm:text-[1.75rem]">
-              Latest {lexicon.opportunityPlural.toLowerCase()}
-            </h1>
-            <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">
-              Tracking {trackingSources} {lexicon.sourcePlural.toLowerCase()} ·
-              last synced {lastSyncedLabel}
+            <div className="flex items-start gap-3">
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 dark:text-white sm:text-[1.75rem]">
+                Latest {lexicon.opportunityPlural.toLowerCase()}
+              </h1>
+              {features.pis && <HelpMark className="mt-1" />}
+            </div>
+            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+              {features.pis
+                ? `Invitations in the markets on your watchlist. The number on a card counts matching words. Assessed means someone has compared that invitation with your company. Tracking ${trackingSources} ${lexicon.sourcePlural.toLowerCase()} · last synced ${lastSyncedLabel}.`
+                : `Tracking ${trackingSources} ${lexicon.sourcePlural.toLowerCase()} · last synced ${lastSyncedLabel}`}
             </p>
           </div>
 
@@ -142,7 +147,7 @@ export function FilterCommandBar({
               />
             </form>
 
-            <div className="flex flex-wrap gap-2 sm:flex-nowrap">
+            <div className="flex flex-wrap gap-2">
               {showSync && (
                 <Button
                   variant="outline"

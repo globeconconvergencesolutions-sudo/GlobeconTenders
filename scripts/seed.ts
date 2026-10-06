@@ -6,6 +6,8 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { GLOBECON_REGIONS } from "../lib/catalog/regions";
 import { GLOBECON_SERVICE_LINES } from "../lib/catalog/service-lines";
 import { getDatabaseUrl } from "../lib/env";
+import { getDb } from "../lib/db";
+import * as schema from "../lib/db/schema";
 import {
   countries,
   orgMemberships,
@@ -22,7 +24,7 @@ import { installFeaturedCatalogSources } from "../lib/sources/install";
 
 const DEFAULT_ORG_SLUG = "globecon";
 
-async function ensureDefaultOrg(db: ReturnType<typeof drizzle>) {
+async function ensureDefaultOrg(db: NonNullable<ReturnType<typeof getDb>>) {
   const [existing] = await db
     .select({ id: organizations.id })
     .from(organizations)
@@ -52,7 +54,7 @@ async function ensureDefaultOrg(db: ReturnType<typeof drizzle>) {
 }
 
 async function seed() {
-  const db = drizzle(neon(getDatabaseUrl()));
+  const db = drizzle(neon(getDatabaseUrl()), { schema });
   const orgId = await ensureDefaultOrg(db);
 
   const [userCount] = await db.select({ count: count() }).from(users);
@@ -189,6 +191,15 @@ async function seed() {
 
   console.log("Installing featured catalog sources...");
   await installFeaturedCatalogSources(orgId);
+
+  const { seedProcurementTaxonomy, ensureGlobeconCoreWatchlist } = await import(
+    "../lib/pis/taxonomy"
+  );
+  const { reconcileAllCatalogMatches } = await import("../lib/pis/catalog-match");
+  const taxonomy = await seedProcurementTaxonomy(db);
+  const watchlistId = await ensureGlobeconCoreWatchlist(db);
+  const matched = await reconcileAllCatalogMatches(db);
+  console.log("PIS taxonomy:", taxonomy, "watchlist", watchlistId, "catalog matches refreshed", matched);
 
   console.log("Seed complete for org:", DEFAULT_ORG_SLUG);
 }

@@ -4,6 +4,8 @@ import { join } from "node:path";
 import type { PlatformTemplate } from "./types";
 
 const TEMPLATE_IDS = ["procurement", "hr"] as const;
+/** Offered at signup and in settings. HR careers is not a second product. */
+const OFFERED_TEMPLATE_IDS = ["procurement"] as const;
 
 export type TemplateId = (typeof TEMPLATE_IDS)[number];
 
@@ -19,7 +21,7 @@ export function loadTemplate(templateId: string): PlatformTemplate {
 }
 
 export function listTemplateSummaries() {
-  return TEMPLATE_IDS.map((id) => {
+  return OFFERED_TEMPLATE_IDS.map((id) => {
     const template = loadTemplate(id);
     return {
       id: template.id,

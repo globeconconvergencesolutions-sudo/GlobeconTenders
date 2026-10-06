@@ -21,6 +21,7 @@ type OpportunityCardProps = {
   customFieldDefinitions?: CustomFieldDefinition[];
   hideWhenDeadlineReached?: boolean;
   onDeadlineReached?: (tenderId: number) => void;
+  assessed?: boolean;
 };
 
 export function OpportunityCard({
@@ -32,6 +33,7 @@ export function OpportunityCard({
   customFieldDefinitions,
   hideWhenDeadlineReached = false,
   onDeadlineReached,
+  assessed = false,
 }: OpportunityCardProps) {
   const layout = useLayout();
   const features = useFeatures();
@@ -65,6 +67,7 @@ export function OpportunityCard({
       showMatchScore={features.matchScore}
       hideWhenDeadlineReached={hideWhenDeadlineReached}
       onDeadlineReached={onDeadlineReached}
+      assessed={assessed}
     />
   );
 }

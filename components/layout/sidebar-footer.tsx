@@ -1,14 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, LogOut, Moon } from "lucide-react";
+import { CircleHelp, Loader2, LogOut, Moon } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
+import Link from "next/link";
 
 import { signOutToLogin } from "@/lib/auth/sign-out-client";
+import { helpSectionForPath, helpUrl } from "@/lib/pis/help-content";
 import { Switch } from "@/components/ui/switch";
 
 export function SidebarFooter() {
   const { theme, setTheme } = useTheme();
+  const pathname = usePathname();
   const [signingOut, setSigningOut] = useState(false);
 
   function handleSignOut() {
@@ -19,6 +23,13 @@ export function SidebarFooter() {
 
   return (
     <div className="relative z-10 shrink-0 border-t border-white/[0.08] bg-[hsl(222_47%_7%)]/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-12px_32px_rgba(0,0,0,0.45)] backdrop-blur-md">
+      <Link
+        href={helpUrl(helpSectionForPath(pathname))}
+        className="mb-2 flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm font-medium text-slate-300 hover:bg-white/[0.06] hover:text-white"
+      >
+        <CircleHelp className="h-4 w-4 shrink-0" />
+        Help
+      </Link>
       <div className="flex items-center gap-2">
         <div className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-xl bg-white/[0.05] px-2.5 py-2">
           <div className="flex items-center gap-1.5 text-slate-300">

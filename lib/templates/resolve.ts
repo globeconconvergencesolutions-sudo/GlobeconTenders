@@ -13,8 +13,12 @@ export function resolveFeatures(
 ): WorkspaceFeaturesSettings {
   const template = loadTemplate(templateId);
   return {
-    ...template.features,
-    ...(stored ?? {}),
+    analytics: stored?.analytics ?? template.features.analytics,
+    publicShare: stored?.publicShare ?? template.features.publicShare,
+    sync: stored?.sync ?? template.features.sync,
+    matchScore: stored?.matchScore ?? template.features.matchScore,
+    export: stored?.export ?? template.features.export,
+    pis: stored?.pis ?? template.features.pis,
   };
 }
 

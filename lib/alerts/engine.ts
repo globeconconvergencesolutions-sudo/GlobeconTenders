@@ -12,6 +12,7 @@ import { getEmailOrgPresentation } from "@/lib/email/presentation";
 import { buildDigestEmail, buildTestEmail } from "@/lib/email/templates";
 import { getEmailConnectionStatus, sendEmail } from "@/lib/email/transport";
 import { listActiveOrganizations } from "@/lib/tenant/org";
+import { collectPisAlertNotes } from "@/lib/pis/alert-notes";
 
 export type UserDigestResult = {
   userId: number;
@@ -77,7 +78,7 @@ async function sendUserDigest(
   }
 
   try {
-    const [closingSoon, highMatch, newListings] = await Promise.all([
+    const [closingSoon, highMatch, newListings, extraNotes] = await Promise.all([
       getClosingSoonAlerts(user),
       getHighMatchAlerts(
         user,
@@ -88,12 +89,14 @@ async function sendUserDigest(
         : options.manual
           ? getNewListingAlerts(user, { sinceHours: 24 })
         : Promise.resolve([]),
+      collectPisAlertNotes(user.orgId),
     ]);
 
     if (
       closingSoon.length === 0 &&
       highMatch.length === 0 &&
-      newListings.length === 0
+      newListings.length === 0 &&
+      extraNotes.length === 0
     ) {
       await logDigestResult({
         orgId: user.orgId,
@@ -131,6 +134,7 @@ async function sendUserDigest(
       highMatchThreshold: user.notificationPrefs.highMatchThreshold,
       appUrl: config.appUrl,
       org: orgPresentation,
+      extraNotes,
     });
 
     await sendEmail({

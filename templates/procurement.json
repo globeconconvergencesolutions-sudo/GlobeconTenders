@@ -2,7 +2,7 @@
   "id": "procurement",
   "version": "1.0.0",
   "name": "Procurement Intelligence",
-  "description": "Track tenders, service lines, and procurement sources.",
+  "description": "Public invitations, your markets, and a check against your firm.",
   "catalogPack": "globecon-procurement",
   "branding": {
     "primaryColor": "#2563eb",
@@ -37,7 +37,8 @@
     "publicShare": true,
     "sync": true,
     "matchScore": true,
-    "export": true
+    "export": true,
+    "pis": true
   },
   "layout": {
     "homeCardVariant": "procurement",

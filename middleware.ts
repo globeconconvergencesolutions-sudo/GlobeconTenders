@@ -10,6 +10,7 @@ import {
 } from "@/lib/auth/page-access";
 import { buildLoginUrl } from "@/lib/auth/sign-out-constants";
 import type { UserRole } from "@/lib/db/schema";
+import { setDatabaseUrlOverride } from "@/lib/env";
 import { ORG_STATUS_SUSPENDED } from "@/lib/platform/org-status";
 import { getPlatformAppUrl } from "@/lib/tenant/config";
 import { lookupOrganizationStatus } from "@/lib/tenant/lookup-org";
@@ -42,6 +43,13 @@ const cronPaths = [
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host");
+
+  const useSecondary =
+    process.env.USE_SECONDARY_DATABASE === "true" ||
+    process.env.USE_SECONDARY_DATABASE === "1";
+  setDatabaseUrlOverride(
+    useSecondary ? process.env.SECONDARY_DATABASE_URL : process.env.DATABASE_URL,
+  );
 
   if (pathname.startsWith("/api/auth")) {
     return NextResponse.next();

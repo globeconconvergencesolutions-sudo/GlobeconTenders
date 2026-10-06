@@ -44,6 +44,7 @@ export async function POST(request: Request) {
     const payload = signupSchema.parse(await request.json());
     const result = await createOrganization({
       ...payload,
+      templateId: "procurement",
       selfServe: true,
     });
 

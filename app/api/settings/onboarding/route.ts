@@ -12,6 +12,7 @@ import {
   dismissOnboarding,
   getOnboardingContext,
 } from "@/lib/onboarding/workspace";
+import { getOrgContext } from "@/lib/tenant/org-context";
 
 const patchSchema = z.object({
   dismiss: z.boolean().optional(),
@@ -25,7 +26,12 @@ export async function GET() {
     const user = await requireSessionUser();
     await requireSettingsManage(user.id, user.role);
     const context = await getOnboardingContext(user.orgId);
-    const progress = computeOnboardingProgress(context.state, context.signals);
+    const org = await getOrgContext();
+    const progress = computeOnboardingProgress(
+      context.state,
+      context.signals,
+      org.features.pis ? "procurement" : "workspace",
+    );
     return NextResponse.json({ progress });
   } catch (error) {
     return handleApiError(error, "Failed to load onboarding");
@@ -48,7 +54,12 @@ export async function PATCH(request: Request) {
     }
 
     const context = await getOnboardingContext(user.orgId);
-    const progress = computeOnboardingProgress(context.state, context.signals);
+    const org = await getOrgContext();
+    const progress = computeOnboardingProgress(
+      context.state,
+      context.signals,
+      org.features.pis ? "procurement" : "workspace",
+    );
     return NextResponse.json({ progress });
   } catch (error) {
     return handleApiError(error, "Failed to update onboarding");

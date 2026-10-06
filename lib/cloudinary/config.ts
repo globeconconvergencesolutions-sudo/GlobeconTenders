@@ -25,10 +25,16 @@ export const CLOUDINARY_FOLDERS = {
   branding: `${CLOUDINARY_ROOT_FOLDER}/branding`,
   exports: `${CLOUDINARY_ROOT_FOLDER}/exports`,
   tenderAttachments: `${CLOUDINARY_ROOT_FOLDER}/tenders/attachments`,
+  evidence: `${CLOUDINARY_ROOT_FOLDER}/evidence`,
 } as const;
 
 export function getSourceDocumentFolder(sourceSlug: string): string {
   return `${CLOUDINARY_FOLDERS.sourceDocuments}/${sourceSlug}`;
+}
+
+export function getEvidenceFolder(orgSlug: string): string {
+  const safe = orgSlug.replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase() || "workspace";
+  return `${CLOUDINARY_FOLDERS.evidence}/${safe}`;
 }
 
 export function getBrandingFolder(orgSlug: string): string {

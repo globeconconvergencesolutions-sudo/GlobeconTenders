@@ -2,6 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Procurement pages keep their light layout. In dark mode the same
+   slate utilities follow the app tokens so both themes stay readable. */
+.dark .pis-page {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+.dark .pis-page .bg-slate-50,
+.dark .pis-page .bg-slate-50\/80,
+.dark .pis-page .bg-slate-100,
+.dark .pis-page .bg-slate-100\/80 {
+  background-color: hsl(var(--muted));
+}
+.dark .pis-page .bg-white {
+  background-color: hsl(var(--card));
+}
+.dark .pis-page .text-slate-900,
+.dark .pis-page .text-slate-800 {
+  color: hsl(var(--foreground));
+}
+.dark .pis-page .text-slate-700,
+.dark .pis-page .text-slate-600,
+.dark .pis-page .text-slate-500 {
+  color: hsl(var(--muted-foreground));
+}
+.dark .pis-page .border-slate-200,
+.dark .pis-page .border-slate-100,
+.dark .pis-page .border-slate-300 {
+  border-color: hsl(var(--border));
+}
+.dark .pis-page .text-blue-700 {
+  color: hsl(217 91% 72%);
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

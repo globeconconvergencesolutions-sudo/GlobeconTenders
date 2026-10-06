@@ -14,12 +14,13 @@ export type PlatformTemplate = {
   catalogPack: string;
   branding: WorkspaceBrandingSettings;
   lexicon: WorkspaceLexiconSettings;
-  features: {
+    features: {
     analytics: boolean;
     publicShare: boolean;
     sync: boolean;
     matchScore: boolean;
     export: boolean;
+    pis: boolean;
   };
   layout: {
     homeCardVariant: "procurement" | "hr" | "community" | "academic";

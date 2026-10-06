@@ -101,7 +101,9 @@ export function AppShell({ children }: AppShellProps) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <SidebarBrand compact />
+          <div className="min-w-0 flex-1">
+            <SidebarBrand compact />
+          </div>
         </header>
 
         <main className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain">

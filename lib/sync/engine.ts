@@ -14,6 +14,10 @@ import {
   detectRegionAndCountry,
   scoreOpportunity,
 } from "@/lib/matching";
+import {
+  recordDeadlineChange,
+  replaceTenderCatalogMatches,
+} from "@/lib/pis/catalog-match";
 import { getWorkspaceSettings } from "@/lib/settings/workspace";
 import { fetchAfdbProcurementTenders } from "@/lib/sync/afdb-procurement";
 import { fetchDocumentSourceTenders } from "@/lib/sync/document";
@@ -166,6 +170,7 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
         .select({
           id: tenders.id,
           relevanceOverride: tenders.relevanceOverride,
+          deadline: tenders.deadline,
         })
         .from(tenders)
         .where(
@@ -220,6 +225,14 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
           .where(eq(tenders.id, existing.id));
         tenderId = existing.id;
         updated += 1;
+        if (existing.deadline) {
+          await recordDeadlineChange(db, {
+            tenderId,
+            sourceId: source.id,
+            previous: existing.deadline,
+            next: item.deadline,
+          });
+        }
       } else {
         const [created] = await db
           .insert(tenders)
@@ -262,6 +275,12 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
           })),
         );
       }
+
+      await replaceTenderCatalogMatches(
+        db,
+        tenderId,
+        `${item.title} ${item.description ?? ""} ${category}`,
+      );
     } catch (error) {
       errors.push(
         `${item.referenceId}: ${error instanceof Error ? error.message : "Unknown error"}`,

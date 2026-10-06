@@ -1,0 +1,3862 @@
+{
+  "fields": [
+    {
+      "code": 1,
+      "name": "ICT & Software",
+      "slug": "ict-and-software",
+      "sortOrder": 1
+    },
+    {
+      "code": 2,
+      "name": "Data, Analytics & AI",
+      "slug": "data-analytics-and-ai",
+      "sortOrder": 2
+    },
+    {
+      "code": 3,
+      "name": "Cybersecurity & Digital Risk",
+      "slug": "cybersecurity-and-digital-risk",
+      "sortOrder": 3
+    },
+    {
+      "code": 4,
+      "name": "ICT Infrastructure & Cloud",
+      "slug": "ict-infrastructure-and-cloud",
+      "sortOrder": 4
+    },
+    {
+      "code": 5,
+      "name": "Telecommunications",
+      "slug": "telecommunications",
+      "sortOrder": 5
+    },
+    {
+      "code": 6,
+      "name": "Digital Transformation & E-Government",
+      "slug": "digital-transformation-and-e-government",
+      "sortOrder": 6
+    },
+    {
+      "code": 7,
+      "name": "Public Finance & Social Protection Systems",
+      "slug": "public-finance-and-social-protection-systems",
+      "sortOrder": 7
+    },
+    {
+      "code": 8,
+      "name": "Research, Surveys & Evaluation",
+      "slug": "research-surveys-and-evaluation",
+      "sortOrder": 8
+    },
+    {
+      "code": 9,
+      "name": "Monitoring, Evaluation & Learning",
+      "slug": "monitoring-evaluation-and-learning",
+      "sortOrder": 9
+    },
+    {
+      "code": 10,
+      "name": "Management & Business Consultancy",
+      "slug": "management-and-business-consultancy",
+      "sortOrder": 10
+    },
+    {
+      "code": 11,
+      "name": "Finance, Accounting & Audit",
+      "slug": "finance-accounting-and-audit",
+      "sortOrder": 11
+    },
+    {
+      "code": 12,
+      "name": "Legal & Regulatory",
+      "slug": "legal-and-regulatory",
+      "sortOrder": 12
+    },
+    {
+      "code": 13,
+      "name": "Construction & Building Works",
+      "slug": "construction-and-building-works",
+      "sortOrder": 13
+    },
+    {
+      "code": 14,
+      "name": "Roads, Civil Works & Infrastructure",
+      "slug": "roads-civil-works-and-infrastructure",
+      "sortOrder": 14
+    },
+    {
+      "code": 15,
+      "name": "Water, Sanitation & WASH",
+      "slug": "water-sanitation-and-wash",
+      "sortOrder": 15
+    },
+    {
+      "code": 16,
+      "name": "Electrical, Mechanical & Engineering",
+      "slug": "electrical-mechanical-and-engineering",
+      "sortOrder": 16
+    },
+    {
+      "code": 17,
+      "name": "Energy & Renewable Energy",
+      "slug": "energy-and-renewable-energy",
+      "sortOrder": 17
+    },
+    {
+      "code": 18,
+      "name": "Agriculture & Agribusiness",
+      "slug": "agriculture-and-agribusiness",
+      "sortOrder": 18
+    },
+    {
+      "code": 19,
+      "name": "Healthcare & Medical",
+      "slug": "healthcare-and-medical",
+      "sortOrder": 19
+    },
+    {
+      "code": 20,
+      "name": "Education & Training",
+      "slug": "education-and-training",
+      "sortOrder": 20
+    },
+    {
+      "code": 21,
+      "name": "Transport, Logistics & Fleet",
+      "slug": "transport-logistics-and-fleet",
+      "sortOrder": 21
+    },
+    {
+      "code": 22,
+      "name": "Travel, Hospitality & Events",
+      "slug": "travel-hospitality-and-events",
+      "sortOrder": 22
+    },
+    {
+      "code": 23,
+      "name": "Office, Furniture & General Supplies",
+      "slug": "office-furniture-and-general-supplies",
+      "sortOrder": 23
+    },
+    {
+      "code": 24,
+      "name": "Security, Safety & Emergency",
+      "slug": "security-safety-and-emergency",
+      "sortOrder": 24
+    },
+    {
+      "code": 25,
+      "name": "Cleaning, Facilities & Property Services",
+      "slug": "cleaning-facilities-and-property-services",
+      "sortOrder": 25
+    },
+    {
+      "code": 26,
+      "name": "Marketing, Communications & Creative",
+      "slug": "marketing-communications-and-creative",
+      "sortOrder": 26
+    },
+    {
+      "code": 27,
+      "name": "Environment, Climate & Natural Resources",
+      "slug": "environment-climate-and-natural-resources",
+      "sortOrder": 27
+    },
+    {
+      "code": 28,
+      "name": "Engineering, Architecture & Surveying",
+      "slug": "engineering-architecture-and-surveying",
+      "sortOrder": 28
+    },
+    {
+      "code": 29,
+      "name": "Manufacturing & Industrial Services",
+      "slug": "manufacturing-and-industrial-services",
+      "sortOrder": 29
+    },
+    {
+      "code": 30,
+      "name": "Procurement, Supply Chain & Outsourcing",
+      "slug": "procurement-supply-chain-and-outsourcing",
+      "sortOrder": 30
+    },
+    {
+      "code": 31,
+      "name": "Human Resources & Professional Services",
+      "slug": "human-resources-and-professional-services",
+      "sortOrder": 31
+    },
+    {
+      "code": 32,
+      "name": "Printing, Publishing & Records",
+      "slug": "printing-publishing-and-records",
+      "sortOrder": 32
+    },
+    {
+      "code": 33,
+      "name": "Telecommunications, Media & AV",
+      "slug": "telecommunications-media-and-av",
+      "sortOrder": 33
+    },
+    {
+      "code": 34,
+      "name": "Food, Nutrition & Household Commodities",
+      "slug": "food-nutrition-and-household-commodities",
+      "sortOrder": 34
+    },
+    {
+      "code": 35,
+      "name": "Fuels, Chemicals & Industrial Consumables",
+      "slug": "fuels-chemicals-and-industrial-consumables",
+      "sortOrder": 35
+    },
+    {
+      "code": 36,
+      "name": "Insurance & Risk Services",
+      "slug": "insurance-and-risk-services",
+      "sortOrder": 36
+    },
+    {
+      "code": 37,
+      "name": "Development, NGO & Humanitarian Services",
+      "slug": "development-ngo-and-humanitarian-services",
+      "sortOrder": 37
+    },
+    {
+      "code": 38,
+      "name": "Specialized Technical Services",
+      "slug": "specialized-technical-services",
+      "sortOrder": 38
+    }
+  ],
+  "serviceLines": [
+    {
+      "fieldSlug": "ict-and-software",
+      "name": "Custom Software Development",
+      "slug": "custom-software-development",
+      "globeconRelevance": "core",
+      "keywords": [
+        "software development",
+        "application development",
+        "custom software",
+        "software engineering"
+      ],
+      "legacySlug": "custom-software-development"
+    },
+    {
+      "fieldSlug": "ict-and-software",
+      "name": "Web Application Development",
+      "slug": "web-application-development",
+      "globeconRelevance": "core",
+      "keywords": [
+        "web application",
+        "web app"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-and-software",
+      "name": "Mobile Application Development",
+      "slug": "mobile-application-development",
+      "globeconRelevance": "core",
+      "keywords": [
+        "mobile application",
+        "mobile app"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-and-software",
+      "name": "ERP / Enterprise Applications",
+      "slug": "erp-enterprise-applications",
+      "globeconRelevance": "core",
+      "keywords": [
+        "ERP",
+        "enterprise resource planning",
+        "SAP",
+        "Odoo",
+        "Microsoft Dynamics",
+        "Dynamics 365"
+      ],
+      "legacySlug": "erp-implementation"
+    },
+    {
+      "fieldSlug": "ict-and-software",
+      "name": "CRM Systems",
+      "slug": "crm-systems",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-and-software",
+      "name": "Management Information Systems (MIS)",
+      "slug": "management-information-systems-mis",
+      "globeconRelevance": "core",
+      "keywords": [
+        "management information system",
+        "MIS"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-and-software",
+      "name": "Government Information Systems",
+      "slug": "government-information-systems",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-and-software",
+      "name": "Systems Integration",
+      "slug": "systems-integration",
+      "globeconRelevance": "core",
+      "keywords": [
+        "system integration",
+        "systems integration",
+        "middleware",
+        "REST API",
+        "API integration",
+        "API gateway",
+        "enterprise integration"
+      ],
+      "legacySlug": "system-integration"
+    },
+    {
+      "fieldSlug": "ict-and-software",
+      "name": "API Development & Integration",
+      "slug": "api-development-and-integration",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-and-software",
+      "name": "Software Customization",
+      "slug": "software-customization",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-and-software",
+      "name": "Software Licensing",
+      "slug": "software-licensing",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-and-software",
+      "name": "Software Maintenance & Support",
+      "slug": "software-maintenance-and-support",
+      "globeconRelevance": "core",
+      "keywords": [
+        "system maintenance"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-and-software",
+      "name": "Database Development",
+      "slug": "database-development",
+      "globeconRelevance": "core",
+      "keywords": [
+        "database administration",
+        "database design",
+        "PostgreSQL",
+        "SQL Server",
+        "Oracle database",
+        "data warehouse"
+      ],
+      "legacySlug": "database-design-administration"
+    },
+    {
+      "fieldSlug": "ict-and-software",
+      "name": "Digital Platforms",
+      "slug": "digital-platforms",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-and-software",
+      "name": "Portal Development",
+      "slug": "portal-development",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-and-software",
+      "name": "Records Management Systems",
+      "slug": "records-management-systems",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-and-software",
+      "name": "Workflow Automation",
+      "slug": "workflow-automation",
+      "globeconRelevance": "core",
+      "keywords": [
+        "workflow automation",
+        "BPMN"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-and-software",
+      "name": "Business Process Automation",
+      "slug": "business-process-automation",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "data-analytics-and-ai",
+      "name": "Data Analytics",
+      "slug": "data-analytics",
+      "globeconRelevance": "core",
+      "keywords": [
+        "data analytics"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "data-analytics-and-ai",
+      "name": "Business Intelligence",
+      "slug": "business-intelligence",
+      "globeconRelevance": "core",
+      "keywords": [
+        "business intelligence",
+        "Power BI",
+        "BI reporting"
+      ],
+      "legacySlug": "business-intelligence-analytics"
+    },
+    {
+      "fieldSlug": "data-analytics-and-ai",
+      "name": "Data Visualization & Dashboards",
+      "slug": "data-visualization-and-dashboards",
+      "globeconRelevance": "core",
+      "keywords": [
+        "data dashboard"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "data-analytics-and-ai",
+      "name": "Data Engineering",
+      "slug": "data-engineering",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "data-analytics-and-ai",
+      "name": "Data Warehousing",
+      "slug": "data-warehousing",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "data-analytics-and-ai",
+      "name": "Data Migration",
+      "slug": "data-migration",
+      "globeconRelevance": "core",
+      "keywords": [
+        "data migration",
+        "ETL",
+        "legacy system",
+        "data conversion"
+      ],
+      "legacySlug": "data-migration"
+    },
+    {
+      "fieldSlug": "data-analytics-and-ai",
+      "name": "Statistical Analysis",
+      "slug": "statistical-analysis",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "data-analytics-and-ai",
+      "name": "Predictive Analytics",
+      "slug": "predictive-analytics",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "data-analytics-and-ai",
+      "name": "Artificial Intelligence / Machine Learning",
+      "slug": "artificial-intelligence-machine-learning",
+      "globeconRelevance": "core",
+      "keywords": [
+        "artificial intelligence",
+        "machine learning"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "data-analytics-and-ai",
+      "name": "Generative AI Solutions",
+      "slug": "generative-ai-solutions",
+      "globeconRelevance": "core",
+      "keywords": [
+        "generative AI"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "data-analytics-and-ai",
+      "name": "AI Automation",
+      "slug": "ai-automation",
+      "globeconRelevance": "core",
+      "keywords": [
+        "AI agent"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "data-analytics-and-ai",
+      "name": "Data Quality Management",
+      "slug": "data-quality-management",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "data-analytics-and-ai",
+      "name": "Data Governance",
+      "slug": "data-governance",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "data-analytics-and-ai",
+      "name": "Survey Data Processing",
+      "slug": "survey-data-processing",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "data-analytics-and-ai",
+      "name": "M&E Analytics",
+      "slug": "m-and-e-analytics",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cybersecurity-and-digital-risk",
+      "name": "Cybersecurity Assessment",
+      "slug": "cybersecurity-assessment",
+      "globeconRelevance": "core",
+      "keywords": [
+        "cybersecurity",
+        "cyber security",
+        "information security",
+        "security audit",
+        "ISO 27001"
+      ],
+      "legacySlug": "cybersecurity-information-security"
+    },
+    {
+      "fieldSlug": "cybersecurity-and-digital-risk",
+      "name": "Penetration Testing",
+      "slug": "penetration-testing",
+      "globeconRelevance": "core",
+      "keywords": [
+        "penetration testing"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cybersecurity-and-digital-risk",
+      "name": "Vulnerability Assessment",
+      "slug": "vulnerability-assessment",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cybersecurity-and-digital-risk",
+      "name": "Security Audits",
+      "slug": "security-audits",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cybersecurity-and-digital-risk",
+      "name": "Information Security Management",
+      "slug": "information-security-management",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cybersecurity-and-digital-risk",
+      "name": "Identity & Access Management",
+      "slug": "identity-and-access-management",
+      "globeconRelevance": "core",
+      "keywords": [
+        "identity and access"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cybersecurity-and-digital-risk",
+      "name": "Multi-Factor Authentication",
+      "slug": "multi-factor-authentication",
+      "globeconRelevance": "core",
+      "keywords": [
+        "multi-factor",
+        "MFA"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cybersecurity-and-digital-risk",
+      "name": "Network Security",
+      "slug": "network-security",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cybersecurity-and-digital-risk",
+      "name": "Security Monitoring",
+      "slug": "security-monitoring",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cybersecurity-and-digital-risk",
+      "name": "Data Protection & Privacy",
+      "slug": "data-protection-and-privacy",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cybersecurity-and-digital-risk",
+      "name": "Business Continuity & Disaster Recovery",
+      "slug": "business-continuity-and-disaster-recovery",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cybersecurity-and-digital-risk",
+      "name": "Cybersecurity Training",
+      "slug": "cybersecurity-training",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-infrastructure-and-cloud",
+      "name": "Cloud Computing",
+      "slug": "cloud-computing",
+      "globeconRelevance": "core",
+      "keywords": [
+        "IT infrastructure",
+        "cloud computing",
+        "cloud migration",
+        "AWS",
+        "Azure",
+        "Google Cloud"
+      ],
+      "legacySlug": "it-infrastructure-cloud"
+    },
+    {
+      "fieldSlug": "ict-infrastructure-and-cloud",
+      "name": "Cloud Hosting",
+      "slug": "cloud-hosting",
+      "globeconRelevance": "core",
+      "keywords": [
+        "cloud hosting"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-infrastructure-and-cloud",
+      "name": "Managed Cloud Services",
+      "slug": "managed-cloud-services",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-infrastructure-and-cloud",
+      "name": "Servers & Storage",
+      "slug": "servers-and-storage",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-infrastructure-and-cloud",
+      "name": "Data Centre Services",
+      "slug": "data-centre-services",
+      "globeconRelevance": "core",
+      "keywords": [
+        "data center",
+        "data centre"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-infrastructure-and-cloud",
+      "name": "Backup Solutions",
+      "slug": "backup-solutions",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-infrastructure-and-cloud",
+      "name": "Disaster Recovery Infrastructure",
+      "slug": "disaster-recovery-infrastructure",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-infrastructure-and-cloud",
+      "name": "Network Infrastructure",
+      "slug": "network-infrastructure",
+      "globeconRelevance": "core",
+      "keywords": [
+        "network design",
+        "network infrastructure",
+        "SD-WAN",
+        "SD WAN",
+        "network routing"
+      ],
+      "legacySlug": "network-infrastructure-design"
+    },
+    {
+      "fieldSlug": "ict-infrastructure-and-cloud",
+      "name": "LAN / WAN",
+      "slug": "lan-wan",
+      "globeconRelevance": "core",
+      "keywords": [
+        "local area network",
+        "wide area network"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-infrastructure-and-cloud",
+      "name": "Structured Cabling",
+      "slug": "structured-cabling",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-infrastructure-and-cloud",
+      "name": "Wi-Fi Infrastructure",
+      "slug": "wi-fi-infrastructure",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-infrastructure-and-cloud",
+      "name": "Virtualization",
+      "slug": "virtualization",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-infrastructure-and-cloud",
+      "name": "ICT Infrastructure Maintenance",
+      "slug": "ict-infrastructure-maintenance",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "ict-infrastructure-and-cloud",
+      "name": "IT Helpdesk / Managed Support",
+      "slug": "it-helpdesk-managed-support",
+      "globeconRelevance": "core",
+      "keywords": [
+        "IT support",
+        "technical support",
+        "helpdesk",
+        "help desk",
+        "service desk",
+        "application support"
+      ],
+      "legacySlug": "technical-support-maintenance"
+    },
+    {
+      "fieldSlug": "telecommunications",
+      "name": "Internet Connectivity",
+      "slug": "internet-connectivity",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "telecommunications",
+      "name": "Broadband Services",
+      "slug": "broadband-services",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "telecommunications",
+      "name": "Telephony / VoIP",
+      "slug": "telephony-voip",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "telecommunications",
+      "name": "PABX Systems",
+      "slug": "pabx-systems",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "telecommunications",
+      "name": "Telecommunication Equipment",
+      "slug": "telecommunication-equipment",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "telecommunications",
+      "name": "Fibre Optic Networks",
+      "slug": "fibre-optic-networks",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "telecommunications",
+      "name": "Radio Communication",
+      "slug": "radio-communication",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "telecommunications",
+      "name": "Satellite Connectivity",
+      "slug": "satellite-connectivity",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "telecommunications",
+      "name": "Network Operations & Maintenance",
+      "slug": "network-operations-and-maintenance",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "telecommunications",
+      "name": "Telecom Infrastructure",
+      "slug": "telecom-infrastructure",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "digital-transformation-and-e-government",
+      "name": "Digital Transformation Strategy",
+      "slug": "digital-transformation-strategy",
+      "globeconRelevance": "core",
+      "keywords": [
+        "digital transformation",
+        "digitization",
+        "digitalization",
+        "digital modernisation",
+        "digital modernization"
+      ],
+      "legacySlug": "digital-transformation"
+    },
+    {
+      "fieldSlug": "digital-transformation-and-e-government",
+      "name": "Business Process Digitization",
+      "slug": "business-process-digitization",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "digital-transformation-and-e-government",
+      "name": "e-Government Platforms",
+      "slug": "e-government-platforms",
+      "globeconRelevance": "core",
+      "keywords": [
+        "e-government",
+        "egovernment"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "digital-transformation-and-e-government",
+      "name": "Digital Service Delivery",
+      "slug": "digital-service-delivery",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "digital-transformation-and-e-government",
+      "name": "Digital Registry Systems",
+      "slug": "digital-registry-systems",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "digital-transformation-and-e-government",
+      "name": "Citizen Service Platforms",
+      "slug": "citizen-service-platforms",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "digital-transformation-and-e-government",
+      "name": "Interoperability Frameworks",
+      "slug": "interoperability-frameworks",
+      "globeconRelevance": "core",
+      "keywords": [
+        "interoperability"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "digital-transformation-and-e-government",
+      "name": "Digital Identity Solutions",
+      "slug": "digital-identity-solutions",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "digital-transformation-and-e-government",
+      "name": "Enterprise Architecture",
+      "slug": "enterprise-architecture",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "digital-transformation-and-e-government",
+      "name": "Technology Roadmaps",
+      "slug": "technology-roadmaps",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "digital-transformation-and-e-government",
+      "name": "Digital Maturity Assessments",
+      "slug": "digital-maturity-assessments",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "public-finance-and-social-protection-systems",
+      "name": "Public Finance Management Systems",
+      "slug": "public-finance-management-systems",
+      "globeconRelevance": "core",
+      "keywords": [
+        "public finance",
+        "budget system"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "public-finance-and-social-protection-systems",
+      "name": "Budgeting & Planning Systems",
+      "slug": "budgeting-and-planning-systems",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "public-finance-and-social-protection-systems",
+      "name": "Expenditure Management Systems",
+      "slug": "expenditure-management-systems",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "public-finance-and-social-protection-systems",
+      "name": "Social Protection MIS",
+      "slug": "social-protection-mis",
+      "globeconRelevance": "core",
+      "keywords": [
+        "social registry",
+        "cash transfer"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "public-finance-and-social-protection-systems",
+      "name": "Social Registries",
+      "slug": "social-registries",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "public-finance-and-social-protection-systems",
+      "name": "Beneficiary Management Systems",
+      "slug": "beneficiary-management-systems",
+      "globeconRelevance": "core",
+      "keywords": [
+        "beneficiary"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "public-finance-and-social-protection-systems",
+      "name": "Cash Transfer Systems",
+      "slug": "cash-transfer-systems",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "public-finance-and-social-protection-systems",
+      "name": "Payment / G2P Platforms",
+      "slug": "payment-g2p-platforms",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "public-finance-and-social-protection-systems",
+      "name": "Programme Performance Systems",
+      "slug": "programme-performance-systems",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "public-finance-and-social-protection-systems",
+      "name": "Donor Reporting Systems",
+      "slug": "donor-reporting-systems",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "public-finance-and-social-protection-systems",
+      "name": "Financial Reporting Platforms",
+      "slug": "financial-reporting-platforms",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "public-finance-and-social-protection-systems",
+      "name": "Public Sector Data Systems",
+      "slug": "public-sector-data-systems",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "research-surveys-and-evaluation",
+      "name": "Baseline Studies",
+      "slug": "baseline-studies",
+      "globeconRelevance": "core",
+      "keywords": [
+        "baseline study",
+        "baseline survey"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "research-surveys-and-evaluation",
+      "name": "Endline Studies",
+      "slug": "endline-studies",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "research-surveys-and-evaluation",
+      "name": "Impact Evaluation",
+      "slug": "impact-evaluation",
+      "globeconRelevance": "core",
+      "keywords": [
+        "impact assessment"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "research-surveys-and-evaluation",
+      "name": "Market Research",
+      "slug": "market-research",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "research-surveys-and-evaluation",
+      "name": "Socioeconomic Surveys",
+      "slug": "socioeconomic-surveys",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "research-surveys-and-evaluation",
+      "name": "Policy Research",
+      "slug": "policy-research",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "research-surveys-and-evaluation",
+      "name": "Feasibility Studies",
+      "slug": "feasibility-studies",
+      "globeconRelevance": "core",
+      "keywords": [
+        "feasibility study",
+        "feasibility"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "research-surveys-and-evaluation",
+      "name": "Needs Assessments",
+      "slug": "needs-assessments",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "research-surveys-and-evaluation",
+      "name": "Data Collection",
+      "slug": "data-collection",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "research-surveys-and-evaluation",
+      "name": "Qualitative Research",
+      "slug": "qualitative-research",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "research-surveys-and-evaluation",
+      "name": "Quantitative Research",
+      "slug": "quantitative-research",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "research-surveys-and-evaluation",
+      "name": "Research Design",
+      "slug": "research-design",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "research-surveys-and-evaluation",
+      "name": "Research Dissemination",
+      "slug": "research-dissemination",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "monitoring-evaluation-and-learning",
+      "name": "M&E Framework Development",
+      "slug": "m-and-e-framework-development",
+      "globeconRelevance": "core",
+      "keywords": [
+        "monitoring and evaluation",
+        "M&E",
+        "MEL framework",
+        "results framework"
+      ],
+      "legacySlug": "monitoring-evaluation-learning"
+    },
+    {
+      "fieldSlug": "monitoring-evaluation-and-learning",
+      "name": "Results Frameworks",
+      "slug": "results-frameworks",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "monitoring-evaluation-and-learning",
+      "name": "Performance Monitoring",
+      "slug": "performance-monitoring",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "monitoring-evaluation-and-learning",
+      "name": "Evaluation Services",
+      "slug": "evaluation-services",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "monitoring-evaluation-and-learning",
+      "name": "Learning Systems",
+      "slug": "learning-systems",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "monitoring-evaluation-and-learning",
+      "name": "Indicator Development",
+      "slug": "indicator-development",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "monitoring-evaluation-and-learning",
+      "name": "Theory of Change",
+      "slug": "theory-of-change",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "monitoring-evaluation-and-learning",
+      "name": "Outcome Monitoring",
+      "slug": "outcome-monitoring",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "monitoring-evaluation-and-learning",
+      "name": "Programme Evaluation",
+      "slug": "programme-evaluation",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "monitoring-evaluation-and-learning",
+      "name": "Knowledge Management",
+      "slug": "knowledge-management",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "management-and-business-consultancy",
+      "name": "Management Consultancy",
+      "slug": "management-consultancy",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "management-and-business-consultancy",
+      "name": "Business Strategy",
+      "slug": "business-strategy",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "management-and-business-consultancy",
+      "name": "Organizational Development",
+      "slug": "organizational-development",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "management-and-business-consultancy",
+      "name": "Process Improvement",
+      "slug": "process-improvement",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "management-and-business-consultancy",
+      "name": "Change Management",
+      "slug": "change-management",
+      "globeconRelevance": "core",
+      "keywords": [
+        "change management",
+        "organizational change",
+        "organisational change"
+      ],
+      "legacySlug": "organisational-change-management"
+    },
+    {
+      "fieldSlug": "management-and-business-consultancy",
+      "name": "Institutional Strengthening",
+      "slug": "institutional-strengthening",
+      "globeconRelevance": "core",
+      "keywords": [
+        "capacity building",
+        "technical training",
+        "systems training",
+        "end-user training",
+        "digital skills training"
+      ],
+      "legacySlug": "training-capacity-building"
+    },
+    {
+      "fieldSlug": "management-and-business-consultancy",
+      "name": "Business Process Mapping",
+      "slug": "business-process-mapping",
+      "globeconRelevance": "core",
+      "keywords": [
+        "business process",
+        "process mapping",
+        "process reengineering",
+        "process redesign"
+      ],
+      "legacySlug": "business-process-mapping"
+    },
+    {
+      "fieldSlug": "management-and-business-consultancy",
+      "name": "Project Management",
+      "slug": "project-management",
+      "globeconRelevance": "core",
+      "keywords": [
+        "project management office",
+        "PMO",
+        "programme management",
+        "program management",
+        "project management consultancy"
+      ],
+      "legacySlug": "project-management-office"
+    },
+    {
+      "fieldSlug": "management-and-business-consultancy",
+      "name": "Programme Management",
+      "slug": "programme-management",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "management-and-business-consultancy",
+      "name": "Technical Advisory",
+      "slug": "technical-advisory",
+      "globeconRelevance": "core",
+      "keywords": [
+        "technical advisory"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "management-and-business-consultancy",
+      "name": "Strategic Planning",
+      "slug": "strategic-planning",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "finance-accounting-and-audit",
+      "name": "External Audit",
+      "slug": "external-audit",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "finance-accounting-and-audit",
+      "name": "Internal Audit",
+      "slug": "internal-audit",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "finance-accounting-and-audit",
+      "name": "Financial Management",
+      "slug": "financial-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "finance-accounting-and-audit",
+      "name": "Accounting Services",
+      "slug": "accounting-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "finance-accounting-and-audit",
+      "name": "Tax Consultancy",
+      "slug": "tax-consultancy",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "finance-accounting-and-audit",
+      "name": "Financial Analysis",
+      "slug": "financial-analysis",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "finance-accounting-and-audit",
+      "name": "Financial Due Diligence",
+      "slug": "financial-due-diligence",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "finance-accounting-and-audit",
+      "name": "Forensic Audit",
+      "slug": "forensic-audit",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "finance-accounting-and-audit",
+      "name": "Actuarial Services",
+      "slug": "actuarial-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "finance-accounting-and-audit",
+      "name": "Risk Management",
+      "slug": "risk-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "finance-accounting-and-audit",
+      "name": "Investment Advisory",
+      "slug": "investment-advisory",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "finance-accounting-and-audit",
+      "name": "Asset Valuation",
+      "slug": "asset-valuation",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "legal-and-regulatory",
+      "name": "Legal Advisory",
+      "slug": "legal-advisory",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "legal-and-regulatory",
+      "name": "Contract Review",
+      "slug": "contract-review",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "legal-and-regulatory",
+      "name": "Legal Drafting",
+      "slug": "legal-drafting",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "legal-and-regulatory",
+      "name": "Regulatory Compliance",
+      "slug": "regulatory-compliance",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "legal-and-regulatory",
+      "name": "Policy & Legislative Review",
+      "slug": "policy-and-legislative-review",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "legal-and-regulatory",
+      "name": "Procurement Legal Advisory",
+      "slug": "procurement-legal-advisory",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "legal-and-regulatory",
+      "name": "Conveyancing",
+      "slug": "conveyancing",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "legal-and-regulatory",
+      "name": "Intellectual Property",
+      "slug": "intellectual-property",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "legal-and-regulatory",
+      "name": "Dispute Resolution",
+      "slug": "dispute-resolution",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "construction-and-building-works",
+      "name": "Building Construction",
+      "slug": "building-construction",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "construction-and-building-works",
+      "name": "Renovation & Refurbishment",
+      "slug": "renovation-and-refurbishment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "construction-and-building-works",
+      "name": "Building Maintenance",
+      "slug": "building-maintenance",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "construction-and-building-works",
+      "name": "Roofing",
+      "slug": "roofing",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "construction-and-building-works",
+      "name": "Waterproofing",
+      "slug": "waterproofing",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "construction-and-building-works",
+      "name": "Masonry",
+      "slug": "masonry",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "construction-and-building-works",
+      "name": "Carpentry",
+      "slug": "carpentry",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "construction-and-building-works",
+      "name": "Painting & Decoration",
+      "slug": "painting-and-decoration",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "construction-and-building-works",
+      "name": "Flooring",
+      "slug": "flooring",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "construction-and-building-works",
+      "name": "Ceiling Works",
+      "slug": "ceiling-works",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "construction-and-building-works",
+      "name": "Partitioning",
+      "slug": "partitioning",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "construction-and-building-works",
+      "name": "Fabrication",
+      "slug": "fabrication",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "construction-and-building-works",
+      "name": "Demolition",
+      "slug": "demolition",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "roads-civil-works-and-infrastructure",
+      "name": "Road Construction",
+      "slug": "road-construction",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "roads-civil-works-and-infrastructure",
+      "name": "Road Rehabilitation",
+      "slug": "road-rehabilitation",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "roads-civil-works-and-infrastructure",
+      "name": "Bridge Construction",
+      "slug": "bridge-construction",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "roads-civil-works-and-infrastructure",
+      "name": "Drainage Works",
+      "slug": "drainage-works",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "roads-civil-works-and-infrastructure",
+      "name": "Earthworks",
+      "slug": "earthworks",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "roads-civil-works-and-infrastructure",
+      "name": "Footbridges",
+      "slug": "footbridges",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "roads-civil-works-and-infrastructure",
+      "name": "River Bank Protection",
+      "slug": "river-bank-protection",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "roads-civil-works-and-infrastructure",
+      "name": "Stormwater Management",
+      "slug": "stormwater-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "roads-civil-works-and-infrastructure",
+      "name": "Civil Infrastructure",
+      "slug": "civil-infrastructure",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "roads-civil-works-and-infrastructure",
+      "name": "Traffic Infrastructure",
+      "slug": "traffic-infrastructure",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "roads-civil-works-and-infrastructure",
+      "name": "Site Works",
+      "slug": "site-works",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "water-sanitation-and-wash",
+      "name": "Borehole Drilling",
+      "slug": "borehole-drilling",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "water-sanitation-and-wash",
+      "name": "Water Supply Systems",
+      "slug": "water-supply-systems",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "water-sanitation-and-wash",
+      "name": "Water Treatment",
+      "slug": "water-treatment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "water-sanitation-and-wash",
+      "name": "Water Storage Tanks",
+      "slug": "water-storage-tanks",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "water-sanitation-and-wash",
+      "name": "Water Distribution Networks",
+      "slug": "water-distribution-networks",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "water-sanitation-and-wash",
+      "name": "Pipelines & Fittings",
+      "slug": "pipelines-and-fittings",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "water-sanitation-and-wash",
+      "name": "Sewerage Systems",
+      "slug": "sewerage-systems",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "water-sanitation-and-wash",
+      "name": "Sanitation Facilities",
+      "slug": "sanitation-facilities",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "water-sanitation-and-wash",
+      "name": "Septic / Pit Latrine Services",
+      "slug": "septic-pit-latrine-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "water-sanitation-and-wash",
+      "name": "Wastewater Treatment",
+      "slug": "wastewater-treatment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "water-sanitation-and-wash",
+      "name": "Water Quality Testing",
+      "slug": "water-quality-testing",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "water-sanitation-and-wash",
+      "name": "Hygiene Promotion",
+      "slug": "hygiene-promotion",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "electrical-mechanical-and-engineering",
+      "name": "Electrical Installation",
+      "slug": "electrical-installation",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "electrical-mechanical-and-engineering",
+      "name": "Electrical Maintenance",
+      "slug": "electrical-maintenance",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "electrical-mechanical-and-engineering",
+      "name": "Mechanical Works",
+      "slug": "mechanical-works",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "electrical-mechanical-and-engineering",
+      "name": "Plumbing Works",
+      "slug": "plumbing-works",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "electrical-mechanical-and-engineering",
+      "name": "Air Conditioning & Refrigeration",
+      "slug": "air-conditioning-and-refrigeration",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "electrical-mechanical-and-engineering",
+      "name": "Generator Installation & Maintenance",
+      "slug": "generator-installation-and-maintenance",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "electrical-mechanical-and-engineering",
+      "name": "Industrial Machinery",
+      "slug": "industrial-machinery",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "electrical-mechanical-and-engineering",
+      "name": "Mechanical Plant Maintenance",
+      "slug": "mechanical-plant-maintenance",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "electrical-mechanical-and-engineering",
+      "name": "Engineering Design",
+      "slug": "engineering-design",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "electrical-mechanical-and-engineering",
+      "name": "Engineering Supervision",
+      "slug": "engineering-supervision",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "electrical-mechanical-and-engineering",
+      "name": "Technical Inspection",
+      "slug": "technical-inspection",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "energy-and-renewable-energy",
+      "name": "Solar PV Systems",
+      "slug": "solar-pv-systems",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "energy-and-renewable-energy",
+      "name": "Solar Water Heating",
+      "slug": "solar-water-heating",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "energy-and-renewable-energy",
+      "name": "Battery Energy Storage",
+      "slug": "battery-energy-storage",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "energy-and-renewable-energy",
+      "name": "Inverters",
+      "slug": "inverters",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "energy-and-renewable-energy",
+      "name": "Energy Audits",
+      "slug": "energy-audits",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "energy-and-renewable-energy",
+      "name": "Energy Efficiency",
+      "slug": "energy-efficiency",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "energy-and-renewable-energy",
+      "name": "Power Generation",
+      "slug": "power-generation",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "energy-and-renewable-energy",
+      "name": "Electrical Power Systems",
+      "slug": "electrical-power-systems",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "energy-and-renewable-energy",
+      "name": "Renewable Energy Consultancy",
+      "slug": "renewable-energy-consultancy",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "energy-and-renewable-energy",
+      "name": "Clean Cooking Solutions",
+      "slug": "clean-cooking-solutions",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "energy-and-renewable-energy",
+      "name": "Generator Supply",
+      "slug": "generator-supply",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "agriculture-and-agribusiness",
+      "name": "Farm Inputs",
+      "slug": "farm-inputs",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "agriculture-and-agribusiness",
+      "name": "Seeds",
+      "slug": "seeds",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "agriculture-and-agribusiness",
+      "name": "Fertilizers",
+      "slug": "fertilizers",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "agriculture-and-agribusiness",
+      "name": "Pesticides & Herbicides",
+      "slug": "pesticides-and-herbicides",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "agriculture-and-agribusiness",
+      "name": "Farm Machinery",
+      "slug": "farm-machinery",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "agriculture-and-agribusiness",
+      "name": "Irrigation Equipment",
+      "slug": "irrigation-equipment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "agriculture-and-agribusiness",
+      "name": "Agricultural Tools",
+      "slug": "agricultural-tools",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "agriculture-and-agribusiness",
+      "name": "Livestock Supply",
+      "slug": "livestock-supply",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "agriculture-and-agribusiness",
+      "name": "Animal Feeds",
+      "slug": "animal-feeds",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "agriculture-and-agribusiness",
+      "name": "Veterinary Supplies",
+      "slug": "veterinary-supplies",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "agriculture-and-agribusiness",
+      "name": "Fisheries & Aquaculture",
+      "slug": "fisheries-and-aquaculture",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "agriculture-and-agribusiness",
+      "name": "AgriTech Solutions",
+      "slug": "agritech-solutions",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "agriculture-and-agribusiness",
+      "name": "Agricultural Value Chains",
+      "slug": "agricultural-value-chains",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "agriculture-and-agribusiness",
+      "name": "Post-Harvest Systems",
+      "slug": "post-harvest-systems",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "agriculture-and-agribusiness",
+      "name": "Agricultural Consultancy",
+      "slug": "agricultural-consultancy",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "healthcare-and-medical",
+      "name": "Medical Equipment",
+      "slug": "medical-equipment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "healthcare-and-medical",
+      "name": "Medical Consumables",
+      "slug": "medical-consumables",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "healthcare-and-medical",
+      "name": "Laboratory Equipment",
+      "slug": "laboratory-equipment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "healthcare-and-medical",
+      "name": "Laboratory Supplies",
+      "slug": "laboratory-supplies",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "healthcare-and-medical",
+      "name": "Pharmaceutical Supplies",
+      "slug": "pharmaceutical-supplies",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "healthcare-and-medical",
+      "name": "Hospital Furniture",
+      "slug": "hospital-furniture",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "healthcare-and-medical",
+      "name": "Medical Oxygen",
+      "slug": "medical-oxygen",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "healthcare-and-medical",
+      "name": "Health Information Systems",
+      "slug": "health-information-systems",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "healthcare-and-medical",
+      "name": "Digital Health",
+      "slug": "digital-health",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "healthcare-and-medical",
+      "name": "Public Health Consultancy",
+      "slug": "public-health-consultancy",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "healthcare-and-medical",
+      "name": "Health Research",
+      "slug": "health-research",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "healthcare-and-medical",
+      "name": "Medical Equipment Maintenance",
+      "slug": "medical-equipment-maintenance",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "healthcare-and-medical",
+      "name": "Medical Waste Management",
+      "slug": "medical-waste-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "education-and-training",
+      "name": "Training & Capacity Building",
+      "slug": "training-and-capacity-building",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "education-and-training",
+      "name": "Professional Training",
+      "slug": "professional-training",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "education-and-training",
+      "name": "Technical Training",
+      "slug": "technical-training",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "education-and-training",
+      "name": "Curriculum Development",
+      "slug": "curriculum-development",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "education-and-training",
+      "name": "Learning Materials",
+      "slug": "learning-materials",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "education-and-training",
+      "name": "E-Learning Platforms",
+      "slug": "e-learning-platforms",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "education-and-training",
+      "name": "Education Management Systems",
+      "slug": "education-management-systems",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "education-and-training",
+      "name": "Teacher Training",
+      "slug": "teacher-training",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "education-and-training",
+      "name": "Leadership Development",
+      "slug": "leadership-development",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "education-and-training",
+      "name": "Competency Assessment",
+      "slug": "competency-assessment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "transport-logistics-and-fleet",
+      "name": "Vehicle Supply",
+      "slug": "vehicle-supply",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "transport-logistics-and-fleet",
+      "name": "Vehicle Hire",
+      "slug": "vehicle-hire",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "transport-logistics-and-fleet",
+      "name": "Taxi Services",
+      "slug": "taxi-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "transport-logistics-and-fleet",
+      "name": "Bus Hire",
+      "slug": "bus-hire",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "transport-logistics-and-fleet",
+      "name": "Truck Hire",
+      "slug": "truck-hire",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "transport-logistics-and-fleet",
+      "name": "Fleet Management",
+      "slug": "fleet-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "transport-logistics-and-fleet",
+      "name": "Vehicle Tracking",
+      "slug": "vehicle-tracking",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "transport-logistics-and-fleet",
+      "name": "Vehicle Maintenance",
+      "slug": "vehicle-maintenance",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "transport-logistics-and-fleet",
+      "name": "Auto Spare Parts",
+      "slug": "auto-spare-parts",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "transport-logistics-and-fleet",
+      "name": "Tyres & Batteries",
+      "slug": "tyres-and-batteries",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "transport-logistics-and-fleet",
+      "name": "Freight Services",
+      "slug": "freight-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "transport-logistics-and-fleet",
+      "name": "Warehousing",
+      "slug": "warehousing",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "transport-logistics-and-fleet",
+      "name": "Courier Services",
+      "slug": "courier-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "transport-logistics-and-fleet",
+      "name": "Relocation Services",
+      "slug": "relocation-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "travel-hospitality-and-events",
+      "name": "Travel Agency Services",
+      "slug": "travel-agency-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "travel-hospitality-and-events",
+      "name": "Air Ticketing",
+      "slug": "air-ticketing",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "travel-hospitality-and-events",
+      "name": "Hotel Accommodation",
+      "slug": "hotel-accommodation",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "travel-hospitality-and-events",
+      "name": "Conference Facilities",
+      "slug": "conference-facilities",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "travel-hospitality-and-events",
+      "name": "Catering",
+      "slug": "catering",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "travel-hospitality-and-events",
+      "name": "Event Management",
+      "slug": "event-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "travel-hospitality-and-events",
+      "name": "Venue Management",
+      "slug": "venue-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "travel-hospitality-and-events",
+      "name": "Tourism Services",
+      "slug": "tourism-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "travel-hospitality-and-events",
+      "name": "Protocol Services",
+      "slug": "protocol-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "office-furniture-and-general-supplies",
+      "name": "Office Stationery",
+      "slug": "office-stationery",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "office-furniture-and-general-supplies",
+      "name": "Office Equipment",
+      "slug": "office-equipment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "office-furniture-and-general-supplies",
+      "name": "Computers & Peripherals",
+      "slug": "computers-and-peripherals",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "office-furniture-and-general-supplies",
+      "name": "Printers & Consumables",
+      "slug": "printers-and-consumables",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "office-furniture-and-general-supplies",
+      "name": "Furniture",
+      "slug": "furniture",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "office-furniture-and-general-supplies",
+      "name": "Office Fittings",
+      "slug": "office-fittings",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "office-furniture-and-general-supplies",
+      "name": "Kitchen Appliances",
+      "slug": "kitchen-appliances",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "office-furniture-and-general-supplies",
+      "name": "Household Items",
+      "slug": "household-items",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "office-furniture-and-general-supplies",
+      "name": "Uniforms",
+      "slug": "uniforms",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "office-furniture-and-general-supplies",
+      "name": "Promotional Items",
+      "slug": "promotional-items",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "office-furniture-and-general-supplies",
+      "name": "General Consumables",
+      "slug": "general-consumables",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "security-safety-and-emergency",
+      "name": "Guarding Services",
+      "slug": "guarding-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "security-safety-and-emergency",
+      "name": "CCTV Systems",
+      "slug": "cctv-systems",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "security-safety-and-emergency",
+      "name": "Access Control",
+      "slug": "access-control",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "security-safety-and-emergency",
+      "name": "Alarm Systems",
+      "slug": "alarm-systems",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "security-safety-and-emergency",
+      "name": "Security Equipment",
+      "slug": "security-equipment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "security-safety-and-emergency",
+      "name": "Firefighting Equipment",
+      "slug": "firefighting-equipment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "security-safety-and-emergency",
+      "name": "Fire Safety Maintenance",
+      "slug": "fire-safety-maintenance",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "security-safety-and-emergency",
+      "name": "Personal Protective Equipment",
+      "slug": "personal-protective-equipment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "security-safety-and-emergency",
+      "name": "Emergency Response Equipment",
+      "slug": "emergency-response-equipment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "security-safety-and-emergency",
+      "name": "Disaster Management Supplies",
+      "slug": "disaster-management-supplies",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "security-safety-and-emergency",
+      "name": "Safety Consultancy",
+      "slug": "safety-consultancy",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cleaning-facilities-and-property-services",
+      "name": "Cleaning Services",
+      "slug": "cleaning-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cleaning-facilities-and-property-services",
+      "name": "Fumigation & Pest Control",
+      "slug": "fumigation-and-pest-control",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cleaning-facilities-and-property-services",
+      "name": "Laundry Services",
+      "slug": "laundry-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cleaning-facilities-and-property-services",
+      "name": "Landscaping & Gardening",
+      "slug": "landscaping-and-gardening",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cleaning-facilities-and-property-services",
+      "name": "Facility Management",
+      "slug": "facility-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cleaning-facilities-and-property-services",
+      "name": "Property Management",
+      "slug": "property-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cleaning-facilities-and-property-services",
+      "name": "Waste Collection",
+      "slug": "waste-collection",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cleaning-facilities-and-property-services",
+      "name": "Garbage Handling",
+      "slug": "garbage-handling",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cleaning-facilities-and-property-services",
+      "name": "Sanitary Disposal",
+      "slug": "sanitary-disposal",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "cleaning-facilities-and-property-services",
+      "name": "Building Maintenance",
+      "slug": "cleaning-facilities-and-property-services-building-maintenance",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "marketing-communications-and-creative",
+      "name": "Digital Marketing",
+      "slug": "digital-marketing",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "marketing-communications-and-creative",
+      "name": "Advertising",
+      "slug": "advertising",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "marketing-communications-and-creative",
+      "name": "Public Relations",
+      "slug": "public-relations",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "marketing-communications-and-creative",
+      "name": "Corporate Communications",
+      "slug": "corporate-communications",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "marketing-communications-and-creative",
+      "name": "Branding",
+      "slug": "branding",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "marketing-communications-and-creative",
+      "name": "Graphic Design",
+      "slug": "graphic-design",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "marketing-communications-and-creative",
+      "name": "Illustration",
+      "slug": "illustration",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "marketing-communications-and-creative",
+      "name": "Content Development",
+      "slug": "content-development",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "marketing-communications-and-creative",
+      "name": "Social Media Management",
+      "slug": "social-media-management",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "marketing-communications-and-creative",
+      "name": "Photography",
+      "slug": "photography",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "marketing-communications-and-creative",
+      "name": "Videography",
+      "slug": "videography",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "marketing-communications-and-creative",
+      "name": "Printing",
+      "slug": "printing",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "marketing-communications-and-creative",
+      "name": "Publishing",
+      "slug": "publishing",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "marketing-communications-and-creative",
+      "name": "Signage",
+      "slug": "signage",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "marketing-communications-and-creative",
+      "name": "Promotional Materials",
+      "slug": "promotional-materials",
+      "globeconRelevance": "core",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "environment-climate-and-natural-resources",
+      "name": "Environmental Impact Assessment",
+      "slug": "environmental-impact-assessment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "environment-climate-and-natural-resources",
+      "name": "Environmental Audit",
+      "slug": "environmental-audit",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "environment-climate-and-natural-resources",
+      "name": "Climate Change Consultancy",
+      "slug": "climate-change-consultancy",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "environment-climate-and-natural-resources",
+      "name": "Climate Data & Analytics",
+      "slug": "climate-data-and-analytics",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "environment-climate-and-natural-resources",
+      "name": "Carbon Management",
+      "slug": "carbon-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "environment-climate-and-natural-resources",
+      "name": "Conservation",
+      "slug": "conservation",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "environment-climate-and-natural-resources",
+      "name": "Forestry",
+      "slug": "forestry",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "environment-climate-and-natural-resources",
+      "name": "Natural Resource Management",
+      "slug": "natural-resource-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "environment-climate-and-natural-resources",
+      "name": "Environmental Monitoring",
+      "slug": "environmental-monitoring",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "environment-climate-and-natural-resources",
+      "name": "Waste Management",
+      "slug": "waste-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "engineering-architecture-and-surveying",
+      "name": "Architectural Design",
+      "slug": "architectural-design",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "engineering-architecture-and-surveying",
+      "name": "Structural Design",
+      "slug": "structural-design",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "engineering-architecture-and-surveying",
+      "name": "Civil Engineering Consultancy",
+      "slug": "civil-engineering-consultancy",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "engineering-architecture-and-surveying",
+      "name": "Electrical Engineering Consultancy",
+      "slug": "electrical-engineering-consultancy",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "engineering-architecture-and-surveying",
+      "name": "Mechanical Engineering Consultancy",
+      "slug": "mechanical-engineering-consultancy",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "engineering-architecture-and-surveying",
+      "name": "Quantity Surveying",
+      "slug": "quantity-surveying",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "engineering-architecture-and-surveying",
+      "name": "Land Surveying",
+      "slug": "land-surveying",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "engineering-architecture-and-surveying",
+      "name": "Geotechnical Services",
+      "slug": "geotechnical-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "engineering-architecture-and-surveying",
+      "name": "Mapping & GIS",
+      "slug": "mapping-and-gis",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "engineering-architecture-and-surveying",
+      "name": "Construction Supervision",
+      "slug": "construction-supervision",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "manufacturing-and-industrial-services",
+      "name": "Industrial Equipment",
+      "slug": "industrial-equipment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "manufacturing-and-industrial-services",
+      "name": "Production Machinery",
+      "slug": "production-machinery",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "manufacturing-and-industrial-services",
+      "name": "Factory Automation",
+      "slug": "factory-automation",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "manufacturing-and-industrial-services",
+      "name": "Industrial Maintenance",
+      "slug": "industrial-maintenance",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "manufacturing-and-industrial-services",
+      "name": "Fabrication",
+      "slug": "manufacturing-and-industrial-services-fabrication",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "manufacturing-and-industrial-services",
+      "name": "Packaging",
+      "slug": "packaging",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "manufacturing-and-industrial-services",
+      "name": "Quality Control",
+      "slug": "quality-control",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "manufacturing-and-industrial-services",
+      "name": "Laboratory / Industrial Testing",
+      "slug": "laboratory-industrial-testing",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "manufacturing-and-industrial-services",
+      "name": "Plant Installation",
+      "slug": "plant-installation",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "manufacturing-and-industrial-services",
+      "name": "Industrial Consultancy",
+      "slug": "industrial-consultancy",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "procurement-supply-chain-and-outsourcing",
+      "name": "Procurement Consultancy",
+      "slug": "procurement-consultancy",
+      "globeconRelevance": "potential",
+      "keywords": [
+        "procurement advisory",
+        "procurement consulting"
+      ],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "procurement-supply-chain-and-outsourcing",
+      "name": "Supply Chain Management",
+      "slug": "supply-chain-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "procurement-supply-chain-and-outsourcing",
+      "name": "Inventory Management",
+      "slug": "inventory-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "procurement-supply-chain-and-outsourcing",
+      "name": "Warehouse Management",
+      "slug": "warehouse-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "procurement-supply-chain-and-outsourcing",
+      "name": "Outsourced Personnel",
+      "slug": "outsourced-personnel",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "procurement-supply-chain-and-outsourcing",
+      "name": "Procurement Systems",
+      "slug": "procurement-systems",
+      "globeconRelevance": "potential",
+      "keywords": [
+        "e-procurement system",
+        "eprocurement system",
+        "procurement information system",
+        "contract management system",
+        "vendor management system"
+      ],
+      "legacySlug": "procurement-contract-advisory"
+    },
+    {
+      "fieldSlug": "procurement-supply-chain-and-outsourcing",
+      "name": "Supplier Management",
+      "slug": "supplier-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "procurement-supply-chain-and-outsourcing",
+      "name": "Contract Management",
+      "slug": "contract-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "procurement-supply-chain-and-outsourcing",
+      "name": "Logistics Management",
+      "slug": "logistics-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "human-resources-and-professional-services",
+      "name": "Recruitment Services",
+      "slug": "recruitment-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "human-resources-and-professional-services",
+      "name": "HR Consultancy",
+      "slug": "hr-consultancy",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "human-resources-and-professional-services",
+      "name": "Organizational Assessment",
+      "slug": "organizational-assessment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "human-resources-and-professional-services",
+      "name": "Job Evaluation",
+      "slug": "job-evaluation",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "human-resources-and-professional-services",
+      "name": "Performance Management",
+      "slug": "performance-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "human-resources-and-professional-services",
+      "name": "Payroll Services",
+      "slug": "payroll-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "human-resources-and-professional-services",
+      "name": "Professional Staffing",
+      "slug": "professional-staffing",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "human-resources-and-professional-services",
+      "name": "Individual Consultancy",
+      "slug": "individual-consultancy",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "printing-publishing-and-records",
+      "name": "Bulk Printing",
+      "slug": "bulk-printing",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "printing-publishing-and-records",
+      "name": "Reports & Manuals",
+      "slug": "reports-and-manuals",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "printing-publishing-and-records",
+      "name": "Books & Publications",
+      "slug": "books-and-publications",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "printing-publishing-and-records",
+      "name": "Forms Printing",
+      "slug": "forms-printing",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "printing-publishing-and-records",
+      "name": "Large Format Printing",
+      "slug": "large-format-printing",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "printing-publishing-and-records",
+      "name": "Document Scanning",
+      "slug": "document-scanning",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "printing-publishing-and-records",
+      "name": "Digitization of Records",
+      "slug": "digitization-of-records",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "printing-publishing-and-records",
+      "name": "Records Management",
+      "slug": "records-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "printing-publishing-and-records",
+      "name": "Archiving",
+      "slug": "archiving",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "printing-publishing-and-records",
+      "name": "Document Reproduction",
+      "slug": "document-reproduction",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "telecommunications-media-and-av",
+      "name": "Public Address Systems",
+      "slug": "public-address-systems",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "telecommunications-media-and-av",
+      "name": "Audio Equipment",
+      "slug": "audio-equipment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "telecommunications-media-and-av",
+      "name": "Video Equipment",
+      "slug": "video-equipment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "telecommunications-media-and-av",
+      "name": "Broadcast Equipment",
+      "slug": "broadcast-equipment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "telecommunications-media-and-av",
+      "name": "Studio Equipment",
+      "slug": "studio-equipment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "telecommunications-media-and-av",
+      "name": "Conference AV",
+      "slug": "conference-av",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "telecommunications-media-and-av",
+      "name": "Interpretation Equipment",
+      "slug": "interpretation-equipment",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "telecommunications-media-and-av",
+      "name": "Media Production",
+      "slug": "media-production",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "telecommunications-media-and-av",
+      "name": "Live Streaming",
+      "slug": "live-streaming",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "food-nutrition-and-household-commodities",
+      "name": "Food Supply",
+      "slug": "food-supply",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "food-nutrition-and-household-commodities",
+      "name": "Fresh Produce",
+      "slug": "fresh-produce",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "food-nutrition-and-household-commodities",
+      "name": "Cereals",
+      "slug": "cereals",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "food-nutrition-and-household-commodities",
+      "name": "Meat & Poultry",
+      "slug": "meat-and-poultry",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "food-nutrition-and-household-commodities",
+      "name": "Fish",
+      "slug": "fish",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "food-nutrition-and-household-commodities",
+      "name": "Milk & Dairy",
+      "slug": "milk-and-dairy",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "food-nutrition-and-household-commodities",
+      "name": "Food Processing",
+      "slug": "food-processing",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "food-nutrition-and-household-commodities",
+      "name": "Nutrition Supplies",
+      "slug": "nutrition-supplies",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "food-nutrition-and-household-commodities",
+      "name": "Household Commodities",
+      "slug": "household-commodities",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "food-nutrition-and-household-commodities",
+      "name": "Kitchen Supplies",
+      "slug": "kitchen-supplies",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "fuels-chemicals-and-industrial-consumables",
+      "name": "Fuel Supply",
+      "slug": "fuel-supply",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "fuels-chemicals-and-industrial-consumables",
+      "name": "Lubricants",
+      "slug": "lubricants",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "fuels-chemicals-and-industrial-consumables",
+      "name": "Industrial Gases",
+      "slug": "industrial-gases",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "fuels-chemicals-and-industrial-consumables",
+      "name": "Chemicals",
+      "slug": "chemicals",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "fuels-chemicals-and-industrial-consumables",
+      "name": "Cleaning Chemicals",
+      "slug": "cleaning-chemicals",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "fuels-chemicals-and-industrial-consumables",
+      "name": "Water Treatment Chemicals",
+      "slug": "water-treatment-chemicals",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "fuels-chemicals-and-industrial-consumables",
+      "name": "Laboratory Chemicals",
+      "slug": "laboratory-chemicals",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "fuels-chemicals-and-industrial-consumables",
+      "name": "Industrial Consumables",
+      "slug": "industrial-consumables",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "insurance-and-risk-services",
+      "name": "General Insurance",
+      "slug": "general-insurance",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "insurance-and-risk-services",
+      "name": "Medical Insurance",
+      "slug": "medical-insurance",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "insurance-and-risk-services",
+      "name": "Motor Insurance",
+      "slug": "motor-insurance",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "insurance-and-risk-services",
+      "name": "Property Insurance",
+      "slug": "property-insurance",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "insurance-and-risk-services",
+      "name": "Professional Indemnity",
+      "slug": "professional-indemnity",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "insurance-and-risk-services",
+      "name": "Risk Advisory",
+      "slug": "risk-advisory",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "insurance-and-risk-services",
+      "name": "Insurance Brokerage",
+      "slug": "insurance-brokerage",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "insurance-and-risk-services",
+      "name": "Claims Management",
+      "slug": "claims-management",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "development-ngo-and-humanitarian-services",
+      "name": "Community Development",
+      "slug": "community-development",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "development-ngo-and-humanitarian-services",
+      "name": "Livelihoods Programmes",
+      "slug": "livelihoods-programmes",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "development-ngo-and-humanitarian-services",
+      "name": "Governance Programmes",
+      "slug": "governance-programmes",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "development-ngo-and-humanitarian-services",
+      "name": "Gender & Social Inclusion",
+      "slug": "gender-and-social-inclusion",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "development-ngo-and-humanitarian-services",
+      "name": "Humanitarian Response",
+      "slug": "humanitarian-response",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "development-ngo-and-humanitarian-services",
+      "name": "Refugee Services",
+      "slug": "refugee-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "development-ngo-and-humanitarian-services",
+      "name": "Protection Services",
+      "slug": "protection-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "development-ngo-and-humanitarian-services",
+      "name": "Safeguarding",
+      "slug": "safeguarding",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "development-ngo-and-humanitarian-services",
+      "name": "Programme Implementation",
+      "slug": "programme-implementation",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "development-ngo-and-humanitarian-services",
+      "name": "Development Consultancy",
+      "slug": "development-consultancy",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "specialized-technical-services",
+      "name": "Equipment Calibration",
+      "slug": "equipment-calibration",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "specialized-technical-services",
+      "name": "Equipment Inspection",
+      "slug": "equipment-inspection",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "specialized-technical-services",
+      "name": "Technical Testing",
+      "slug": "technical-testing",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "specialized-technical-services",
+      "name": "Asset Tagging",
+      "slug": "asset-tagging",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "specialized-technical-services",
+      "name": "Asset Inventory",
+      "slug": "asset-inventory",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "specialized-technical-services",
+      "name": "Valuation Services",
+      "slug": "valuation-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "specialized-technical-services",
+      "name": "Aerial Photography",
+      "slug": "aerial-photography",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "specialized-technical-services",
+      "name": "Mapping Services",
+      "slug": "mapping-services",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "specialized-technical-services",
+      "name": "Specialized Equipment Rental",
+      "slug": "specialized-equipment-rental",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    },
+    {
+      "fieldSlug": "specialized-technical-services",
+      "name": "Technical Documentation",
+      "slug": "technical-documentation",
+      "globeconRelevance": "potential",
+      "keywords": [],
+      "legacySlug": null
+    }
+  ],
+  "procurementTypes": [
+    {
+      "name": "Invitation to Bid (ITB)",
+      "slug": "invitation-to-bid-itb",
+      "meaning": "Formal solicitation for clearly defined requirements."
+    },
+    {
+      "name": "Request for Proposal (RFP)",
+      "slug": "request-for-proposal-rfp",
+      "meaning": "Proposal-based procurement, often for complex services/solutions."
+    },
+    {
+      "name": "Request for Quotation (RFQ)",
+      "slug": "request-for-quotation-rfq",
+      "meaning": "Quotation-based procurement for defined requirements."
+    },
+    {
+      "name": "Expression of Interest (EOI)",
+      "slug": "expression-of-interest-eoi",
+      "meaning": "Solicitation to identify qualified firms/consultants."
+    },
+    {
+      "name": "Request for Information (RFI)",
+      "slug": "request-for-information-rfi",
+      "meaning": "Market information gathering before procurement."
+    },
+    {
+      "name": "Prequalification",
+      "slug": "prequalification",
+      "meaning": "Registration/qualification of suppliers, contractors or consultants."
+    },
+    {
+      "name": "Framework Agreement / LTA",
+      "slug": "framework-agreement-lta",
+      "meaning": "Long-term arrangement for recurring requirements."
+    },
+    {
+      "name": "Consultancy Opportunity",
+      "slug": "consultancy-opportunity",
+      "meaning": "Professional advisory or specialist assignment."
+    },
+    {
+      "name": "Goods / Supply",
+      "slug": "goods-supply",
+      "meaning": "Supply and often installation of products/equipment."
+    },
+    {
+      "name": "Works",
+      "slug": "works",
+      "meaning": "Construction, civil works, rehabilitation or installation."
+    },
+    {
+      "name": "Non-Consulting Services",
+      "slug": "non-consulting-services",
+      "meaning": "Operational service delivery distinct from professional consulting."
+    },
+    {
+      "name": "Individual Consultant",
+      "slug": "individual-consultant",
+      "meaning": "Specialist individual assignment with defined deliverables."
+    }
+  ]
+}
