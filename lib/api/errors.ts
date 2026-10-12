@@ -52,14 +52,6 @@ function mapKnownErrorMessage(message: string): ApiErrorBody | null {
       error: "This feature is disabled for your workspace",
       code: "FEATURE_DISABLED",
     },
-    MARKETS_ALREADY_SET: {
-      error: "This workspace already has markets. Change them from Fields.",
-      code: "CONFLICT",
-    },
-    NO_MARKET_LINES: {
-      error: "Those markets have no service lines to follow.",
-      code: "VALIDATION_ERROR",
-    },
     ORG_NOT_FOUND: { error: "Organization not found", code: "ORG_NOT_FOUND" },
     ORG_SUSPENDED: {
       error: "This workspace is suspended",
@@ -90,7 +82,6 @@ function mapKnownErrorMessage(message: string): ApiErrorBody | null {
       error: "Invalid or reserved workspace URL",
       code: "INVALID_SLUG",
     },
-    NOT_FOUND: { error: "Not found", code: "NOT_FOUND" },
   };
 
   return known[message] ?? null;
@@ -128,11 +119,9 @@ export function handleApiError(
               mapped.code === "FEATURE_DISABLED" ||
               mapped.code === "PROTECTED_ORG"
             ? 403
-            : mapped.code === "SLUG_TAKEN" ||
-                mapped.code === "EMAIL_TAKEN" ||
-                mapped.code === "CONFLICT"
+            : mapped.code === "SLUG_TAKEN" || mapped.code === "EMAIL_TAKEN"
               ? 409
-              : mapped.code === "ORG_NOT_FOUND" || mapped.code === "NOT_FOUND"
+              : mapped.code === "ORG_NOT_FOUND"
                 ? 404
                 : mapped.code === "INVALID_SLUG" ||
                     mapped.code === "CONFIRM_SLUG_MISMATCH"

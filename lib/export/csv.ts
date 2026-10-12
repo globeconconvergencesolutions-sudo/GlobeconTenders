@@ -25,7 +25,6 @@ export function tendersToCsv(rows: TenderWithSource[]): string {
     "Source Status",
     "URL",
     "Project Label",
-    "English reading",
   ];
 
   const lines = rows.map((row) =>
@@ -43,7 +42,6 @@ export function tendersToCsv(rows: TenderWithSource[]): string {
       row.sourceStatus ?? "",
       row.url ?? "",
       row.projectLabel,
-      row.titleEn ?? "",
     ]
       .map(escapeCsv)
       .join(","),

@@ -2,13 +2,8 @@ import { and, count, eq, sql } from "drizzle-orm";
 
 import { getDb } from "@/lib/db";
 import {
-  companyProfiles,
-  evidenceDocuments,
   orgMemberships,
-  qualificationAssessments,
   sources,
-  watchlistLines,
-  watchlists,
   workspaceSettings,
   type WorkspaceBrandingSettings,
 } from "@/lib/db/schema";
@@ -50,17 +45,12 @@ export async function getOnboardingSignals(orgId: number): Promise<OnboardingSig
       lastSynced: null,
       teamMemberCount: 0,
       hasCustomBranding: false,
-      watchlistLines: 0,
-      hasCompanyProfile: false,
-      evidenceCount: 0,
-      assessmentCount: 0,
     };
   }
 
   const settings = await getWorkspaceSettings(orgId);
 
-  const [[memberRow], [sourceRow], [profileRow], [evidenceRow], [assessmentRow], [lineRow]] =
-    await Promise.all([
+  const [[memberRow], [sourceRow]] = await Promise.all([
     db
       .select({ value: count() })
       .from(orgMemberships)
@@ -74,32 +64,7 @@ export async function getOnboardingSignals(orgId: number): Promise<OnboardingSig
       })
       .from(sources)
       .where(eq(sources.orgId, orgId)),
-    db
-      .select({
-        legalName: companyProfiles.legalName,
-        description: companyProfiles.description,
-      })
-      .from(companyProfiles)
-      .where(eq(companyProfiles.orgId, orgId))
-      .limit(1),
-    db
-      .select({ value: count() })
-      .from(evidenceDocuments)
-      .where(eq(evidenceDocuments.orgId, orgId)),
-    db
-      .select({ value: count() })
-      .from(qualificationAssessments)
-      .where(eq(qualificationAssessments.orgId, orgId)),
-    db
-      .select({ value: count() })
-      .from(watchlistLines)
-      .innerJoin(watchlists, eq(watchlists.id, watchlistLines.watchlistId))
-      .where(and(eq(watchlists.orgId, orgId), eq(watchlists.isActive, true))),
   ]);
-
-  const hasCompanyProfile = Boolean(
-    profileRow?.legalName?.trim() && profileRow.description?.trim(),
-  );
 
   return {
     trackingSources: Number(sourceRow?.tracking ?? 0),
@@ -108,10 +73,6 @@ export async function getOnboardingSignals(orgId: number): Promise<OnboardingSig
       : null,
     teamMemberCount: Number(memberRow?.value ?? 0),
     hasCustomBranding: hasCustomBranding(settings.branding),
-    watchlistLines: Number(lineRow?.value ?? 0),
-    hasCompanyProfile,
-    evidenceCount: Number(evidenceRow?.value ?? 0),
-    assessmentCount: Number(assessmentRow?.value ?? 0),
   };
 }
 

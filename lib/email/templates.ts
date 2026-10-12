@@ -28,7 +28,6 @@ export type DigestEmailInput = {
   highMatchThreshold: number;
   appUrl: string;
   org?: EmailOrgPresentation;
-  extraNotes?: string[];
 };
 
 const DEFAULT_PRESENTATION: EmailOrgPresentation = {
@@ -160,9 +159,7 @@ export function buildDigestEmail(input: DigestEmailInput): {
   });
 
   const subject =
-    total === 0 && (input.extraNotes?.length ?? 0) > 0
-      ? `${org.emailHeaderLabel} — deadline and evidence updates`
-      : newListings.length > 0 && input.closingSoon.length === 0 && input.highMatch.length === 0
+    newListings.length > 0 && input.closingSoon.length === 0 && input.highMatch.length === 0
       ? `${org.emailHeaderLabel} — ${newListings.length} new ${
           newListings.length === 1
             ? lexicon.opportunity.toLowerCase()
@@ -188,12 +185,6 @@ export function buildDigestEmail(input: DigestEmailInput): {
         <p style="margin:0;font-size:15px;color:#334155;line-height:1.6;">
           We found <strong>${total}</strong> ${escapeHtml(opp)} matching your saved filters and alert preferences.
         </p>
-        ${(input.extraNotes ?? [])
-          .map(
-            (note) =>
-              `<p style="margin:12px 0 0;font-size:14px;color:#334155;line-height:1.5;">${escapeHtml(note)}</p>`,
-          )
-          .join("")}
         <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;">
           ${
             newListings.length
@@ -252,7 +243,6 @@ export function buildDigestEmail(input: DigestEmailInput): {
     `Hi ${input.recipientName},`,
     "",
     `${total} ${opp} matching your filters:`,
-    ...(input.extraNotes ?? []),
     newListings.length ? `- ${newListings.length} new from latest sync` : "",
     `- ${input.closingSoon.length} closing within ${input.closingSoonDays} days`,
     `- ${input.highMatch.length} high match (score ≥ ${input.highMatchThreshold})`,

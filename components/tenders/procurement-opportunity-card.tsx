@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Clock, ExternalLink, Heart, Loader2 } from "lucide-react";
 
 import { useFeatures, useLexicon } from "@/components/providers/org-context-provider";
 import { ShareTenderButton } from "@/components/share/public-tender-view";
 
-import { EnglishReading } from "@/components/tenders/english-reading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,7 +34,6 @@ type ProcurementOpportunityCardProps = {
   /** When true (Live tab), hide this card once the hard deadline hits 0. */
   hideWhenDeadlineReached?: boolean;
   onDeadlineReached?: (tenderId: number) => void;
-  assessed?: boolean;
 };
 
 export function ProcurementOpportunityCard({
@@ -49,7 +46,6 @@ export function ProcurementOpportunityCard({
   showMatchScore = true,
   hideWhenDeadlineReached = false,
   onDeadlineReached,
-  assessed = false,
 }: ProcurementOpportunityCardProps) {
   const router = useRouter();
   const { t } = useLexicon();
@@ -155,12 +151,7 @@ export function ProcurementOpportunityCard({
             </span>
             {showMatchScore && tender.matchScore > 0 && (
               <Badge variant="secondary" className="font-normal tabular-nums">
-                {features.pis ? "Keyword match" : t("matchScore")}: {tender.matchScore}
-              </Badge>
-            )}
-            {features.pis && (
-              <Badge variant="outline" className="font-normal">
-                {assessed ? "Assessed" : "Not assessed"}
+                {t("matchScore")}: {tender.matchScore}
               </Badge>
             )}
             {listingBadge && (
@@ -209,19 +200,9 @@ export function ProcurementOpportunityCard({
           </div>
         </div>
 
-        <h3 className="mb-2 line-clamp-3 flex-1 text-sm font-semibold leading-snug text-foreground">
-          <Link href={`/opportunities/${tender.id}`} className="hover:underline">
-            {tender.title}
-          </Link>
+        <h3 className="mb-3 line-clamp-3 flex-1 text-sm font-semibold leading-snug text-foreground">
+          {tender.title}
         </h3>
-        <EnglishReading text={tender.titleEn} />
-        {features.pis && (
-          <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
-            {assessed
-              ? "Assessed. Open this notice to read the result."
-              : "Not assessed. Open this invitation and compare it with your company."}
-          </p>
-        )}
 
         <div className="mb-4 space-y-2">
           <p className="text-xs text-muted-foreground">{tender.projectLabel}</p>

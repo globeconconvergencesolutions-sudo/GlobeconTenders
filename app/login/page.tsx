@@ -76,6 +76,12 @@ export default async function LoginPage({
               <LoginForm callbackUrl={callbackUrl} orgSlug={orgSlug} />
             </div>
 
+            {process.env.NODE_ENV === "development" && (
+              <p className="mt-6 text-center text-xs text-slate-600">
+                Dev: seeded admin is admin@globecon.com — change password after
+                first login.
+              </p>
+            )}
           </div>
         </div>
       </div>

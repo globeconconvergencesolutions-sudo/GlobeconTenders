@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Loader2, Save } from "lucide-react";
@@ -98,10 +97,6 @@ type TendersDashboardProps = {
   initialCatalogFilters?: CatalogFilterIds;
   userRole: UserRole;
   onboardingProgress?: OnboardingProgress | null;
-  pisFeed?: "watchlist" | "explore" | null;
-  watchlistName?: string | null;
-  watchlistLineCount?: number;
-  assessedTenderIds?: number[];
 };
 
 function TendersDashboardInner({
@@ -120,10 +115,6 @@ function TendersDashboardInner({
   },
   userRole,
   onboardingProgress = null,
-  pisFeed = null,
-  watchlistName = null,
-  watchlistLineCount = 0,
-  assessedTenderIds = [],
 }: TendersDashboardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -537,44 +528,6 @@ function TendersDashboardInner({
         </div>
 
         <div className="relative">
-          {pisFeed && (
-            <div className="mb-4 space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => pushParams({ feed: "watchlist", page: undefined })}
-                  className={cn(
-                    "rounded-full px-3 py-1.5 text-xs font-medium",
-                    pisFeed === "watchlist"
-                      ? "bg-blue-600 text-white"
-                      : "bg-slate-100 text-slate-600 dark:bg-muted dark:text-muted-foreground",
-                  )}
-                >
-                  Watchlist{watchlistName ? `: ${watchlistName}` : ""}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => pushParams({ feed: "explore", page: undefined })}
-                  className={cn(
-                    "rounded-full px-3 py-1.5 text-xs font-medium",
-                    pisFeed === "explore"
-                      ? "bg-blue-600 text-white"
-                      : "bg-slate-100 text-slate-600 dark:bg-muted dark:text-muted-foreground",
-                  )}
-                >
-                  Explore other markets
-                </button>
-                <Link href="/watchlists" className="text-xs text-blue-700 underline dark:text-blue-300">
-                  Edit watchlist
-                </Link>
-              </div>
-              <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
-                {pisFeed === "explore"
-                  ? "Explore lists invitations outside the active watchlist. The number on each card still counts matching words. Open an invitation to compare it with your company."
-                  : `Watchlist: ${watchlistName ?? "the active list"} decides what appears here. Open a card to compare it with your company. A word count does not mean you should bid.`}
-              </p>
-            </div>
-          )}
           <FilterResultsOverlay
             busy={isPending}
             busyLabel={`Loading ${lexicon.opportunityPlural.toLowerCase()}…`}
@@ -595,7 +548,6 @@ function TendersDashboardInner({
                 listingBucket={listingBucket}
                 hideWhenDeadlineReached={listingBucket === "live"}
                 onDeadlineReached={handleDeadlineReached}
-                assessed={assessedTenderIds.includes(tender.id)}
               />
             ))}
           </div>
@@ -607,18 +559,6 @@ function TendersDashboardInner({
               listingBucket={listingBucket}
               onAddSource={() => openFilters({ focusAddSource: true })}
               onSync={() => void handleSync()}
-              title={
-                pisFeed === "watchlist" && watchlistLineCount === 0
-                  ? "No market selected"
-                  : undefined
-              }
-              hint={
-                pisFeed === "watchlist" && watchlistLineCount === 0
-                  ? "Choose market fields and service lines on Watchlists. An empty watchlist does not show every opportunity."
-                  : pisFeed === "explore"
-                    ? "Explore shows notices outside the active watchlist."
-                    : undefined
-              }
             />
           )}
         </div>

@@ -69,7 +69,6 @@ const FEATURE_LABELS: Record<keyof WorkspaceFeaturesSettings, string> = {
   sync: "Source sync",
   matchScore: "Match scoring",
   export: "CSV export",
-  pis: "Procurement intelligence",
 };
 
 export function TemplateSettings() {
@@ -175,7 +174,7 @@ export function TemplateSettings() {
       <SettingsPageHeader
         icon={Layers}
         title="Workspace template"
-        description="This workspace reads public invitations and checks them against your firm."
+        description="Choose how this workspace speaks and looks — same data pipeline, different labels and cards."
         tone="indigo"
         actions={
           saved ? (
@@ -210,7 +209,7 @@ export function TemplateSettings() {
           </p>
         </div>
 
-        {available.length > 1 && (
+        {available.length > 0 && (
           <div className="mt-5 space-y-3">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Switch vertical

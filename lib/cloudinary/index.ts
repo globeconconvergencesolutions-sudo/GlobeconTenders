@@ -4,7 +4,6 @@ import { loadEnv } from "@/lib/env";
 import {
   CLOUDINARY_UPLOAD_PRESET,
   getBrandingFolder,
-  getEvidenceFolder,
   getSourceDocumentFolder,
 } from "@/lib/cloudinary/config";
 
@@ -59,46 +58,6 @@ export async function uploadSourceDocument(
 ): Promise<UploadedDocument> {
   const client = getCloudinary();
   const folder = getSourceDocumentFolder(sourceSlug);
-  const baseName = fileName.replace(/\.[^/.]+$/, "");
-
-  return new Promise((resolve, reject) => {
-    const stream = client.uploader.upload_stream(
-      {
-        folder,
-        upload_preset: CLOUDINARY_UPLOAD_PRESET,
-        public_id: baseName,
-        resource_type: "auto",
-        overwrite: false,
-        unique_filename: true,
-        use_filename: true,
-        display_name: fileName,
-      },
-      (error, result) => {
-        if (error || !result) {
-          reject(error ?? new Error("Cloudinary upload failed"));
-          return;
-        }
-        resolve({
-          publicId: result.public_id,
-          secureUrl: result.secure_url,
-          folder,
-          displayName: result.display_name ?? fileName,
-          bytes: result.bytes,
-          format: result.format ?? null,
-        });
-      },
-    );
-    stream.end(fileBuffer);
-  });
-}
-
-export async function uploadEvidenceDocument(
-  fileBuffer: Buffer,
-  fileName: string,
-  orgSlug: string,
-): Promise<UploadedDocument> {
-  const client = getCloudinary();
-  const folder = getEvidenceFolder(orgSlug);
   const baseName = fileName.replace(/\.[^/.]+$/, "");
 
   return new Promise((resolve, reject) => {
@@ -199,28 +158,8 @@ export async function deleteCloudinaryImage(
   }
 }
 
-export async function deleteCloudinaryAsset(
-  publicId: string | null | undefined,
-): Promise<boolean> {
-  if (!publicId?.trim() || !isCloudinaryConfigured()) return false;
-  const client = getCloudinary();
-  for (const resourceType of ["raw", "image", "video"] as const) {
-    try {
-      const result = await client.uploader.destroy(publicId, {
-        resource_type: resourceType,
-        invalidate: true,
-      });
-      if (result?.result === "ok" || result?.result === "not found") return true;
-    } catch {
-      continue;
-    }
-  }
-  return false;
-}
-
 export {
   CLOUDINARY_FOLDERS,
   getBrandingFolder,
-  getEvidenceFolder,
   getSourceDocumentFolder,
 } from "@/lib/cloudinary/config";

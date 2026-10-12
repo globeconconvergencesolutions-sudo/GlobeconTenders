@@ -140,8 +140,6 @@ export const sources = pgTable(
   cloudinaryFolder: text("cloudinary_folder"),
   color: text("color").notNull().default("#2563eb"),
   enabled: boolean("enabled").notNull().default(true),
-  /** active sources are in use. candidate is a saved URL awaiting approval. */
-  reviewStatus: text("review_status").notNull().default("active"),
   isBuiltIn: boolean("is_built_in").notNull().default(false),
   archivedAt: timestamp("archived_at"),
   createdById: integer("created_by_id").references(() => users.id),
@@ -243,20 +241,6 @@ export const tenders = pgTable(
     isClosed: boolean("is_closed").notNull().default(false),
     saved: boolean("saved").notNull().default(false),
     matchScore: integer("match_score").notNull().default(0),
-    /** Buyer / procuring organization when the connector provides it. */
-    buyer: text("buyer"),
-    /** FK to procurement_types. Null means unknown, not guessed. */
-    procurementTypeId: integer("procurement_type_id"),
-    publishedAt: timestamp("published_at"),
-    deadlineTimezone: text("deadline_timezone"),
-    estimatedValue: text("estimated_value"),
-    currency: text("currency"),
-    documentUrls: text("document_urls").array().notNull().default([]),
-    /**
-     * source_reported | verified | unknown.
-     * Connectors write source_reported. Nothing is marked verified automatically.
-     */
-    dataConfidence: text("data_confidence").notNull().default("source_reported"),
     /**
      * Human override for the relevance gate.
      * include = stay on Live despite score; exclude = keep out; null = automatic.
@@ -266,12 +250,6 @@ export const tenders = pgTable(
     >(),
     /** Short reason from the last gate decision (for Needs review UI). */
     relevanceReason: text("relevance_reason"),
-    /** ISO 639-1 when the notice was not English. Null means no translation was stored. */
-    sourceLang: text("source_lang"),
-    /** English reading of the title, used for matching. The title column stays the buyer's words. */
-    titleEn: text("title_en"),
-    /** English reading of a short description slice, used for matching. */
-    descriptionEn: text("description_en"),
     customFields: jsonb("custom_fields")
       .$type<Record<string, string | number | boolean | null>>()
       .notNull()
@@ -448,8 +426,6 @@ export type WorkspaceFeaturesSettings = {
   sync: boolean;
   matchScore: boolean;
   export: boolean;
-  /** Procurement intelligence modules. Off for the HR template. */
-  pis: boolean;
 };
 
 export type WorkspaceLayoutSettings = {
@@ -506,7 +482,6 @@ export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettingsPayload = {
     sync: true,
     matchScore: true,
     export: true,
-    pis: true,
   },
   layout: {
     homeCardVariant: "procurement",
@@ -519,14 +494,7 @@ export const DEFAULT_WORKSPACE_SETTINGS: WorkspaceSettingsPayload = {
 export type WorkspaceOnboardingState = {
   dismissed?: boolean;
   manuallyCompleted?: Array<
-    | "markets_chosen"
-    | "company_described"
-    | "evidence_added"
-    | "check_run"
-    | "source_added"
-    | "sync_run"
-    | "team_invited"
-    | "branding_set"
+    "source_added" | "sync_run" | "team_invited" | "branding_set"
   >;
 };
 
@@ -729,5 +697,3 @@ export const baAccountRelations = relations(baAccount, ({ one }) => ({
     references: [baUser.id],
   }),
 }));
-
-export * from "./pis-schema";

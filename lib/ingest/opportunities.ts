@@ -12,12 +12,6 @@ import {
   tenders,
 } from "@/lib/db/schema";
 import { detectRegionAndCountry, scoreOpportunity } from "@/lib/matching";
-import {
-  mergeMatchScores,
-  replaceTenderCatalogMatches,
-  scoreCatalogText,
-} from "@/lib/pis/catalog-match";
-import { ensureEnglishReading } from "@/lib/pis/translate";
 import { orgAllowsSync } from "@/lib/platform/org-status";
 import { getWorkspaceSettings } from "@/lib/settings/workspace";
 import { normalizeCategory } from "@/lib/tenders/categories";
@@ -434,13 +428,18 @@ export async function ingestOpportunities(
 
       const haystack = `${title} ${description ?? ""} ${item.countryLabel ?? ""} ${item.regionLabel ?? ""}`;
       const geo = detectRegionAndCountry(haystack, allRegions, allCountries);
+      const scored = scoreOpportunity(
+        `${title} ${description ?? ""} ${category}`,
+        allServiceLines,
+      );
+
+      const regionLabel = item.regionLabel?.trim() || geo.regionLabel;
+      const countryLabel = item.countryLabel?.trim() || geo.countryLabel;
+
       const [existing] = await db
         .select({
           id: tenders.id,
           relevanceOverride: tenders.relevanceOverride,
-          titleEn: tenders.titleEn,
-          descriptionEn: tenders.descriptionEn,
-          sourceLang: tenders.sourceLang,
         })
         .from(tenders)
         .where(
@@ -450,31 +449,13 @@ export async function ingestOpportunities(
           ),
         )
         .limit(1);
-      const reading = await ensureEnglishReading(db, {
-        title,
-        description,
-        titleEn: existing?.titleEn,
-        descriptionEn: existing?.descriptionEn,
-        sourceLang: existing?.sourceLang,
-      });
-      const noticeText = `${reading.matchTitle} ${reading.matchDescription} ${category}`;
-      const scored = scoreOpportunity(noticeText, allServiceLines);
-      const catalogHits = await scoreCatalogText(db, noticeText);
-      const merged = mergeMatchScores(
-        scored.topScore,
-        scored.rawTopScore,
-        catalogHits[0]?.score ?? 0,
-      );
-
-      const regionLabel = item.regionLabel?.trim() || geo.regionLabel;
-      const countryLabel = item.countryLabel?.trim() || geo.countryLabel;
 
       const listing = applyRelevanceGate(
         baseListing,
-        merged.gateScore,
+        scored.topScore,
         minMatchScore,
         {
-          rawScore: merged.matchScore,
+          rawScore: scored.rawTopScore,
           reason: scored.reason,
           override: (existing?.relevanceOverride as RelevanceOverride) ?? null,
         },
@@ -493,9 +474,6 @@ export async function ingestOpportunities(
           .set({
             title,
             description,
-            titleEn: reading.titleEn,
-            descriptionEn: reading.descriptionEn,
-            sourceLang: reading.sourceLang,
             category,
             deadline,
             url,
@@ -504,7 +482,7 @@ export async function ingestOpportunities(
             countryId: geo.countryId,
             regionLabel,
             countryLabel,
-            matchScore: merged.matchScore,
+            matchScore: scored.rawTopScore,
             sourceStatus: listing.sourceStatus,
             listingState: listing.listingState,
             hasHardDeadline: listing.hasHardDeadline,
@@ -524,9 +502,6 @@ export async function ingestOpportunities(
             referenceId,
             title,
             description,
-            titleEn: reading.titleEn,
-            descriptionEn: reading.descriptionEn,
-            sourceLang: reading.sourceLang,
             category,
             deadline,
             url,
@@ -535,7 +510,7 @@ export async function ingestOpportunities(
             countryId: geo.countryId,
             regionLabel,
             countryLabel,
-            matchScore: merged.matchScore,
+            matchScore: scored.rawTopScore,
             sourceStatus: listing.sourceStatus,
             listingState: listing.listingState,
             hasHardDeadline: listing.hasHardDeadline,
@@ -560,8 +535,6 @@ export async function ingestOpportunities(
           })),
         );
       }
-
-      await replaceTenderCatalogMatches(db, tenderId, noticeText);
     } catch (error) {
       errors.push(
         `${item.title}: ${error instanceof Error ? error.message : "ingest failed"}`,

@@ -83,8 +83,8 @@ export function OnboardingChecklist({
               <Sparkles className="h-4 w-4 text-amber-500" />
             </p>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              {progress.completedCount} of {progress.totalCount} complete — then you can
-              see whether an invitation fits your firm
+              {progress.completedCount} of {progress.totalCount} complete — set up your
+              workspace in a few minutes
             </p>
           </div>
         </div>

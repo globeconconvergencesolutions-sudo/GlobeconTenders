@@ -10,7 +10,6 @@ import {
   isNull,
   or,
   sql,
-  type SQL,
 } from "drizzle-orm";
 
 import { auth } from "@/auth";
@@ -66,8 +65,6 @@ export type TenderQueryFilters = {
   filterState?: FilterState;
   page?: number;
   pageSize?: number;
-  /** Procurement workspaces only. Omit to keep the historical empty-filter behavior. */
-  pisFeedSql?: SQL;
 };
 
 export type PaginatedTenders = {
@@ -106,7 +103,6 @@ export function buildFilterConditions(filters: TenderQueryFilters) {
     search,
     savedOnly,
     filterState = EMPTY_FILTER_STATE,
-    pisFeedSql,
   } = filters;
 
   const conditions = [];
@@ -115,7 +111,6 @@ export function buildFilterConditions(filters: TenderQueryFilters) {
     conditions.push(listingBucketSql(bucket));
   }
   if (savedOnly) conditions.push(eq(tenders.saved, true));
-  if (pisFeedSql) conditions.push(pisFeedSql);
 
   if (filterState.sourceIds.length > 0) {
     conditions.push(inArray(tenders.sourceId, filterState.sourceIds));
@@ -154,8 +149,6 @@ export function buildFilterConditions(filters: TenderQueryFilters) {
     conditions.push(
       or(
         ilike(tenders.title, pattern),
-        ilike(tenders.titleEn, pattern),
-        ilike(tenders.descriptionEn, pattern),
         ilike(tenders.referenceId, pattern),
         ilike(tenders.category, pattern),
         ilike(sources.name, pattern),
@@ -368,9 +361,6 @@ export async function getTendersPaginated(
         referenceId: tenders.referenceId,
         title: tenders.title,
         description: tenders.description,
-        sourceLang: tenders.sourceLang,
-        titleEn: tenders.titleEn,
-        descriptionEn: tenders.descriptionEn,
         projectLabel: tenders.projectLabel,
         category: tenders.category,
         deadline: tenders.deadline,
@@ -385,14 +375,6 @@ export async function getTendersPaginated(
         isClosed: tenders.isClosed,
         saved: tenders.saved,
         matchScore: tenders.matchScore,
-        buyer: tenders.buyer,
-        procurementTypeId: tenders.procurementTypeId,
-        publishedAt: tenders.publishedAt,
-        deadlineTimezone: tenders.deadlineTimezone,
-        estimatedValue: tenders.estimatedValue,
-        currency: tenders.currency,
-        documentUrls: tenders.documentUrls,
-        dataConfidence: tenders.dataConfidence,
         relevanceOverride: tenders.relevanceOverride,
         relevanceReason: tenders.relevanceReason,
         customFields: tenders.customFields,
@@ -646,9 +628,6 @@ export async function getTendersForExport(
       referenceId: tenders.referenceId,
       title: tenders.title,
       description: tenders.description,
-      sourceLang: tenders.sourceLang,
-      titleEn: tenders.titleEn,
-      descriptionEn: tenders.descriptionEn,
       projectLabel: tenders.projectLabel,
       category: tenders.category,
       deadline: tenders.deadline,
@@ -663,14 +642,6 @@ export async function getTendersForExport(
       isClosed: tenders.isClosed,
       saved: tenders.saved,
       matchScore: tenders.matchScore,
-      buyer: tenders.buyer,
-      procurementTypeId: tenders.procurementTypeId,
-      publishedAt: tenders.publishedAt,
-      deadlineTimezone: tenders.deadlineTimezone,
-      estimatedValue: tenders.estimatedValue,
-      currency: tenders.currency,
-      documentUrls: tenders.documentUrls,
-      dataConfidence: tenders.dataConfidence,
       relevanceOverride: tenders.relevanceOverride,
       relevanceReason: tenders.relevanceReason,
       customFields: tenders.customFields,

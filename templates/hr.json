@@ -37,8 +37,7 @@
     "publicShare": true,
     "sync": true,
     "matchScore": true,
-    "export": true,
-    "pis": false
+    "export": true
   },
   "layout": {
     "homeCardVariant": "hr",

@@ -1,6 +1,5 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { readFileSync } from "node:fs";
 import { sql } from "drizzle-orm";
 
 import { getDatabaseUrl } from "../lib/env";
@@ -438,64 +437,6 @@ async function upgrade() {
   const db = drizzle(neon(getDatabaseUrl()));
 
   for (const statement of statements) {
-    console.log("Running:", statement.slice(0, 80).replace(/\s+/g, " "), "...");
-    await db.execute(sql.raw(statement));
-  }
-
-  const pisTables = new Set([
-    "bid_pipeline",
-    "capability_gaps",
-    "catalog_service_lines",
-    "company_capabilities",
-    "company_certifications",
-    "company_personnel",
-    "company_profiles",
-    "company_projects",
-    "evidence_documents",
-    "market_fields",
-    "opportunity_requirements",
-    "opportunity_versions",
-    "pipeline_activity",
-    "pipeline_tasks",
-    "procurement_types",
-    "qualification_assessments",
-    "tender_catalog_matches",
-    "watchlist_lines",
-    "watchlists",
-  ]);
-
-  const extra = readFileSync("drizzle/0001_pis_base.sql", "utf8")
-    .split("--> statement-breakpoint")
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .flatMap((statement) => {
-      const create = statement.match(/^CREATE TABLE "([^"]+)"/);
-      if (create && pisTables.has(create[1])) {
-        return [statement.replace("CREATE TABLE", "CREATE TABLE IF NOT EXISTS")];
-      }
-      if (statement.startsWith('ALTER TABLE "tenders" ADD COLUMN')) {
-        return [statement.replace("ADD COLUMN", "ADD COLUMN IF NOT EXISTS")];
-      }
-      if (
-        statement.startsWith('CREATE UNIQUE INDEX "bid_pipeline_org_tender_idx"') ||
-        statement.startsWith('CREATE UNIQUE INDEX "watchlists_org_name_idx"')
-      ) {
-        return [statement.replace("CREATE UNIQUE INDEX", "CREATE UNIQUE INDEX IF NOT EXISTS")];
-      }
-      return [];
-    });
-
-  for (const statement of extra) {
-    console.log("Running:", statement.slice(0, 80).replace(/\s+/g, " "), "...");
-    await db.execute(sql.raw(statement));
-  }
-
-  const remaining = readFileSync("drizzle/0002_pis_remaining.sql", "utf8")
-    .split("--> statement-breakpoint")
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0 && !part.startsWith("--"));
-
-  for (const statement of remaining) {
     console.log("Running:", statement.slice(0, 80).replace(/\s+/g, " "), "...");
     await db.execute(sql.raw(statement));
   }

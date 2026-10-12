@@ -213,27 +213,3 @@ Run `pnpm db:upgrade` after pulling to add notification preference columns and a
 | `pnpm build` | Production build |
 | `pnpm db:push` | Push schema to Neon |
 | `pnpm db:seed` | Seed catalog + admin user |
-| `pnpm test:pis` | Rules checks for qualification, deadlines, and duplicates |
-
-## Procurement intelligence status
-
-This branch adds a procurement-intelligence layer on the existing tender workspace. It is on for the procurement template and off for HR.
-
-Done:
-
-- Shared market fields, service lines, and a Globecon Core watchlist that drives the home list. Explore is separate.
-- Company profile, projects, people, certifications, and an evidence vault with file upload.
-- Rules assessment with a named method, requirement cards, gaps, and a qualification list. An empty profile stays insufficient information. A failed mandatory requirement stays visible.
-- Bid pipeline with assignee, internal deadline, tasks, and activity.
-- In-app alerts that follow the watchlist, plus the existing email settings.
-- Source health, candidate approval onto an existing connector, and a market page built from stored notices.
-- Human review of possible duplicates, and notes on an opportunity.
-
-Partial:
-
-- Document reading uses notice text already stored and tries attached files. A model runs only when `PIS_MODEL_API_KEY` is set, and its lines stay unscored until someone accepts them.
-- Buyer, value, and procurement type stay blank when a connector did not send them.
-
-Out of scope:
-
-- The prompt’s eleven roles, MFA, SMS, WhatsApp, an open-web source hunter, vector search, and automatic merging of lookalike notices.

@@ -1,5 +1,4 @@
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 
 import { MarketingLanding } from "@/components/marketing/marketing-landing";
 import { TendersDashboard } from "@/components/tenders/tenders-dashboard";
@@ -20,12 +19,7 @@ import {
   getUserFilterState,
   type TenderSort,
 } from "@/lib/tenders/queries";
-import { getOrgContext } from "@/lib/tenant/org-context";
-import { getDb } from "@/lib/db";
-import { qualificationAssessments } from "@/lib/db/schema";
-import { getActiveWatchlist, pisFeedSql } from "@/lib/pis/watchlist-feed";
 import { isApexHost } from "@/lib/tenant/resolution";
-import { eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +35,6 @@ type HomePageProps = {
     lines?: string;
     regions?: string;
     countries?: string;
-    feed?: string;
   }>;
 };
 
@@ -97,29 +90,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     filterState,
   );
 
-  const orgContext = user ? await getOrgContext().catch(() => null) : null;
-  const pisEnabled = Boolean(orgContext?.features.pis);
-  const feed = params.feed === "explore" ? "explore" : "watchlist";
-  let watchlistName: string | null = null;
-  let watchlistLineCount = 0;
-  let feedSql: ReturnType<typeof pisFeedSql> | undefined;
-  let assessedTenderIds: number[] = [];
-  if (pisEnabled && user?.orgId) {
-    const db = getDb();
-    if (db) {
-      const watchlist = await getActiveWatchlist(db, user.orgId);
-      watchlistName = watchlist?.name ?? null;
-      watchlistLineCount = watchlist?.lineIds.length ?? 0;
-      feedSql = pisFeedSql(feed, watchlist);
-      const assessed = await db
-        .selectDistinct({ tenderId: qualificationAssessments.tenderId })
-        .from(qualificationAssessments)
-        .where(eq(qualificationAssessments.orgId, user.orgId));
-      assessedTenderIds = assessed.map((row) => row.tenderId);
-    }
-    if (watchlistLineCount === 0) redirect("/setup");
-  }
-
   const queryFilters = {
     search,
     sort,
@@ -129,7 +99,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     filterState,
     page,
     pageSize: DEFAULT_PAGE_SIZE,
-    pisFeedSql: feedSql,
   };
 
   const orgId = user?.orgId;
@@ -181,7 +150,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     onboardingProgress = computeOnboardingProgress(
       onboardingResult.value.state,
       onboardingResult.value.signals,
-      pisEnabled ? "procurement" : "workspace",
     );
   } else if (onboardingResult.status === "rejected") {
     console.error("[home] onboarding query failed", onboardingResult.reason);
@@ -225,10 +193,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       }}
       userRole={user?.role ?? "viewer"}
       onboardingProgress={onboardingProgress}
-      pisFeed={pisEnabled ? feed : null}
-      watchlistName={watchlistName}
-      watchlistLineCount={watchlistLineCount}
-      assessedTenderIds={assessedTenderIds}
     />
   );
 }

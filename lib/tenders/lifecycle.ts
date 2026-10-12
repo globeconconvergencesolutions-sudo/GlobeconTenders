@@ -9,8 +9,6 @@ import {
   workspaceSettings,
 } from "@/lib/db/schema";
 import { scoreOpportunity } from "@/lib/matching";
-import { mergeMatchScores, scoreCatalogText } from "@/lib/pis/catalog-match";
-import { matchHaystack } from "@/lib/pis/match-text";
 import { daysUntil } from "@/lib/utils";
 
 export const LISTING_STATES = [
@@ -577,8 +575,6 @@ export async function reconcileTenderRelevance(orgId?: number): Promise<{
         id: tenders.id,
         title: tenders.title,
         description: tenders.description,
-        titleEn: tenders.titleEn,
-        descriptionEn: tenders.descriptionEn,
         category: tenders.category,
         deadline: tenders.deadline,
         sourceStatus: tenders.sourceStatus,
@@ -604,13 +600,9 @@ export async function reconcileTenderRelevance(orgId?: number): Promise<{
       );
 
     for (const row of rows) {
-      const noticeText = matchHaystack(row);
-      const scored = scoreOpportunity(noticeText, activeLines);
-      const catalogHits = await scoreCatalogText(db, noticeText);
-      const merged = mergeMatchScores(
-        scored.topScore,
-        scored.rawTopScore,
-        catalogHits[0]?.score ?? 0,
+      const scored = scoreOpportunity(
+        `${row.title} ${row.description ?? ""} ${row.category}`,
+        activeLines,
       );
       const baseListing = resolveListingFields({
         deadline: row.deadline,
@@ -619,10 +611,10 @@ export async function reconcileTenderRelevance(orgId?: number): Promise<{
       });
       const listing = applyRelevanceGate(
         baseListing,
-        merged.gateScore,
+        scored.topScore,
         minMatchScore,
         {
-          rawScore: merged.matchScore,
+          rawScore: scored.rawTopScore,
           reason: scored.reason,
           override: (row.relevanceOverride as RelevanceOverride) ?? null,
         },
@@ -630,7 +622,7 @@ export async function reconcileTenderRelevance(orgId?: number): Promise<{
 
       const unchanged =
         listing.listingState === row.listingState &&
-        merged.matchScore === row.matchScore;
+        scored.rawTopScore === row.matchScore;
 
       if (unchanged && !listing.relevanceReason) {
         continue;
@@ -653,7 +645,7 @@ export async function reconcileTenderRelevance(orgId?: number): Promise<{
       await db
         .update(tenders)
         .set({
-          matchScore: merged.matchScore,
+          matchScore: scored.rawTopScore,
           listingState: listing.listingState,
           isClosed: listing.isClosed,
           hasHardDeadline: listing.hasHardDeadline,
