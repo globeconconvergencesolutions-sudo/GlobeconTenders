@@ -127,18 +127,6 @@ export function chunksForMyMemory(text: string, maxBytes = MAX_BYTES): string[] 
   return chunks;
 }
 
-export function matchHaystack(row: {
-  title: string;
-  description?: string | null;
-  category?: string | null;
-  titleEn?: string | null;
-  descriptionEn?: string | null;
-}): string {
-  const title = row.titleEn?.trim() || row.title;
-  const description = row.descriptionEn?.trim() || row.description || "";
-  return `${title} ${description} ${row.category ?? ""}`.replace(/\s+/g, " ").trim();
-}
-
 export type EnglishReading = {
   matchTitle: string;
   matchDescription: string;

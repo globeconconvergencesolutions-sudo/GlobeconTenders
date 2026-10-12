@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { matchHaystack } from "./match-text";
 import {
   chunksForMyMemory,
   detectSourceLanguage,
   englishReading,
-  matchHaystack,
   resetTranslationQuota,
 } from "./translate";
 

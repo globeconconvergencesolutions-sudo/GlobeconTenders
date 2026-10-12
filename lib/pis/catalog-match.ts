@@ -8,7 +8,7 @@ import {
   tenders,
 } from "@/lib/db/schema";
 import { keywordOccurs } from "@/lib/matching";
-import { matchHaystack } from "@/lib/pis/translate";
+import { matchHaystack } from "@/lib/pis/match-text";
 
 type Db = NonNullable<ReturnType<typeof getDb>>;
 

@@ -10,7 +10,7 @@ import {
 } from "@/lib/db/schema";
 import { scoreOpportunity } from "@/lib/matching";
 import { mergeMatchScores, scoreCatalogText } from "@/lib/pis/catalog-match";
-import { matchHaystack } from "@/lib/pis/translate";
+import { matchHaystack } from "@/lib/pis/match-text";
 import { daysUntil } from "@/lib/utils";
 
 export const LISTING_STATES = [

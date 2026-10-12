@@ -15,7 +15,7 @@ import {
   tenders,
 } from "@/lib/db/schema";
 import { scoreCatalogText } from "./catalog-match";
-import { matchHaystack } from "./translate";
+import { matchHaystack } from "./match-text";
 import {
   extractRequirementLines,
   gapTypeFor,
