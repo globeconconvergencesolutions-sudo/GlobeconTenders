@@ -16,6 +16,9 @@ const syncBodySchema = z.object({
   sourceId: z.number().int().positive().optional(),
 });
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   try {
     const user = await requireSessionUser();

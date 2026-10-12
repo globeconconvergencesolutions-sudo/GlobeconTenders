@@ -1,4 +1,5 @@
 import { parseClosingDate } from "@/lib/sync/date-parser";
+import { fetchRemote, portalStatusError } from "@/lib/sync/remote";
 import { parseRssFeed } from "@/lib/sync/rss-parser";
 import type { SyncTenderItem } from "@/lib/sync/types";
 
@@ -49,13 +50,12 @@ export async function fetchGenericRssTenders(
   feedUrl: string,
   projectLabel = "RSS Feed",
 ): Promise<SyncTenderItem[]> {
-  const response = await fetch(feedUrl, {
+  const response = await fetchRemote(feedUrl, {
     headers: FETCH_HEADERS,
-    next: { revalidate: 0 },
   });
 
   if (!response.ok) {
-    throw new Error(`RSS feed returned ${response.status}`);
+    throw portalStatusError("RSS feed", response.status);
   }
 
   const xml = await response.text();

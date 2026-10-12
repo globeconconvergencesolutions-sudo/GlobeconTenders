@@ -1,5 +1,6 @@
-import type { SyncTenderItem } from "@/lib/sync/types";
 import { parseClosingDate } from "@/lib/sync/date-parser";
+import { fetchRemote, portalStatusError } from "@/lib/sync/remote";
+import type { SyncTenderItem } from "@/lib/sync/types";
 
 function decodeHtml(text: string): string {
   return text
@@ -67,14 +68,13 @@ export async function fetchTenderYetuTenders(
       "id,slug,link,date,title,excerpt",
     );
 
-    const response = await fetch(url.toString(), {
+    const response = await fetchRemote(url.toString(), {
       headers: TENDER_YETU_HEADERS,
-      next: { revalidate: 0 },
     });
 
     if (response.status === 400) break;
     if (!response.ok) {
-      throw new Error(`Tender Yetu API returned ${response.status}`);
+      throw portalStatusError("Tender Yetu", response.status);
     }
 
     const posts = (await response.json()) as WpPost[];

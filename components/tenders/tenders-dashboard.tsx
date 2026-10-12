@@ -214,7 +214,10 @@ function TendersDashboardInner({
     setSyncError(null);
     setEmailAlertFeedback(null);
     try {
-      const response = await fetch("/api/sync", { method: "POST" });
+      const response = await fetch("/api/sync", {
+        method: "POST",
+        cache: "no-store",
+      });
       if (!response.ok) {
         setSyncError(await readApiError(response, "Sync request failed"));
         return;

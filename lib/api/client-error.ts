@@ -31,7 +31,18 @@ export function parseClientError(
   payload: unknown,
   fallback = "Something went wrong",
 ): ParsedClientError {
-  const body = (payload ?? {}) as ApiErrorPayload;
+  const body = (payload ?? {}) as ApiErrorPayload & {
+    errorMessage?: unknown;
+  };
+
+  if (typeof body.errorMessage === "string" && !body.error) {
+    return {
+      message:
+        body.errorMessage === "An unknown error has occurred"
+          ? "Sync was cut off before it could finish. Sources that already updated are saved. Wait a minute, then sync again."
+          : body.errorMessage,
+    };
+  }
 
   if (typeof body.error === "string") {
     return {

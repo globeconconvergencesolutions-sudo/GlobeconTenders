@@ -1,3 +1,4 @@
+import { fetchRemote, portalStatusError } from "@/lib/sync/remote";
 import type { SyncTenderItem } from "@/lib/sync/types";
 
 const API_BASE = "https://tenders.go.ke/api/explored";
@@ -30,16 +31,27 @@ async function fetchExploredPage(page: number): Promise<PpipResponse> {
     topics: "[]",
   });
 
-  const response = await fetch(`${API_BASE}?${params.toString()}`, {
+  const response = await fetchRemote(`${API_BASE}?${params.toString()}`, {
     headers: {
       Accept: "application/json",
       "User-Agent": "GlobeconTenderWatch/2.0",
     },
-    next: { revalidate: 0 },
   });
 
+  if (response.status === 429) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const retry = await fetchRemote(`${API_BASE}?${params.toString()}`, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "GlobeconTenderWatch/2.0",
+      },
+    });
+    if (!retry.ok) throw portalStatusError("Kenya PPIP", retry.status);
+    return (await retry.json()) as PpipResponse;
+  }
+
   if (!response.ok) {
-    throw new Error(`Kenya PPIP API returned ${response.status}`);
+    throw portalStatusError("Kenya PPIP", response.status);
   }
 
   return (await response.json()) as PpipResponse;
@@ -49,12 +61,16 @@ export async function fetchKenyaPpipTenders(): Promise<SyncTenderItem[]> {
   const first = await fetchExploredPage(1);
   const lastPage = first.last_page || 1;
   const startPage = Math.max(1, lastPage - PAGES_FROM_END + 1);
+  const pages: PpipResponse[] = [];
 
-  const pages = await Promise.all(
-    Array.from({ length: lastPage - startPage + 1 }, (_, index) =>
-      fetchExploredPage(startPage + index),
-    ),
-  );
+  for (let page = startPage; page <= lastPage; page += 1) {
+    if (page === 1) {
+      pages.push(first);
+      continue;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    pages.push(await fetchExploredPage(page));
+  }
 
   const now = new Date();
   const seen = new Set<number>();

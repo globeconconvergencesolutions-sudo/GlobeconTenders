@@ -16,6 +16,9 @@ import { syncSource } from "@/lib/sync/engine";
 import { reconcileTenderListings } from "@/lib/tenders/lifecycle";
 import { listActiveOrganizations } from "@/lib/tenant/org";
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   loadEnv();
   const cronSecret = process.env.SYNC_CRON_SECRET;

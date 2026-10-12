@@ -1,5 +1,6 @@
 import { parseClosingDate } from "@/lib/sync/date-parser";
 import { worldBankNoticeUrl } from "@/lib/sync/notice-urls";
+import { fetchRemote, portalStatusError } from "@/lib/sync/remote";
 import type { SyncTenderItem } from "@/lib/sync/types";
 
 const WORLD_BANK_PROCUREMENT_URL =
@@ -106,13 +107,12 @@ async function fetchWorldBankQuery(qterm: string): Promise<WorldBankNotice[]> {
   );
   url.searchParams.set("srt", "submission_date desc");
 
-  const response = await fetch(url.toString(), {
+  const response = await fetchRemote(url.toString(), {
     headers: { Accept: "application/json" },
-    next: { revalidate: 0 },
   });
 
   if (!response.ok) {
-    throw new Error(`World Bank API returned ${response.status}`);
+    throw portalStatusError("World Bank", response.status);
   }
 
   const payload = (await response.json()) as {

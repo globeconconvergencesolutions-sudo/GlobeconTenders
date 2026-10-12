@@ -1,3 +1,4 @@
+import { fetchRemote, portalStatusError } from "@/lib/sync/remote";
 import type { SyncTenderItem } from "@/lib/sync/types";
 
 const USER_AGENT = "Mozilla/5.0 (compatible; GlobeconTenderWatch/2.0)";
@@ -56,16 +57,15 @@ function inferCategory(title: string): string {
 export async function fetchAfdbProcurementTenders(
   listingUrl: string,
 ): Promise<SyncTenderItem[]> {
-  const response = await fetch(listingUrl, {
+  const response = await fetchRemote(listingUrl, {
     headers: {
       Accept: "text/html,application/xhtml+xml",
       "User-Agent": USER_AGENT,
     },
-    next: { revalidate: 0 },
   });
 
   if (!response.ok) {
-    throw new Error(`AfDB listing returned ${response.status}`);
+    throw portalStatusError("AfDB", response.status);
   }
 
   const html = await response.text();

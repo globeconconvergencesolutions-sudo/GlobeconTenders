@@ -3,6 +3,7 @@ import {
   detectDocumentFormat,
   parseDocumentBuffer,
 } from "@/lib/sync/document-parser";
+import { fetchRemote, portalStatusError } from "@/lib/sync/remote";
 import type { SyncTenderItem } from "@/lib/sync/types";
 
 function fileNameFromSource(source: Source): string {
@@ -28,13 +29,12 @@ export async function fetchDocumentSourceTenders(
     throw new Error("Document source has no Cloudinary URL");
   }
 
-  const response = await fetch(source.cloudinaryUrl, {
+  const response = await fetchRemote(source.cloudinaryUrl, {
     headers: { Accept: "*/*" },
-    next: { revalidate: 0 },
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch document (${response.status})`);
+    throw portalStatusError("Document", response.status);
   }
 
   const buffer = Buffer.from(await response.arrayBuffer());
