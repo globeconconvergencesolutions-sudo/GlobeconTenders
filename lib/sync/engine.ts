@@ -20,6 +20,7 @@ import {
   replaceTenderCatalogMatches,
   scoreCatalogText,
 } from "@/lib/pis/catalog-match";
+import { ensureEnglishReading } from "@/lib/pis/translate";
 import { getWorkspaceSettings } from "@/lib/settings/workspace";
 import { fetchAfdbProcurementTenders } from "@/lib/sync/afdb-procurement";
 import { fetchDocumentSourceTenders } from "@/lib/sync/document";
@@ -163,20 +164,14 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
         allRegions,
         allCountries,
       );
-      const noticeText = `${item.title} ${item.description ?? ""} ${category}`;
-      const scored = scoreOpportunity(noticeText, allServiceLines);
-      const catalogHits = await scoreCatalogText(db, noticeText);
-      const merged = mergeMatchScores(
-        scored.topScore,
-        scored.rawTopScore,
-        catalogHits[0]?.score ?? 0,
-      );
-
       const [existing] = await db
         .select({
           id: tenders.id,
           relevanceOverride: tenders.relevanceOverride,
           deadline: tenders.deadline,
+          titleEn: tenders.titleEn,
+          descriptionEn: tenders.descriptionEn,
+          sourceLang: tenders.sourceLang,
         })
         .from(tenders)
         .where(
@@ -186,6 +181,21 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
           ),
         )
         .limit(1);
+      const reading = await ensureEnglishReading(db, {
+        title: item.title,
+        description: item.description,
+        titleEn: existing?.titleEn,
+        descriptionEn: existing?.descriptionEn,
+        sourceLang: existing?.sourceLang,
+      });
+      const noticeText = `${reading.matchTitle} ${reading.matchDescription} ${category}`;
+      const scored = scoreOpportunity(noticeText, allServiceLines);
+      const catalogHits = await scoreCatalogText(db, noticeText);
+      const merged = mergeMatchScores(
+        scored.topScore,
+        scored.rawTopScore,
+        catalogHits[0]?.score ?? 0,
+      );
 
       const listing = applyRelevanceGate(
         baseListing,
@@ -212,6 +222,9 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
           .set({
             title: item.title,
             description: item.description,
+            titleEn: reading.titleEn,
+            descriptionEn: reading.descriptionEn,
+            sourceLang: reading.sourceLang,
             category,
             deadline: item.deadline,
             url: item.url,
@@ -248,6 +261,9 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
             referenceId: item.referenceId,
             title: item.title,
             description: item.description,
+            titleEn: reading.titleEn,
+            descriptionEn: reading.descriptionEn,
+            sourceLang: reading.sourceLang,
             category,
             deadline: item.deadline,
             url: item.url,
@@ -282,11 +298,7 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
         );
       }
 
-      await replaceTenderCatalogMatches(
-        db,
-        tenderId,
-        `${item.title} ${item.description ?? ""} ${category}`,
-      );
+      await replaceTenderCatalogMatches(db, tenderId, noticeText);
     } catch (error) {
       errors.push(
         `${item.referenceId}: ${error instanceof Error ? error.message : "Unknown error"}`,

@@ -96,6 +96,10 @@ export const HELP_GUIDES: HelpGuide[] = [
         title: "Keyword match and Not assessed",
         body: "Keyword match is the number on the card. It counts matching words. Not assessed means nobody has compared this invitation with your company. Assessed means that comparison exists. Open the title to read it.",
       },
+      {
+        title: "A notice in another language",
+        body: "The title on the card stays in the buyer’s language. When a free translation is available, an English reading is stored and used only to match your markets. The comparison with your company still uses the buyer’s own words.",
+      },
     ],
   },
   {

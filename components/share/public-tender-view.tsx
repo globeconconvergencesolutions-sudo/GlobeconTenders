@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { EnglishReading } from "@/components/tenders/english-reading";
+
 import { AppLogo } from "@/components/brand/app-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -143,6 +145,7 @@ export function PublicTenderViewPanel({
                 <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-3xl">
                   {tender.title}
                 </h1>
+                <EnglishReading text={tender.titleEn} />
                 {!isHr && (
                   <p className="mt-2 text-sm text-slate-500">{tender.projectLabel}</p>
                 )}

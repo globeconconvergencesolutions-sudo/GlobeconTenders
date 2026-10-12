@@ -266,6 +266,12 @@ export const tenders = pgTable(
     >(),
     /** Short reason from the last gate decision (for Needs review UI). */
     relevanceReason: text("relevance_reason"),
+    /** ISO 639-1 when the notice was not English. Null means no translation was stored. */
+    sourceLang: text("source_lang"),
+    /** English reading of the title, used for matching. The title column stays the buyer's words. */
+    titleEn: text("title_en"),
+    /** English reading of a short description slice, used for matching. */
+    descriptionEn: text("description_en"),
     customFields: jsonb("custom_fields")
       .$type<Record<string, string | number | boolean | null>>()
       .notNull()

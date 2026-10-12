@@ -15,6 +15,7 @@ import {
   tenders,
 } from "@/lib/db/schema";
 import { scoreCatalogText } from "./catalog-match";
+import { matchHaystack } from "./translate";
 import {
   extractRequirementLines,
   gapTypeFor,
@@ -104,7 +105,7 @@ export async function assessOpportunity(db: Db, orgId: number, tenderId: number)
 
   const catalogHits = await scoreCatalogText(
     db,
-    `${tender.title} ${description} ${tender.category}`,
+    matchHaystack(tender),
   );
   const relevanceScore =
     catalogHits.length > 0

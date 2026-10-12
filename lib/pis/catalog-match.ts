@@ -8,6 +8,7 @@ import {
   tenders,
 } from "@/lib/db/schema";
 import { keywordOccurs } from "@/lib/matching";
+import { matchHaystack } from "@/lib/pis/translate";
 
 type Db = NonNullable<ReturnType<typeof getDb>>;
 
@@ -124,6 +125,8 @@ export async function reconcileAllCatalogMatches(db: Db): Promise<number> {
       id: tenders.id,
       title: tenders.title,
       description: tenders.description,
+      titleEn: tenders.titleEn,
+      descriptionEn: tenders.descriptionEn,
       category: tenders.category,
     })
     .from(tenders);
@@ -131,7 +134,7 @@ export async function reconcileAllCatalogMatches(db: Db): Promise<number> {
     await replaceTenderCatalogMatches(
       db,
       row.id,
-      `${row.title} ${row.description ?? ""} ${row.category}`,
+      matchHaystack(row),
     );
   }
   return rows.length;

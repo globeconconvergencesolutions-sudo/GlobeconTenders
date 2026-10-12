@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "check": "tsc --noEmit",
-    "test:pis": "tsx --test lib/pis/qualify.test.ts lib/pis/field-guidance.test.ts lib/pis/line-phrases.test.ts",
+    "test:pis": "tsx --test lib/pis/qualify.test.ts lib/pis/field-guidance.test.ts lib/pis/line-phrases.test.ts lib/pis/translate.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",

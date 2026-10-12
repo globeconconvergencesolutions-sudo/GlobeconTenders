@@ -32,6 +32,19 @@ export const catalogServiceLines = pgTable("catalog_service_lines", {
   active: boolean("active").notNull().default(true),
 });
 
+export const translationCache = pgTable(
+  "translation_cache",
+  {
+    id: serial("id").primaryKey(),
+    sourceHash: text("source_hash").notNull(),
+    sourceLang: text("source_lang").notNull(),
+    sourceText: text("source_text").notNull(),
+    translatedText: text("translated_text").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("translation_cache_source_hash_idx").on(table.sourceHash)],
+);
+
 export const procurementTypes = pgTable("procurement_types", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),

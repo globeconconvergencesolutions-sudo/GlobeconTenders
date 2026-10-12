@@ -10,6 +10,7 @@ import {
 } from "@/lib/db/schema";
 import { scoreOpportunity } from "@/lib/matching";
 import { mergeMatchScores, scoreCatalogText } from "@/lib/pis/catalog-match";
+import { matchHaystack } from "@/lib/pis/translate";
 import { daysUntil } from "@/lib/utils";
 
 export const LISTING_STATES = [
@@ -576,6 +577,8 @@ export async function reconcileTenderRelevance(orgId?: number): Promise<{
         id: tenders.id,
         title: tenders.title,
         description: tenders.description,
+        titleEn: tenders.titleEn,
+        descriptionEn: tenders.descriptionEn,
         category: tenders.category,
         deadline: tenders.deadline,
         sourceStatus: tenders.sourceStatus,
@@ -601,7 +604,7 @@ export async function reconcileTenderRelevance(orgId?: number): Promise<{
       );
 
     for (const row of rows) {
-      const noticeText = `${row.title} ${row.description ?? ""} ${row.category}`;
+      const noticeText = matchHaystack(row);
       const scored = scoreOpportunity(noticeText, activeLines);
       const catalogHits = await scoreCatalogText(db, noticeText);
       const merged = mergeMatchScores(

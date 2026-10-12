@@ -154,6 +154,8 @@ export function buildFilterConditions(filters: TenderQueryFilters) {
     conditions.push(
       or(
         ilike(tenders.title, pattern),
+        ilike(tenders.titleEn, pattern),
+        ilike(tenders.descriptionEn, pattern),
         ilike(tenders.referenceId, pattern),
         ilike(tenders.category, pattern),
         ilike(sources.name, pattern),
@@ -366,6 +368,9 @@ export async function getTendersPaginated(
         referenceId: tenders.referenceId,
         title: tenders.title,
         description: tenders.description,
+        sourceLang: tenders.sourceLang,
+        titleEn: tenders.titleEn,
+        descriptionEn: tenders.descriptionEn,
         projectLabel: tenders.projectLabel,
         category: tenders.category,
         deadline: tenders.deadline,
@@ -641,6 +646,9 @@ export async function getTendersForExport(
       referenceId: tenders.referenceId,
       title: tenders.title,
       description: tenders.description,
+      sourceLang: tenders.sourceLang,
+      titleEn: tenders.titleEn,
+      descriptionEn: tenders.descriptionEn,
       projectLabel: tenders.projectLabel,
       category: tenders.category,
       deadline: tenders.deadline,

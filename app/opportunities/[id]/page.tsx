@@ -303,6 +303,12 @@ export default async function OpportunityPage({
           Keyword match {row.matchScore}. That is 10 points for each whole-word hit. It is not the qualification result.
           Buyer and value say “Not sent by this source” when the connector left them blank.
         </p>
+        {row.titleEn && (
+          <p className="mt-6 text-sm leading-relaxed text-slate-600">
+            English reading for matching: {row.titleEn}. The description below stays in the buyer’s words.
+            A comparison with your company uses those words.
+          </p>
+        )}
         {row.url && (
           <a className="mt-4 inline-block text-sm text-blue-700" href={row.url}>
             Official notice
