@@ -103,6 +103,7 @@ export async function POST(request: Request) {
           sourceName: created.name,
           inserted: 0,
           updated: 0,
+          unchanged: 0,
           irrelevant: 0,
           errors: [
             error instanceof Error

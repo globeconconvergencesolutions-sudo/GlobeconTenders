@@ -9,6 +9,7 @@ export type SyncFeedbackResult = {
   inserted: number;
   updated: number;
   irrelevant?: number;
+  unchanged?: number;
   errors: string[];
 };
 
@@ -99,6 +100,9 @@ export function SyncFeedbackBanner({
                     <>
                       {" "}
                       — {result.inserted} new, {result.updated} updated
+                      {(result.unchanged ?? 0) > 0
+                        ? `, ${result.unchanged} already current`
+                        : ""}
                       {(result.irrelevant ?? 0) > 0
                         ? `, ${result.irrelevant} filtered`
                         : ""}

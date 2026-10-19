@@ -4,7 +4,7 @@ import { parseRssFeed } from "@/lib/sync/rss-parser";
 import type { SyncTenderItem } from "@/lib/sync/types";
 
 const FETCH_HEADERS = {
-  Accept: "application/rss+xml, application/xml, text/xml, */*",
+  Accept: "*/*",
   "User-Agent": "GlobeconTenderWatch/2.0 (+https://globecon.com)",
 };
 

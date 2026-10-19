@@ -38,18 +38,6 @@ async function fetchExploredPage(page: number): Promise<PpipResponse> {
     },
   });
 
-  if (response.status === 429) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    const retry = await fetchRemote(`${API_BASE}?${params.toString()}`, {
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "GlobeconTenderWatch/2.0",
-      },
-    });
-    if (!retry.ok) throw portalStatusError("Kenya PPIP", retry.status);
-    return (await retry.json()) as PpipResponse;
-  }
-
   if (!response.ok) {
     throw portalStatusError("Kenya PPIP", response.status);
   }
@@ -68,7 +56,7 @@ export async function fetchKenyaPpipTenders(): Promise<SyncTenderItem[]> {
       pages.push(first);
       continue;
     }
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 200));
     pages.push(await fetchExploredPage(page));
   }
 

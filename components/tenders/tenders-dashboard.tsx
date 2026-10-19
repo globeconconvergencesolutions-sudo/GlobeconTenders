@@ -213,50 +213,99 @@ function TendersDashboardInner({
     setSyncFeedback(null);
     setSyncError(null);
     setEmailAlertFeedback(null);
+    const collected: SyncFeedbackResult[] = [];
     try {
-      const response = await fetch("/api/sync", {
+      const listResponse = await fetch("/api/sync", {
         method: "POST",
         cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ list: true }),
       });
-      if (!response.ok) {
-        setSyncError(await readApiError(response, "Sync request failed"));
+      if (!listResponse.ok) {
+        setSyncError(await readApiError(listResponse, "Sync request failed"));
         return;
       }
-      const payload = (await response.json()) as {
-        results?: SyncFeedbackResult[];
-        alerts?: EmailAlertFeedback | null;
+      const listed = (await listResponse.json()) as {
+        sources?: Array<{ id: number; name: string }>;
       };
+      const queue = listed.sources ?? [];
+      if (queue.length === 0) {
+        showSuccessToast("No sources are turned on");
+        return;
+      }
 
-      if (payload.results?.length) {
-        setSyncFeedback(payload.results);
-        const totalInserted = payload.results.reduce(
-          (sum, r) => sum + r.inserted,
-          0,
-        );
-        const totalUpdated = payload.results.reduce(
-          (sum, r) => sum + r.updated,
-          0,
-        );
+      let alerts: EmailAlertFeedback | null = null;
+      for (let index = 0; index < queue.length; index += 1) {
+        const source = queue[index];
+        const response = await fetch("/api/sync", {
+          method: "POST",
+          cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sourceId: source.id,
+            notify: index === queue.length - 1,
+          }),
+        });
+        if (response.status === 504) {
+          collected.push({
+            sourceName: source.name,
+            inserted: 0,
+            updated: 0,
+            unchanged: 0,
+            irrelevant: 0,
+            errors: [
+              "This source took too long and was stopped. The other sources still sync.",
+            ],
+          });
+          continue;
+        }
+        if (!response.ok) {
+          const parsed = await readApiError(response, "Sync request failed");
+          collected.push({
+            sourceName: source.name,
+            inserted: 0,
+            updated: 0,
+            unchanged: 0,
+            irrelevant: 0,
+            errors: [parsed.message],
+          });
+          continue;
+        }
+        const payload = (await response.json()) as {
+          results?: SyncFeedbackResult[];
+          alerts?: EmailAlertFeedback | null;
+        };
+        if (payload.results?.length) collected.push(...payload.results);
+        if (payload.alerts) alerts = payload.alerts;
+      }
+
+      if (collected.length) {
+        setSyncFeedback(collected);
+        const totalInserted = collected.reduce((sum, row) => sum + row.inserted, 0);
+        const totalUpdated = collected.reduce((sum, row) => sum + row.updated, 0);
         showSuccessToast(
           `Sync complete — ${totalInserted} new, ${totalUpdated} updated`,
         );
       } else {
         showSuccessToast("Sync complete");
       }
-      if (payload.alerts) {
-        setEmailAlertFeedback(payload.alerts);
-      }
+      if (alerts) setEmailAlertFeedback(alerts);
       router.refresh();
     } catch {
-      setSyncFeedback([
-        {
-          sourceName: "Sync",
-          inserted: 0,
-          updated: 0,
-          irrelevant: 0,
-          errors: ["Network error — check your connection and try again"],
-        },
-      ]);
+      setSyncFeedback(
+        collected.length
+          ? collected
+          : [
+              {
+                sourceName: "Sync",
+                inserted: 0,
+                updated: 0,
+                unchanged: 0,
+                irrelevant: 0,
+                errors: ["Network error — check your connection and try again"],
+              },
+            ],
+      );
     } finally {
       setSyncing(false);
     }
