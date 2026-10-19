@@ -9,6 +9,7 @@ import {
   workspaceSettings,
 } from "@/lib/db/schema";
 import { scoreOpportunity } from "@/lib/matching";
+import { matchHaystack } from "@/lib/tenders/match-text";
 import { daysUntil } from "@/lib/utils";
 
 export const LISTING_STATES = [
@@ -575,6 +576,8 @@ export async function reconcileTenderRelevance(orgId?: number): Promise<{
         id: tenders.id,
         title: tenders.title,
         description: tenders.description,
+        titleEn: tenders.titleEn,
+        descriptionEn: tenders.descriptionEn,
         category: tenders.category,
         deadline: tenders.deadline,
         sourceStatus: tenders.sourceStatus,
@@ -600,10 +603,7 @@ export async function reconcileTenderRelevance(orgId?: number): Promise<{
       );
 
     for (const row of rows) {
-      const scored = scoreOpportunity(
-        `${row.title} ${row.description ?? ""} ${row.category}`,
-        activeLines,
-      );
+      const scored = scoreOpportunity(matchHaystack(row), activeLines);
       const baseListing = resolveListingFields({
         deadline: row.deadline,
         sourceStatus: row.sourceStatus,

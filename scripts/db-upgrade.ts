@@ -431,6 +431,19 @@ const statements = [
      SELECT 1 FROM "ba_account" a
      WHERE a."userId" = u."id"::text AND a."providerId" = 'credential'
    );`,
+
+  `ALTER TABLE "tenders" ADD COLUMN IF NOT EXISTS "source_lang" text;`,
+  `ALTER TABLE "tenders" ADD COLUMN IF NOT EXISTS "title_en" text;`,
+  `ALTER TABLE "tenders" ADD COLUMN IF NOT EXISTS "description_en" text;`,
+  `CREATE TABLE IF NOT EXISTS "translation_cache" (
+    "id" serial PRIMARY KEY NOT NULL,
+    "source_hash" text NOT NULL,
+    "source_lang" text NOT NULL,
+    "source_text" text NOT NULL,
+    "translated_text" text NOT NULL,
+    "created_at" timestamp DEFAULT now() NOT NULL
+  );`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "translation_cache_source_hash_idx" ON "translation_cache" ("source_hash");`,
 ];
 
 async function upgrade() {

@@ -14,6 +14,7 @@ import {
 import { useState } from "react";
 
 import { AppLogo } from "@/components/brand/app-logo";
+import { EnglishReading } from "@/components/tenders/english-reading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { PublicTenderView } from "@/lib/tenders/share";
@@ -143,6 +144,7 @@ export function PublicTenderViewPanel({
                 <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-3xl">
                   {tender.title}
                 </h1>
+                <EnglishReading text={tender.titleEn} sourceLang={tender.sourceLang} />
                 {!isHr && (
                   <p className="mt-2 text-sm text-slate-500">{tender.projectLabel}</p>
                 )}
@@ -218,6 +220,11 @@ export function PublicTenderViewPanel({
                   <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
                     {tender.description}
                   </p>
+                  {tender.descriptionEn && (
+                    <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-500">
+                      In English: {tender.descriptionEn}
+                    </p>
+                  )}
                 </section>
               )}
 

@@ -7,6 +7,7 @@ import { Clock, ExternalLink, Heart, Loader2 } from "lucide-react";
 import { useFeatures, useLexicon } from "@/components/providers/org-context-provider";
 import { ShareTenderButton } from "@/components/share/public-tender-view";
 
+import { EnglishReading } from "@/components/tenders/english-reading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -200,9 +201,10 @@ export function ProcurementOpportunityCard({
           </div>
         </div>
 
-        <h3 className="mb-3 line-clamp-3 flex-1 text-sm font-semibold leading-snug text-foreground">
+        <h3 className="mb-1 line-clamp-3 flex-1 text-sm font-semibold leading-snug text-foreground">
           {tender.title}
         </h3>
+        <EnglishReading text={tender.titleEn} sourceLang={tender.sourceLang} clamp />
 
         <div className="mb-4 space-y-2">
           <p className="text-xs text-muted-foreground">{tender.projectLabel}</p>

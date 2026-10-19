@@ -12,6 +12,8 @@ import {
   tenders,
 } from "@/lib/db/schema";
 import { detectRegionAndCountry, scoreOpportunity } from "@/lib/matching";
+import { matchHaystack } from "@/lib/tenders/match-text";
+import { ensureEnglishReading } from "@/lib/tenders/translate";
 import { orgAllowsSync } from "@/lib/platform/org-status";
 import { getWorkspaceSettings } from "@/lib/settings/workspace";
 import { normalizeCategory } from "@/lib/tenders/categories";
@@ -394,6 +396,7 @@ export async function ingestOpportunities(
   let skipped = 0;
   let irrelevant = 0;
   const errors: string[] = [];
+  const translationBudget = { remaining: 8 };
 
   for (const item of payload.items) {
     try {
@@ -426,29 +429,45 @@ export async function ingestOpportunities(
         hasHardDeadline: parsedDeadline.hasHardDeadline,
       });
 
-      const haystack = `${title} ${description ?? ""} ${item.countryLabel ?? ""} ${item.regionLabel ?? ""}`;
+      const [existing] = await db
+        .select({
+          id: tenders.id,
+          relevanceOverride: tenders.relevanceOverride,
+          titleEn: tenders.titleEn,
+          descriptionEn: tenders.descriptionEn,
+          sourceLang: tenders.sourceLang,
+        })
+        .from(tenders)
+        .where(
+          and(eq(tenders.sourceId, sourceId), eq(tenders.referenceId, referenceId)),
+        )
+        .limit(1);
+      const reading = await ensureEnglishReading(
+        db,
+        {
+          title,
+          description,
+          titleEn: existing?.titleEn,
+          descriptionEn: existing?.descriptionEn,
+          sourceLang: existing?.sourceLang,
+        },
+        { delayMs: 120, budget: translationBudget },
+      );
+      const haystack = `${title} ${description ?? ""} ${reading.matchTitle} ${reading.matchDescription} ${item.countryLabel ?? ""} ${item.regionLabel ?? ""}`;
       const geo = detectRegionAndCountry(haystack, allRegions, allCountries);
       const scored = scoreOpportunity(
-        `${title} ${description ?? ""} ${category}`,
+        matchHaystack({
+          title,
+          description,
+          category,
+          titleEn: reading.titleEn,
+          descriptionEn: reading.descriptionEn,
+        }),
         allServiceLines,
       );
 
       const regionLabel = item.regionLabel?.trim() || geo.regionLabel;
       const countryLabel = item.countryLabel?.trim() || geo.countryLabel;
-
-      const [existing] = await db
-        .select({
-          id: tenders.id,
-          relevanceOverride: tenders.relevanceOverride,
-        })
-        .from(tenders)
-        .where(
-          and(
-            eq(tenders.sourceId, sourceId),
-            eq(tenders.referenceId, referenceId),
-          ),
-        )
-        .limit(1);
 
       const listing = applyRelevanceGate(
         baseListing,
@@ -488,6 +507,9 @@ export async function ingestOpportunities(
             hasHardDeadline: listing.hasHardDeadline,
             isClosed: listing.isClosed,
             relevanceReason: listing.relevanceReason ?? null,
+            sourceLang: reading.sourceLang,
+            titleEn: reading.titleEn,
+            descriptionEn: reading.descriptionEn,
             updatedAt: new Date(),
           })
           .where(eq(tenders.id, existing.id));
@@ -516,6 +538,9 @@ export async function ingestOpportunities(
             hasHardDeadline: listing.hasHardDeadline,
             isClosed: listing.isClosed,
             relevanceReason: listing.relevanceReason ?? null,
+            sourceLang: reading.sourceLang,
+            titleEn: reading.titleEn,
+            descriptionEn: reading.descriptionEn,
           })
           .returning({ id: tenders.id });
         tenderId = created.id;

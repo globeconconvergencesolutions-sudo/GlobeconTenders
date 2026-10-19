@@ -14,6 +14,7 @@ export function tendersToCsv(rows: TenderWithSource[]): string {
   const headers = [
     "Reference",
     "Title",
+    "English title",
     "Source",
     "Category",
     "Region",
@@ -31,6 +32,7 @@ export function tendersToCsv(rows: TenderWithSource[]): string {
     [
       row.referenceId,
       row.title,
+      row.titleEn ?? "",
       row.sourceName,
       row.category,
       row.regionLabel ?? row.regionName ?? "",

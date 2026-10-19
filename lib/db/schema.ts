@@ -250,6 +250,12 @@ export const tenders = pgTable(
     >(),
     /** Short reason from the last gate decision (for Needs review UI). */
     relevanceReason: text("relevance_reason"),
+    /** Detected language when the notice is not English. The title stays in the buyer's words. */
+    sourceLang: text("source_lang"),
+    /** English reading of the title, shown beside the original and used for matching. */
+    titleEn: text("title_en"),
+    /** English reading of a short description slice. */
+    descriptionEn: text("description_en"),
     customFields: jsonb("custom_fields")
       .$type<Record<string, string | number | boolean | null>>()
       .notNull()
@@ -263,6 +269,19 @@ export const tenders = pgTable(
       table.referenceId,
     ),
   ],
+);
+
+export const translationCache = pgTable(
+  "translation_cache",
+  {
+    id: serial("id").primaryKey(),
+    sourceHash: text("source_hash").notNull(),
+    sourceLang: text("source_lang").notNull(),
+    sourceText: text("source_text").notNull(),
+    translatedText: text("translated_text").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("translation_cache_source_hash_idx").on(table.sourceHash)],
 );
 
 export const tenderServiceLineMatches = pgTable(

@@ -23,12 +23,14 @@ import { fetchTenderYetuTenders } from "@/lib/sync/tender-yetu";
 import type { SyncTenderItem } from "@/lib/sync/types";
 import { fetchWorldBankTenders } from "@/lib/sync/world-bank";
 import { normalizeCategory } from "@/lib/tenders/categories";
+import { matchHaystack } from "@/lib/tenders/match-text";
 import {
   applyRelevanceGate,
   reconcileTenderListings,
   resolveListingFields,
   type RelevanceOverride,
 } from "@/lib/tenders/lifecycle";
+import { ensureEnglishReading } from "@/lib/tenders/translate";
 
 export type SyncResult = {
   sourceId: number;
@@ -167,6 +169,9 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
       isClosed: tenders.isClosed,
       relevanceReason: tenders.relevanceReason,
       relevanceOverride: tenders.relevanceOverride,
+      sourceLang: tenders.sourceLang,
+      titleEn: tenders.titleEn,
+      descriptionEn: tenders.descriptionEn,
     })
     .from(tenders)
     .where(eq(tenders.sourceId, source.id));
@@ -200,6 +205,7 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
   let irrelevant = 0;
   const errors: string[] = [];
   const seen = new Set<string>();
+  const translationBudget = { remaining: 8 };
   const creates: Array<typeof tenders.$inferInsert & { matchSignature: string }> = [];
   const rewrites: number[] = [];
   const pendingMatches: Array<{
@@ -212,9 +218,21 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
     if (seen.has(item.referenceId)) continue;
     seen.add(item.referenceId);
     try {
+      const existing = byRef.get(item.referenceId);
+      const reading = await ensureEnglishReading(
+        db,
+        {
+          title: item.title,
+          description: item.description,
+          titleEn: existing?.titleEn,
+          descriptionEn: existing?.descriptionEn,
+          sourceLang: existing?.sourceLang,
+        },
+        { delayMs: 120, budget: translationBudget },
+      );
       const category = normalizeCategory(item.category, {
-        title: item.title,
-        description: item.description,
+        title: reading.matchTitle,
+        description: reading.matchDescription,
       });
       const baseListing = resolveListingFields({
         deadline: item.deadline,
@@ -222,15 +240,20 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
         hasHardDeadline: item.hasHardDeadline,
       });
       const geo = detectRegionAndCountry(
-        `${item.title} ${item.description ?? ""}`,
+        `${item.title} ${item.description ?? ""} ${reading.matchTitle} ${reading.matchDescription}`,
         allRegions,
         allCountries,
       );
       const scored = scoreOpportunity(
-        `${item.title} ${item.description ?? ""} ${category}`,
+        matchHaystack({
+          title: item.title,
+          description: item.description,
+          category,
+          titleEn: reading.titleEn,
+          descriptionEn: reading.descriptionEn,
+        }),
         allServiceLines,
       );
-      const existing = byRef.get(item.referenceId);
       const listing = applyRelevanceGate(
         baseListing,
         scored.topScore,
@@ -269,6 +292,9 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
         hasHardDeadline: listing.hasHardDeadline,
         isClosed: listing.isClosed,
         relevanceReason: listing.relevanceReason ?? null,
+        sourceLang: reading.sourceLang,
+        titleEn: reading.titleEn,
+        descriptionEn: reading.descriptionEn,
       };
 
       if (!existing) {
@@ -298,6 +324,9 @@ export async function syncSource(sourceId: number): Promise<SyncResult> {
         existing.hasHardDeadline === nextRow.hasHardDeadline &&
         existing.isClosed === nextRow.isClosed &&
         (existing.relevanceReason ?? "") === (nextRow.relevanceReason ?? "") &&
+        (existing.sourceLang ?? "") === (nextRow.sourceLang ?? "") &&
+        (existing.titleEn ?? "") === (nextRow.titleEn ?? "") &&
+        (existing.descriptionEn ?? "") === (nextRow.descriptionEn ?? "") &&
         (matchSignature.get(existing.id) ?? "") === nextMatches &&
         sameStoredDeadline(existing.deadline, nextRow.deadline);
 
