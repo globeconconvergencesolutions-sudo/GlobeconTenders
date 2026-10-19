@@ -1,9 +1,10 @@
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 
 import { getDb } from "../lib/db";
 import { tenders } from "../lib/db/schema";
 import { loadEnv } from "../lib/env";
 import {
+  detectSourceLanguage,
   ensureEnglishReading,
   translationQuotaClosed,
 } from "../lib/tenders/translate";
@@ -13,8 +14,8 @@ loadEnv();
 async function main() {
   const db = getDb();
   if (!db) throw new Error("Database not configured");
-  const limit = Number(process.argv[2] ?? 40);
-  const budget = { remaining: Number.isFinite(limit) && limit > 0 ? limit : 40 };
+  const limit = Number(process.argv[2] ?? 250);
+  const budget = { remaining: Number.isFinite(limit) && limit > 0 ? limit : 250 };
 
   const rows = await db
     .select({
@@ -25,35 +26,36 @@ async function main() {
       descriptionEn: tenders.descriptionEn,
       sourceLang: tenders.sourceLang,
     })
-    .from(tenders);
+    .from(tenders)
+    .where(isNull(tenders.titleEn));
+
+  const pending = rows.filter((row) =>
+    detectSourceLanguage(`${row.title} ${(row.description ?? "").slice(0, 280)}`),
+  );
 
   let translated = 0;
-  let unchanged = 0;
-  for (const row of rows) {
+  for (const row of pending) {
     if (translationQuotaClosed() || budget.remaining <= 0) break;
-    const reading = await ensureEnglishReading(db, row, { delayMs: 200, budget });
-    const same =
-      (reading.titleEn ?? null) === (row.titleEn ?? null) &&
-      (reading.descriptionEn ?? null) === (row.descriptionEn ?? null) &&
-      (reading.sourceLang ?? null) === (row.sourceLang ?? null);
-    if (same) {
-      unchanged += 1;
-      continue;
-    }
+    const reading = await ensureEnglishReading(db, row, {
+      delayMs: 120,
+      budget,
+      titlesOnly: true,
+    });
+    if (!reading.titleEn) continue;
     await db
       .update(tenders)
       .set({
         titleEn: reading.titleEn,
-        descriptionEn: reading.descriptionEn,
         sourceLang: reading.sourceLang,
         updatedAt: new Date(),
       })
       .where(eq(tenders.id, row.id));
-    if (reading.titleEn) translated += 1;
+    translated += 1;
   }
 
+  const left = pending.length - translated;
   console.log(
-    `English readings stored for ${translated} notices. ${unchanged} already current. Quota closed: ${translationQuotaClosed()}.`,
+    `English titles stored for ${translated} notices. ${left} foreign notices still waiting. Quota closed: ${translationQuotaClosed()}.`,
   );
 }
 

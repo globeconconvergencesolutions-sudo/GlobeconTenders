@@ -146,6 +146,8 @@ export type TranslateOptions = {
   delayMs?: number;
   /** Live API calls still allowed. Cached chunks do not count. Shared across a sync. */
   budget?: { remaining: number };
+  /** Translate the title only. The description stays in the buyer's words. */
+  titlesOnly?: boolean;
 };
 
 function readingHash(lang: string, text: string): string {
@@ -273,9 +275,10 @@ export async function englishReading(
   }
 
   const descriptionSlice = description.slice(0, DESCRIPTION_LIMIT);
-  const descriptionEn = descriptionSlice
-    ? await translateText(descriptionSlice, lang, cache, options, 2)
-    : null;
+  const descriptionEn =
+    options.titlesOnly || !descriptionSlice
+      ? input.descriptionEn?.trim() || null
+      : await translateText(descriptionSlice, lang, cache, options, 2);
 
   return {
     matchTitle: titleEn,
