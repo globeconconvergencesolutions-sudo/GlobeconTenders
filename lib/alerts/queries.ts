@@ -76,6 +76,7 @@ function selectAlertTenderFields() {
     url: tenders.url,
     regionLabel: tenders.regionLabel,
     countryLabel: tenders.countryLabel,
+    titleEn: tenders.titleEn,
   };
 }
 
@@ -193,6 +194,33 @@ export async function getRecentDigestLogs(userId: number, limit = 5) {
     .where(eq(emailDigestLog.userId, userId))
     .orderBy(desc(emailDigestLog.sentAt))
     .limit(limit);
+}
+
+/** The same open list the dashboard shows for this person's saved filters. */
+export async function getLiveTenderAlerts(
+  user: AlertUser,
+): Promise<AlertTenderRow[]> {
+  const db = getDb();
+  if (!db) return [];
+
+  const filterWhere = buildFilterConditions({
+    hideClosed: true,
+    listingBucket: "live",
+    filterState: user.filterState,
+  });
+
+  return db
+    .select(selectAlertTenderFields())
+    .from(tenders)
+    .innerJoin(
+      sources,
+      and(eq(tenders.sourceId, sources.id), isNull(sources.archivedAt)),
+    )
+    .leftJoin(regions, eq(tenders.regionId, regions.id))
+    .leftJoin(countries, eq(tenders.countryId, countries.id))
+    .where(and(eq(tenders.orgId, user.orgId), filterWhere))
+    .orderBy(asc(tenders.deadline))
+    .limit(50);
 }
 
 export async function getClosingSoonAlerts(

@@ -2,6 +2,7 @@ import {
   getAlertUsers,
   getClosingSoonAlerts,
   getHighMatchAlerts,
+  getLiveTenderAlerts,
   getNewListingAlerts,
   logAlertDeliveries,
   logDigestResult,
@@ -79,18 +80,28 @@ async function sendUserDigest(
 
   try {
     const includeAlreadySent = options.resend === true;
-    const [closingSoon, highMatch, newListings] = await Promise.all([
-      getClosingSoonAlerts(user, { includeAlreadySent }),
-      getHighMatchAlerts(user, {
-        ...(options.afterSync ? { sinceHours: 24 } : {}),
-        includeAlreadySent,
-      }),
-      options.afterSync || options.manual
-        ? getNewListingAlerts(user, { sinceHours: 24, includeAlreadySent })
-        : Promise.resolve([]),
-    ]);
+    const liveTenders = options.resend
+      ? await getLiveTenderAlerts(user)
+      : [];
+    const [closingSoon, highMatch, newListings] = options.resend
+      ? await Promise.all([
+          getClosingSoonAlerts(user, { includeAlreadySent: true }),
+          getHighMatchAlerts(user, { includeAlreadySent: true }),
+          Promise.resolve([] as Awaited<ReturnType<typeof getNewListingAlerts>>),
+        ])
+      : await Promise.all([
+          getClosingSoonAlerts(user, { includeAlreadySent }),
+          getHighMatchAlerts(user, {
+            ...(options.afterSync ? { sinceHours: 24 } : {}),
+            includeAlreadySent,
+          }),
+          options.afterSync || options.manual
+            ? getNewListingAlerts(user, { sinceHours: 24, includeAlreadySent })
+            : Promise.resolve([]),
+        ]);
 
     if (
+      liveTenders.length === 0 &&
       closingSoon.length === 0 &&
       highMatch.length === 0 &&
       newListings.length === 0
@@ -126,7 +137,8 @@ async function sendUserDigest(
       recipientName: user.name,
       closingSoon,
       highMatch,
-      newListings: uniqueNew,
+      newListings: options.resend ? [] : uniqueNew,
+      liveTenders: options.resend ? liveTenders : [],
       closingSoonDays: user.notificationPrefs.closingSoonDays,
       highMatchThreshold: user.notificationPrefs.highMatchThreshold,
       appUrl: config.appUrl,
@@ -156,7 +168,7 @@ async function sendUserDigest(
       logAlertDeliveries(
         user.id,
         "new_listing",
-        uniqueNew.map((row) => row.id),
+        (options.resend ? liveTenders : uniqueNew).map((row) => row.id),
         user.orgId,
       ),
       logDigestResult({
@@ -175,7 +187,7 @@ async function sendUserDigest(
       status: "sent",
       closingCount: closingSoon.length,
       highMatchCount: highMatch.length,
-      newCount: uniqueNew.length,
+      newCount: options.resend ? liveTenders.length : uniqueNew.length,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Digest failed";

@@ -257,7 +257,7 @@ export function NotificationsSettings({
           title={resendAlreadySent ? "Resend tender alerts?" : "Send tender alerts now?"}
           description={
             resendAlreadySent
-              ? "Included recipients will be emailed again, including alerts they have already received. Personal opt-outs still apply."
+              ? "Each included person receives the live tenders on their own dashboard, including notices already sent. Personal opt-outs still apply."
               : "Included recipients receive pending alerts only. Alerts they have already received stay skipped. Personal opt-outs still apply."
           }
           confirmLabel={resendAlreadySent ? "Resend alerts" : "Send alerts"}
@@ -278,7 +278,7 @@ export function NotificationsSettings({
                 Resend alerts people have already received
               </span>
               <span className="mt-1 block text-xs text-muted-foreground">
-                Use this when a recipient should get the same digest again.
+                Each person receives the live tenders currently on their dashboard, including ones already emailed.
               </span>
             </span>
           </label>

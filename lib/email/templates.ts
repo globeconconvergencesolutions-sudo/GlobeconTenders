@@ -17,6 +17,7 @@ export type AlertTenderRow = {
   url: string | null;
   regionLabel: string | null;
   countryLabel: string | null;
+  titleEn?: string | null;
 };
 
 export type DigestEmailInput = {
@@ -24,6 +25,8 @@ export type DigestEmailInput = {
   closingSoon: AlertTenderRow[];
   highMatch: AlertTenderRow[];
   newListings?: AlertTenderRow[];
+  /** Current dashboard list for this recipient. Used when an admin resends. */
+  liveTenders?: AlertTenderRow[];
   closingSoonDays: number;
   highMatchThreshold: number;
   appUrl: string;
@@ -69,6 +72,11 @@ function tenderRowsHtml(rows: AlertTenderRow[], appUrl: string): string {
             <div style="margin-top:8px;font-size:14px;font-weight:600;color:#0f172a;line-height:1.4;">
               ${escapeHtml(row.title)}
             </div>
+            ${
+              row.titleEn
+                ? `<div style="margin-top:4px;font-size:12px;color:#475569;line-height:1.4;">In English: ${escapeHtml(row.titleEn)}</div>`
+                : ""
+            }
             <div style="margin-top:4px;font-size:12px;color:#64748b;">
               ${escapeHtml(row.referenceId)} · ${escapeHtml(row.category)}
             </div>
@@ -149,8 +157,11 @@ export function buildDigestEmail(input: DigestEmailInput): {
   const { lexicon } = org;
   const opp = lexicon.opportunityPlural.toLowerCase();
   const newListings = input.newListings ?? [];
-  const total =
-    input.closingSoon.length + input.highMatch.length + newListings.length;
+  const liveTenders = input.liveTenders ?? [];
+  const showingLive = liveTenders.length > 0;
+  const total = showingLive
+    ? liveTenders.length
+    : input.closingSoon.length + input.highMatch.length + newListings.length;
   const dateLabel = new Date().toLocaleDateString("en-GB", {
     weekday: "long",
     day: "numeric",
@@ -158,8 +169,9 @@ export function buildDigestEmail(input: DigestEmailInput): {
     year: "numeric",
   });
 
-  const subject =
-    newListings.length > 0 && input.closingSoon.length === 0 && input.highMatch.length === 0
+  const subject = showingLive
+    ? `${org.emailHeaderLabel} — ${total} live ${total === 1 ? lexicon.opportunity.toLowerCase() : opp}`
+    : newListings.length > 0 && input.closingSoon.length === 0 && input.highMatch.length === 0
       ? `${org.emailHeaderLabel} — ${newListings.length} new ${
           newListings.length === 1
             ? lexicon.opportunity.toLowerCase()
@@ -183,11 +195,23 @@ export function buildDigestEmail(input: DigestEmailInput): {
       </div>
       <div style="background:#fff;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 16px 16px;padding:28px;">
         <p style="margin:0;font-size:15px;color:#334155;line-height:1.6;">
-          We found <strong>${total}</strong> ${escapeHtml(opp)} matching your saved filters and alert preferences.
+          We found <strong>${total}</strong> ${escapeHtml(opp)} ${
+            showingLive
+              ? "on your live dashboard."
+              : "matching your saved filters and alert preferences."
+          }
         </p>
         <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;">
           ${
-            newListings.length
+            showingLive
+              ? `<div style="flex:1;min-width:140px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;">
+            <div style="font-size:24px;font-weight:700;color:#0f172a;">${liveTenders.length}</div>
+            <div style="font-size:12px;color:#475569;margin-top:4px;">Live on your dashboard</div>
+          </div>`
+              : ""
+          }
+          ${
+            !showingLive && newListings.length
               ? `<div style="flex:1;min-width:140px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;padding:14px 16px;">
             <div style="font-size:24px;font-weight:700;color:#6d28d9;">${newListings.length}</div>
             <div style="font-size:12px;color:#475569;margin-top:4px;">New from latest sync</div>
@@ -204,26 +228,45 @@ export function buildDigestEmail(input: DigestEmailInput): {
           </div>
         </div>
         ${sectionHtml(
-          "New from latest sync",
-          `Live ${opp} added in the last sync that match your saved filters.`,
-          newListings,
+          "Live tenders",
+          "The open list on your dashboard, using your saved filters.",
+          liveTenders,
           input.appUrl,
           lexicon,
         )}
-        ${sectionHtml(
-          "Closing soon",
-          `Open ${opp} in your filter set closing within the next ${input.closingSoonDays} days.`,
-          input.closingSoon,
-          input.appUrl,
-          lexicon,
-        )}
-        ${sectionHtml(
-          "High match opportunities",
-          `${lexicon.opportunityPlural} scoring ${input.highMatchThreshold} or above against ${org.displayName} ${lexicon.categoryPlural.toLowerCase()}.`,
-          input.highMatch,
-          input.appUrl,
-          lexicon,
-        )}
+        ${
+          showingLive
+            ? ""
+            : sectionHtml(
+                "New from latest sync",
+                `Live ${opp} added in the last sync that match your saved filters.`,
+                newListings,
+                input.appUrl,
+                lexicon,
+              )
+        }
+        ${
+          showingLive
+            ? ""
+            : sectionHtml(
+                "Closing soon",
+                `Open ${opp} in your filter set closing within the next ${input.closingSoonDays} days.`,
+                input.closingSoon,
+                input.appUrl,
+                lexicon,
+              )
+        }
+        ${
+          showingLive
+            ? ""
+            : sectionHtml(
+                "High match opportunities",
+                `${lexicon.opportunityPlural} scoring ${input.highMatchThreshold} or above against ${org.displayName} ${lexicon.categoryPlural.toLowerCase()}.`,
+                input.highMatch,
+                input.appUrl,
+                lexicon,
+              )
+        }
         <div style="margin-top:32px;padding-top:20px;border-top:1px solid #e2e8f0;">
           <a href="${escapeHtml(input.appUrl)}" style="display:inline-block;background:${escapeHtml(org.primaryColor)};color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 18px;border-radius:10px;">
             Open dashboard
@@ -242,18 +285,25 @@ export function buildDigestEmail(input: DigestEmailInput): {
     `${org.emailHeaderLabel} — ${dateLabel}`,
     `Hi ${input.recipientName},`,
     "",
-    `${total} ${opp} matching your filters:`,
-    newListings.length ? `- ${newListings.length} new from latest sync` : "",
+    showingLive
+      ? `${total} live ${opp} on your dashboard.`
+      : `${total} ${opp} matching your filters:`,
+    !showingLive && newListings.length
+      ? `- ${newListings.length} new from latest sync`
+      : "",
     `- ${input.closingSoon.length} closing within ${input.closingSoonDays} days`,
     `- ${input.highMatch.length} high match (score ≥ ${input.highMatchThreshold})`,
     "",
-    newListings.length
+    liveTenders.length
+      ? `LIVE TENDERS\n${tenderRowsText(liveTenders, input.appUrl, lexicon.deadline)}`
+      : "",
+    !showingLive && newListings.length
       ? `NEW FROM SYNC\n${tenderRowsText(newListings, input.appUrl, lexicon.deadline)}`
       : "",
-    input.closingSoon.length
+    !showingLive && input.closingSoon.length
       ? `CLOSING SOON\n${tenderRowsText(input.closingSoon, input.appUrl, lexicon.deadline)}`
       : "",
-    input.highMatch.length
+    !showingLive && input.highMatch.length
       ? `HIGH MATCH\n${tenderRowsText(input.highMatch, input.appUrl, lexicon.deadline)}`
       : "",
     "",
