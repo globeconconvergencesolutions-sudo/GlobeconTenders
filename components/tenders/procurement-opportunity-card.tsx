@@ -235,7 +235,10 @@ export function ProcurementOpportunityCard({
           <div className="flex items-center justify-between text-xs">
             <span className="flex items-center gap-1 text-muted-foreground">
               <Clock className="h-3.5 w-3.5" />
-              {t("deadline")}: {formatDeadline(tender.deadline)}
+              {t("deadline")}:{" "}
+              {timing.tone === "rolling"
+                ? "No closing date"
+                : formatDeadline(tender.deadline)}
             </span>
             <span
               className={cn(

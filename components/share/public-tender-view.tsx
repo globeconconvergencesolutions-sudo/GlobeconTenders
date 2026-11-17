@@ -157,7 +157,9 @@ export function PublicTenderViewPanel({
                     {deadlineLabel}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-slate-900">
-                    {formatDeadline(tender.deadline)}
+                    {timing.tone === "rolling"
+                      ? "No closing date"
+                      : formatDeadline(tender.deadline)}
                   </p>
                   <p
                     className={cn(

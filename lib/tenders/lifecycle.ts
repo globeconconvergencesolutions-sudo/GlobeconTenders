@@ -242,9 +242,13 @@ export const pipelineVisibleSql = sql`(
   and ${tenders.listingState} is distinct from 'review'
 )`;
 
-/** Default pipeline: live + rolling (actionable). */
+/** Default pipeline: a future hard deadline, or a notice with no closing date. */
 export const liveListingSql = sql`(
-  ${tenders.listingState} in ('live', 'rolling')
+  ${tenders.listingState} = 'rolling'
+  or (
+    ${tenders.listingState} = 'live'
+    and ${tenders.deadline}::date >= CURRENT_DATE
+  )
   or (
     ${tenders.listingState} is null
     and ${tenders.isClosed} = false
@@ -320,19 +324,19 @@ export function opportunityTiming(
       tone: "stale",
     };
   }
-  if (state === "expired" || daysLeft < 0) {
-    return {
-      daysLeft,
-      label: `Expired · ${Math.abs(daysLeft)}d ago`,
-      tone: "expired",
-    };
-  }
   if (
     state === "rolling" ||
     options?.hasHardDeadline === false ||
     daysLeft > ROLLING_DEADLINE_DAYS
   ) {
     return { daysLeft, label: "No hard deadline", tone: "rolling" };
+  }
+  if (state === "expired" || daysLeft < 0) {
+    return {
+      daysLeft,
+      label: `Expired · ${Math.abs(daysLeft)}d ago`,
+      tone: "expired",
+    };
   }
   if (daysLeft === 0) {
     return { daysLeft, label: "Closes today", tone: "urgent" };
@@ -421,7 +425,8 @@ export function listingStateBadgeLabel(state: ListingState | null | undefined): 
 /**
  * Recompute listing_state / is_closed / has_hard_deadline for an org (or all).
  * Safe to run on every sync/cron — calendar drift is the main reason rows go stale.
- * Rows already marked irrelevant are left alone (relevance backfill / sync owns them).
+ * Rows marked irrelevant or kept out stay put. A manual allow still follows the calendar,
+ * so a real deadline that has passed leaves Live.
  */
 export async function reconcileTenderListings(orgId?: number): Promise<{
   updated: number;
@@ -438,6 +443,7 @@ export async function reconcileTenderListings(orgId?: number): Promise<{
     UPDATE "tenders"
     SET
       "has_hard_deadline" = CASE
+        WHEN "has_hard_deadline" = false THEN false
         WHEN coalesce("source_status", '') ~* '(N\\/?A|NONE|NO[[:space:]_-]?DEADLINE|OPEN[[:space:]_-]?ENDED|ROLLING)'
           THEN false
         WHEN "deadline"::date > CURRENT_DATE + interval '300 days'
@@ -447,6 +453,7 @@ export async function reconcileTenderListings(orgId?: number): Promise<{
       "listing_state" = CASE
         WHEN coalesce("source_status", '') ~* '(CLOSED|EXPIRED|CANCEL+ED|AWARDED|WITHDRAWN|COMPLETED|ARCHIVED)'
           THEN 'closed'
+        WHEN "has_hard_deadline" = false THEN 'rolling'
         WHEN coalesce("source_status", '') ~* '(N\\/?A|NONE|NO[[:space:]_-]?DEADLINE|OPEN[[:space:]_-]?ENDED|ROLLING)'
           OR "deadline"::date > CURRENT_DATE + interval '300 days'
           THEN 'rolling'
@@ -460,6 +467,7 @@ export async function reconcileTenderListings(orgId?: number): Promise<{
       "is_closed" = CASE
         WHEN coalesce("source_status", '') ~* '(CLOSED|EXPIRED|CANCEL+ED|AWARDED|WITHDRAWN|COMPLETED|ARCHIVED)'
           THEN true
+        WHEN "has_hard_deadline" = false THEN false
         WHEN coalesce("source_status", '') ~* '(N\\/?A|NONE|NO[[:space:]_-]?DEADLINE|OPEN[[:space:]_-]?ENDED|ROLLING)'
           OR "deadline"::date > CURRENT_DATE + interval '300 days'
           THEN false
@@ -474,12 +482,13 @@ export async function reconcileTenderListings(orgId?: number): Promise<{
     ${orgClause}
       AND "listing_state" IS DISTINCT FROM 'irrelevant'
       AND "listing_state" IS DISTINCT FROM 'review'
-      AND coalesce("relevance_override", '') = ''
+      AND coalesce("relevance_override", '') IS DISTINCT FROM 'exclude'
       AND (
         "listing_state" IS DISTINCT FROM (
           CASE
             WHEN coalesce("source_status", '') ~* '(CLOSED|EXPIRED|CANCEL+ED|AWARDED|WITHDRAWN|COMPLETED|ARCHIVED)'
               THEN 'closed'
+            WHEN "has_hard_deadline" = false THEN 'rolling'
             WHEN coalesce("source_status", '') ~* '(N\\/?A|NONE|NO[[:space:]_-]?DEADLINE|OPEN[[:space:]_-]?ENDED|ROLLING)'
               OR "deadline"::date > CURRENT_DATE + interval '300 days'
               THEN 'rolling'
@@ -495,6 +504,7 @@ export async function reconcileTenderListings(orgId?: number): Promise<{
           CASE
             WHEN coalesce("source_status", '') ~* '(CLOSED|EXPIRED|CANCEL+ED|AWARDED|WITHDRAWN|COMPLETED|ARCHIVED)'
               THEN true
+            WHEN "has_hard_deadline" = false THEN false
             WHEN coalesce("source_status", '') ~* '(N\\/?A|NONE|NO[[:space:]_-]?DEADLINE|OPEN[[:space:]_-]?ENDED|ROLLING)'
               OR "deadline"::date > CURRENT_DATE + interval '300 days'
               THEN false
@@ -508,6 +518,7 @@ export async function reconcileTenderListings(orgId?: number): Promise<{
         )
         OR "has_hard_deadline" IS DISTINCT FROM (
           CASE
+            WHEN "has_hard_deadline" = false THEN false
             WHEN coalesce("source_status", '') ~* '(N\\/?A|NONE|NO[[:space:]_-]?DEADLINE|OPEN[[:space:]_-]?ENDED|ROLLING)'
               THEN false
             WHEN "deadline"::date > CURRENT_DATE + interval '300 days'

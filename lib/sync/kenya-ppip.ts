@@ -57,7 +57,11 @@ export async function fetchKenyaPpipTenders(): Promise<SyncTenderItem[]> {
       continue;
     }
     await new Promise((resolve) => setTimeout(resolve, 200));
-    pages.push(await fetchExploredPage(page));
+    try {
+      pages.push(await fetchExploredPage(page));
+    } catch {
+      break;
+    }
   }
 
   const now = new Date();
