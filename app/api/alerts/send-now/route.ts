@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { triggerManualAlertSend } from "@/lib/alerts/engine";
 import { requireSessionUser } from "@/lib/auth/session";
@@ -7,7 +8,7 @@ import { getEmailConnectionStatus } from "@/lib/email/transport";
 
 let manualSendInProgress = false;
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const user = await requireSessionUser();
     if (user.role !== "super_admin") {
@@ -43,9 +44,15 @@ export async function POST() {
       );
     }
 
+    const body = z
+      .object({ resend: z.boolean().optional() })
+      .parse(await request.json().catch(() => ({})));
+
     manualSendInProgress = true;
     try {
-      const result = await triggerManualAlertSend(user.orgId);
+      const result = await triggerManualAlertSend(user.orgId, {
+        resend: body.resend === true,
+      });
       return NextResponse.json({
         ...result,
         sentAt: new Date().toISOString(),
@@ -54,6 +61,9 @@ export async function POST() {
       manualSendInProgress = false;
     }
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: "Invalid send request" }, { status: 400 });
+    }
     if (error instanceof Error && error.message === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

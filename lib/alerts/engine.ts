@@ -39,6 +39,7 @@ async function sendUserDigest(
   options: {
     afterSync?: boolean;
     manual?: boolean;
+    resend?: boolean;
     orgPresentation?: Awaited<ReturnType<typeof getEmailOrgPresentation>>;
   } = {},
 ): Promise<UserDigestResult> {
@@ -77,16 +78,15 @@ async function sendUserDigest(
   }
 
   try {
+    const includeAlreadySent = options.resend === true;
     const [closingSoon, highMatch, newListings] = await Promise.all([
-      getClosingSoonAlerts(user),
-      getHighMatchAlerts(
-        user,
-        options.afterSync ? { sinceHours: 24 } : undefined,
-      ),
-      options.afterSync
-        ? getNewListingAlerts(user, { sinceHours: 24 })
-        : options.manual
-          ? getNewListingAlerts(user, { sinceHours: 24 })
+      getClosingSoonAlerts(user, { includeAlreadySent }),
+      getHighMatchAlerts(user, {
+        ...(options.afterSync ? { sinceHours: 24 } : {}),
+        includeAlreadySent,
+      }),
+      options.afterSync || options.manual
+        ? getNewListingAlerts(user, { sinceHours: 24, includeAlreadySent })
         : Promise.resolve([]),
     ]);
 
@@ -201,7 +201,12 @@ async function sendUserDigest(
 }
 
 export async function processAllAlertDigests(
-  options: { afterSync?: boolean; manual?: boolean; orgId?: number } = {},
+  options: {
+    afterSync?: boolean;
+    manual?: boolean;
+    resend?: boolean;
+    orgId?: number;
+  } = {},
 ): Promise<BulkDigestResult> {
   const config = getEmailConfig();
   if (!config) {
@@ -282,6 +287,11 @@ export async function triggerPostSyncAlerts(
 
 export async function triggerManualAlertSend(
   orgId: number,
+  options: { resend?: boolean } = {},
 ): Promise<BulkDigestResult> {
-  return processAllAlertDigests({ manual: true, orgId });
+  return processAllAlertDigests({
+    manual: true,
+    orgId,
+    resend: options.resend === true,
+  });
 }

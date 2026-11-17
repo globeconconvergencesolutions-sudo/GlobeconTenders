@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -61,6 +62,7 @@ export function NotificationsSettings({
   const [sendNowOpen, setSendNowOpen] = useState(false);
   const [sendNowError, setSendNowError] = useState<string | null>(null);
   const [sendNowMessage, setSendNowMessage] = useState<string | null>(null);
+  const [resendAlreadySent, setResendAlreadySent] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -146,7 +148,11 @@ export function NotificationsSettings({
     setSendNowMessage(null);
     setError(null);
     try {
-      const response = await fetch("/api/alerts/send-now", { method: "POST" });
+      const response = await fetch("/api/alerts/send-now", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resend: resendAlreadySent }),
+      });
       const payload = await response.json();
       if (!response.ok) {
         throw new Error(payload.error ?? "Could not send tender alerts");
@@ -195,6 +201,7 @@ export function NotificationsSettings({
                 type="button"
                 onClick={() => {
                   setSendNowError(null);
+                  setResendAlreadySent(false);
                   setSendNowOpen(true);
                 }}
                 disabled={sendingNow || saving || !workspaceEnabled}
@@ -231,8 +238,9 @@ export function NotificationsSettings({
         <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100">
           <p className="font-medium">Manual delivery</p>
           <p className="mt-1 opacity-90">
-            Sends pending tender alerts to the configured recipients. Previously
-            delivered alerts are excluded, and personal opt-outs still apply.
+            Sends pending tender alerts to the configured recipients. People who
+            already received an alert are skipped unless you choose resend.
+            Personal opt-outs still apply.
           </p>
           {sendNowMessage && (
             <p className="mt-2 font-medium text-blue-700 dark:text-blue-200">
@@ -246,14 +254,35 @@ export function NotificationsSettings({
         <ConfirmDialog
           open={sendNowOpen}
           onOpenChange={setSendNowOpen}
-          title="Send tender alerts now?"
-          description="This will email all currently eligible, pending tender alerts to the configured recipients. Previously delivered alerts will not be resent, and personal opt-outs still apply."
-          confirmLabel="Send alerts"
+          title={resendAlreadySent ? "Resend tender alerts?" : "Send tender alerts now?"}
+          description={
+            resendAlreadySent
+              ? "Included recipients will be emailed again, including alerts they have already received. Personal opt-outs still apply."
+              : "Included recipients receive pending alerts only. Alerts they have already received stay skipped. Personal opt-outs still apply."
+          }
+          confirmLabel={resendAlreadySent ? "Resend alerts" : "Send alerts"}
           cancelLabel="Cancel"
           loading={sendingNow}
           error={sendNowError}
           onConfirm={sendAlertsNow}
-        />
+        >
+          <label className="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-3 text-sm dark:border-border">
+            <Checkbox
+              checked={resendAlreadySent}
+              onCheckedChange={(checked) => setResendAlreadySent(checked === true)}
+              disabled={sendingNow}
+              className="mt-0.5"
+            />
+            <span>
+              <span className="font-medium text-foreground">
+                Resend alerts people have already received
+              </span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                Use this when a recipient should get the same digest again.
+              </span>
+            </span>
+          </label>
+        </ConfirmDialog>
       )}
 
       {error && (

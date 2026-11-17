@@ -197,13 +197,16 @@ export async function getRecentDigestLogs(userId: number, limit = 5) {
 
 export async function getClosingSoonAlerts(
   user: AlertUser,
+  options: { includeAlreadySent?: boolean } = {},
 ): Promise<AlertTenderRow[]> {
   if (!user.notificationPrefs.closingSoon) return [];
 
   const db = getDb();
   if (!db) return [];
 
-  const sentIds = await getSentTenderIds(user.id, "closing_soon");
+  const sentIds = options.includeAlreadySent
+    ? new Set<number>()
+    : await getSentTenderIds(user.id, "closing_soon");
   const filterWhere = buildFilterConditions({
     hideClosed: true,
     listingBucket: "live",
@@ -245,14 +248,16 @@ export async function getClosingSoonAlerts(
 
 export async function getHighMatchAlerts(
   user: AlertUser,
-  options: { sinceHours?: number } = {},
+  options: { sinceHours?: number; includeAlreadySent?: boolean } = {},
 ): Promise<AlertTenderRow[]> {
   if (!user.notificationPrefs.highMatch) return [];
 
   const db = getDb();
   if (!db) return [];
 
-  const sentIds = await getSentTenderIds(user.id, "high_match");
+  const sentIds = options.includeAlreadySent
+    ? new Set<number>()
+    : await getSentTenderIds(user.id, "high_match");
   const filterWhere = buildFilterConditions({
     hideClosed: true,
     listingBucket: "live",
@@ -293,13 +298,15 @@ export async function getHighMatchAlerts(
 
 export async function getNewListingAlerts(
   user: AlertUser,
-  options: { sinceHours?: number } = {},
+  options: { sinceHours?: number; includeAlreadySent?: boolean } = {},
 ): Promise<AlertTenderRow[]> {
   const db = getDb();
   if (!db) return [];
 
   const sinceHours = options.sinceHours ?? 24;
-  const sentIds = await getSentTenderIds(user.id, "new_listing");
+  const sentIds = options.includeAlreadySent
+    ? new Set<number>()
+    : await getSentTenderIds(user.id, "new_listing");
   const filterWhere = buildFilterConditions({
     hideClosed: true,
     listingBucket: "live",

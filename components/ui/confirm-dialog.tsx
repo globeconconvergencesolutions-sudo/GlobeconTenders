@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ type ConfirmDialogProps = {
   destructive?: boolean;
   loading?: boolean;
   error?: string | null;
+  children?: ReactNode;
   requireTypedPhrase?: string;
   typedPhraseLabel?: string;
   onConfirm: () => void | Promise<void>;
@@ -40,6 +41,7 @@ export function ConfirmDialog({
   destructive = false,
   loading = false,
   error,
+  children,
   requireTypedPhrase,
   typedPhraseLabel,
   onConfirm,
@@ -63,6 +65,7 @@ export function ConfirmDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
+        {children}
         {needsTypedConfirm && (
           <div className="space-y-2">
             <Label htmlFor="confirm-typed-phrase">
